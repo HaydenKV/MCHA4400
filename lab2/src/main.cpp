@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
     // Check if input is an image or video (or neither)
     // bool isVideo = true; // TODO
     // bool isImage = true; // TODO
+    
     // Try to read the input as an image
     cv::Mat inputImage = cv::imread(inputPath.string(), cv::IMREAD_COLOR);
     bool isImage = !inputImage.empty();  // It’s an image if this isn’t empty
@@ -122,7 +123,29 @@ int main(int argc, char *argv[])
         bench.output(&bench_output);
 
         // TODO: Run the benchmarks for the 4 feature detectors
+        bench
+            .title("Feature Detector")
+            .unit("op")
+            .warmup(5)
+            .minEpochIterations(111)
+            .relative(true)
+            .performanceCounters(false);
 
+        bench.run("Harris", [&] {
+            detectAndDrawHarris(inputImage, maxNumFeatures);
+        });
+
+        bench.run("Shi-Tomasi", [&] {
+            detectAndDrawShiAndTomasi(inputImage, maxNumFeatures);
+        });
+
+        bench.run("FAST", [&] {
+            detectAndDrawFAST(inputImage, maxNumFeatures);
+        });
+
+        bench.run("ArUco", [&] {
+            detectAndDrawArUco(inputImage, maxNumFeatures);
+        });
 
         // Restore console output
         std::fclose(stdout);
@@ -137,55 +160,102 @@ int main(int argc, char *argv[])
 
     if (isImage)
     {
-        // TODO: Call one of the detectAndDraw functions from imagefeatures.cpp according to the detector option specified at the command line
+        // Call one of the detectAndDraw functions from imagefeatures.cpp according to the detector option specified at the command line
+        cv::Mat output;
         if (detector == "harris"){
-            cv::Mat output = detectAndDrawHarris(inputImage, maxNumFeatures);
-        
-            if (doExport)
-            {
-                // TODO: Write image returned from detectAndDraw to outputPath
-                cv::imwrite(outputPath.string(), output);
-            }
-            else
-            {
-                // TODO: Display image returned from detectAndDraw on screen and wait for keypress
-                cv::imshow("Harris Corners", output);
-                cv::waitKey(0);
-            }
+            output = detectAndDrawHarris(inputImage, maxNumFeatures);
+        } else if (detector == "shi") {
+            output = detectAndDrawShiAndTomasi(inputImage, maxNumFeatures);
+        } else if (detector == "fast") {
+            output = detectAndDrawFAST(inputImage, maxNumFeatures);
+        } else if (detector == "aruco") {
+            output = detectAndDrawArUco(inputImage, maxNumFeatures);
+        } else {
+            std::println("Unknown detector: {}", detector);
+            return EXIT_FAILURE;
+        }
+
+        if (doExport)
+        {
+            // Write image returned from detectAndDraw to outputPath
+            cv::imwrite(outputPath.string(), output);
+        }
+        else
+        {
+            // Display image returned from detectAndDraw on screen and wait for keypress
+            cv::imshow("Detected Features", output);
+            cv::waitKey(0);
         }
     }
 
     if (isVideo)
     {
+        cv::VideoWriter outputVideo;
         if (doExport)
         {
-            // TODO: Open output video for writing using the same fps as the input video
+            // Open output video for writing using the same fps as the input video
             //       and the codec set to cv::VideoWriter::fourcc('m', 'p', '4', 'v')
+            double fps = inputVideo.get(cv::CAP_PROP_FPS);
+            cv::Size frameSize(
+                (int)inputVideo.get(cv::CAP_PROP_FRAME_WIDTH),
+                (int)inputVideo.get(cv::CAP_PROP_FRAME_HEIGHT));
+
+            outputVideo.open(outputPath.string(),
+                            cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                            fps,
+                            frameSize);
+
+            if (!outputVideo.isOpened()) {
+                std::println("Error: Could not open output video for writing.");
+                return EXIT_FAILURE;
+            }
         }
 
         while (true)
         {
-            // TODO: Get next frame from input video
-
-            // TODO: If frame is empty, break out of the while loop
-            
-            // TODO: Call one of the detectAndDraw functions from imagefeatures.cpp according to the detector option specified at the command line
+            // Get next frame from input video
+            cv::Mat frame;
+            inputVideo >> frame;
+            // If frame is empty, break out of the while loop
+            if (frame.empty()) {
+                break;  // End of video
+            }
+            cv::Mat output;
+            // Call one of the detectAndDraw functions from imagefeatures.cpp according to the detector option specified at the command line
+            if (detector == "harris") {
+                output = detectAndDrawHarris(frame, maxNumFeatures);
+            } else if (detector == "shi") {
+                output = detectAndDrawShiAndTomasi(frame, maxNumFeatures);
+            } else if (detector == "fast") {
+                output = detectAndDrawFAST(frame, maxNumFeatures);
+            } else if (detector == "aruco") {
+                output = detectAndDrawArUco(frame, maxNumFeatures);
+            } else {
+                std::println("Unknown detector: {}", detector);
+                return EXIT_FAILURE;
+            }
 
             if (doExport)
             {
-                // TODO: Write image returned from detectAndDraw to frame of output video
+                // Write image returned from detectAndDraw to frame of output video
+                outputVideo.write(output);
             }
             else
             {
-                // TODO: Display image returned from detectAndDraw on screen and wait for 1000/fps milliseconds
+                // Display image returned from detectAndDraw on screen and wait for 1000/fps milliseconds
+                cv::imshow("Video Output", output);
+                if (cv::waitKey(1000.0 / inputVideo.get(cv::CAP_PROP_FPS)) >= 0) {
+                    break;
+                }
             }
         }
 
-        // TODO: release the input video object
-
+        // release the input video object
+        inputVideo.release();
         if (doExport)
         {
-            // TODO: release the output video object
+            // release the output video object
+            outputVideo.release();
         }
     }
 
