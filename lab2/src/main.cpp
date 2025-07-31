@@ -82,8 +82,19 @@ int main(int argc, char *argv[])
     }
 
     // Check if input is an image or video (or neither)
-    bool isVideo = false; // TODO
-    bool isImage = false; // TODO
+    // bool isVideo = true; // TODO
+    // bool isImage = true; // TODO
+    // Try to read the input as an image
+    cv::Mat inputImage = cv::imread(inputPath.string(), cv::IMREAD_COLOR);
+    bool isImage = !inputImage.empty();  // It’s an image if this isn’t empty
+
+    // If not an image, try opening as a video
+    cv::VideoCapture inputVideo;
+    bool isVideo = false;
+    if (!isImage) {
+        inputVideo.open(inputPath.string());
+        isVideo = inputVideo.isOpened();
+    }
 
     if (!isImage && !isVideo)
     {
@@ -127,14 +138,20 @@ int main(int argc, char *argv[])
     if (isImage)
     {
         // TODO: Call one of the detectAndDraw functions from imagefeatures.cpp according to the detector option specified at the command line
+        if (detector == "harris"){
+            cv::Mat output = detectAndDrawHarris(inputImage, maxNumFeatures);
         
-        if (doExport)
-        {
-            // TODO: Write image returned from detectAndDraw to outputPath
-        }
-        else
-        {
-            // TODO: Display image returned from detectAndDraw on screen and wait for keypress
+            if (doExport)
+            {
+                // TODO: Write image returned from detectAndDraw to outputPath
+                cv::imwrite(outputPath.string(), output);
+            }
+            else
+            {
+                // TODO: Display image returned from detectAndDraw on screen and wait for keypress
+                cv::imshow("Harris Corners", output);
+                cv::waitKey(0);
+            }
         }
     }
 
