@@ -20,10 +20,13 @@ cv::Mat detectAndDrawHarris(const cv::Mat & img, int maxNumFeatures)
     double k = 0.04;
     cv::cornerHarris(gray, harrisResponse, blockSize, apertureSize, k);
 
-    // Normalize Harris response to 0–255 range
-    cv::Mat harrisNorm;
-    cv::normalize(harrisResponse, harrisNorm, 0, 255, cv::NORM_MINMAX);
-    harrisNorm.convertTo(harrisNorm, CV_32F);
+    // --- Normalization removed ---
+    // cv::Mat harrisNorm;
+    // cv::normalize(harrisResponse, harrisNorm, 0, 255, cv::NORM_MINMAX);
+    // harrisNorm.convertTo(harrisNorm, CV_32F);
+
+    // Use raw response instead
+    cv::Mat harrisNorm = harrisResponse.clone();
 
     // Define structure to hold corner data
     struct Corner {
@@ -33,7 +36,7 @@ cv::Mat detectAndDrawHarris(const cv::Mat & img, int maxNumFeatures)
     std::vector<Corner> corners;
 
     // Threshold and collect high-response points
-    float threshold = 180.0f;
+    float threshold = 0.001f;
     for (int y = 0; y < harrisNorm.rows; ++y) {
         for (int x = 0; x < harrisNorm.cols; ++x) {
             float response = harrisNorm.at<float>(y, x);
@@ -94,10 +97,13 @@ cv::Mat detectAndDrawShiAndTomasi(const cv::Mat & img, int maxNumFeatures)
     int blockSize = 2;
     cv::cornerMinEigenVal(gray, minEigenResponse, blockSize);
 
-    // normalize
-    cv::Mat eigenNorm;
-    cv::normalize(minEigenResponse, eigenNorm, 0, 255, cv::NORM_MINMAX);
-    eigenNorm.convertTo(eigenNorm, CV_32F);
+    // --- Normalization removed ---
+    // cv::Mat eigenNorm;
+    // cv::normalize(minEigenResponse, eigenNorm, 0, 255, cv::NORM_MINMAX);
+    // eigenNorm.convertTo(eigenNorm, CV_32F);
+
+    // Use raw eigenvalue response instead
+    cv::Mat eigenNorm = minEigenResponse.clone();
 
     // Define structure to hold corner data
     struct Corner {
@@ -107,7 +113,7 @@ cv::Mat detectAndDrawShiAndTomasi(const cv::Mat & img, int maxNumFeatures)
     std::vector<Corner> corners;
 
     // Threshold response
-    float threshold = 80.0f;
+    float threshold = 0.01f;
     for (int y = 0; y < eigenNorm.rows; ++y) {
         for (int x = 0; x < eigenNorm.cols; ++x) {
             float response = eigenNorm.at<float>(y, x);
@@ -163,7 +169,7 @@ cv::Mat detectAndDrawFAST(const cv::Mat & img, int maxNumFeatures)
 
     // Detect keypoints using FAST
     std::vector<cv::KeyPoint> keypoints;
-    int threshold = 40;
+    int threshold = 85;
     bool nonmaxSuppression = true; //10001
     cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create(threshold, nonmaxSuppression);
     detector->detect(gray, keypoints);

@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
             .title("Feature Detector")
             .unit("op")
             .warmup(5)
-            .minEpochIterations(111)
+            .minEpochIterations(122)
             .relative(true)
             .performanceCounters(false);
 
