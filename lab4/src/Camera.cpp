@@ -354,8 +354,8 @@ ChessboardData::ChessboardData(const std::filesystem::path & configPath)
                             }
 
                             // Select a subset of frames for calibration
-                            const int target  = 30; 
-                            const int stride   = std::max(1, nFrames / (target * 4)); //*2 returns 1 not found! larger bottom is more distance between frames used (more varitey)
+                            const int target  = 50; 
+                            const int stride   = std::max(1, nFrames / (target)); //*2 returns 1 not found! larger bottom is more distance between frames used (more varitey)
                             int kept = 0;
                             
                             // Loop through selected frames
