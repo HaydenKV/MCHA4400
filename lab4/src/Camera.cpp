@@ -117,13 +117,13 @@ ChessboardImage::ChessboardImage(const cv::Mat & image_, const Chessboard & ches
     //  - Detect chessboard corners in image and set the corners member
     //  - (optional) Do subpixel refinement of detected corners
 
-    // --- Detect chessboard corners (optional) ---
+    // --- Detect chessboard corners
     if (image.empty()) {
         corners.clear();
         return;
     }
 
-    // 1) Grayscale for robust corner detection
+    // 1) grayscale
     cv::Mat gray;
     if (image.channels() == 3 || image.channels() == 4) {
         cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
@@ -173,74 +173,87 @@ void ChessboardImage::drawBox(const Chessboard & chessboard, const Camera & came
 {
     if (!isFound) return;
 
-    // Camera pose (world N -> camera C) is in Tnc; get body pose if Tbc != I
-    const Pose Tnb = camera.cameraToBody(Tnc);
+    // Tnc (camera pose in world)
+    const Pose Tnb = camera.cameraToBody(Tnc); //convert 
+    const Pose Tcn = Tnc.inverse(); // world -> camera
 
-    // Base spans the *interior* chessboard corners; box height 0.23 m (CodeNames box)
+    // dimensions (-1 for inner)
     const double W = (chessboard.boardSize.width  - 1) * chessboard.squareSize;
     const double H = (chessboard.boardSize.height - 1) * chessboard.squareSize;
-    const double Z = 0.23; // +Z = “up” from board in world N
 
-    // 8 world vertices
+    // 8 base corners in world (N)
     const cv::Vec3d p0(0.0, 0.0, 0.0);
     const cv::Vec3d p1(W  , 0.0, 0.0);
     const cv::Vec3d p2(W  , H  , 0.0);
     const cv::Vec3d p3(0.0, H  , 0.0);
-    const cv::Vec3d q0 = p0 + cv::Vec3d(0,0,-Z);
-    const cv::Vec3d q1 = p1 + cv::Vec3d(0,0,-Z);
-    const cv::Vec3d q2 = p2 + cv::Vec3d(0,0,-Z);
-    const cv::Vec3d q3 = p3 + cv::Vec3d(0,0,-Z);
 
-    // Colours (BGR) to match your demo
+    // Decide extrusion direction automatically so the box rises toward the camera
+    const double Zmag = 0.23;                // metres
+    const cv::Vec3d c = 0.5 * (p0 + p2);     // board centre
+    const double z_up   = (Tcn * (c + cv::Vec3d(0,0, Zmag)))[2];
+    const double z_down = (Tcn * (c + cv::Vec3d(0,0,-Zmag)))[2];
+    const double Z = (z_up < z_down) ? Zmag : -Zmag;
+
+    // Lid corners
+    const cv::Vec3d q0 = p0 + cv::Vec3d(0,0,Z);
+    const cv::Vec3d q1 = p1 + cv::Vec3d(0,0,Z);
+    const cv::Vec3d q2 = p2 + cv::Vec3d(0,0,Z);
+    const cv::Vec3d q3 = p3 + cv::Vec3d(0,0,Z);
+
+    // Colours (BGR)
     const cv::Scalar BLUE (255,   0,   0);
     const cv::Scalar RED  (  0,   0, 255);
     const cv::Scalar GREEN(  0, 255,   0);
 
-    // --- helper: draw a world-space line as many short visible segments ---
-    auto draw_world_line = [&](const cv::Vec3d& A, const cv::Vec3d& B,
-                               const cv::Scalar& color, int thickness,
-                               int segments = 28)
+    // Draw a 3D edge a->b as short segments so curves follow lens distortion
+    auto draw_edge = [&](const cv::Vec3d& a, const cv::Vec3d& b, const cv::Scalar& color, int thickness)
     {
-        cv::Point prev_px;
-        bool have_prev = false;
+        constexpr int kSegs = 64; //48; // segment divided by this
+        const double maxJump = 60.0; // prevents draw if 2 consecutive points are greater than X appart
+        cv::Point prev;
+        bool havePrev = false;
 
-        for (int i = 0; i <= segments; ++i)
+        for (int i = 0; i <= kSegs; ++i)
         {
-            const double t = static_cast<double>(i) / segments;
-            const cv::Vec3d P = A * (1.0 - t) + B * t;
+            const double t = static_cast<double>(i) / kSegs;
+            const cv::Vec3d P = a*(1.0 - t) + b*t;
 
-            // Cull this vertex if outside FOV (including behind camera)
-            if (!camera.isWorldWithinFOV(P, Tnb)) {
-                have_prev = false; // break the strip; next valid point starts a new run
+            // check if within FOV, "break" if doesnt connect
+            if (!camera.isWorldWithinFOV(P, Tnb)) { havePrev = false; continue; }
+
+            // convert 3d to 2d using camera intrinscis
+            const cv::Vec2d pix = camera.worldToPixel(P, Tnb);
+            const cv::Point cur(cvRound(pix[0]), cvRound(pix[1]));
+
+            if (!havePrev) {                            // first visible sample
+                prev = cur;
+                havePrev = true;
                 continue;
             }
 
-            const cv::Vec2d pix = camera.worldToPixel(P, Tnb);
-            const cv::Point cur_px(cvRound(pix[0]), cvRound(pix[1]));
-
-            if (have_prev) {
-                cv::line(image, prev_px, cur_px, color, thickness, cv::LINE_AA);
+            // avoid wraparound / re-entry across the border
+            if (cv::norm(cur - prev) > maxJump) {
+                prev = cur;                             // restart a new segment
+                continue;
             }
-            prev_px  = cur_px;
-            have_prev = true;
+
+            // draw the segment
+            cv::line(image, prev, cur, color, thickness, cv::LINE_AA);
+            prev = cur;   
         }
     };
 
-    // Draw: base, verticals, lid (12 lines total)
-    draw_world_line(p0, p1, BLUE , 2);
-    draw_world_line(p1, p2, GREEN, 2);
-    draw_world_line(p2, p3, BLUE , 2);
-    draw_world_line(p3, p0, GREEN, 2);
+    // Base (blue)
+    draw_edge(p0, p1, BLUE, 2);  draw_edge(p1, p2, BLUE, 2);
+    draw_edge(p2, p3, BLUE, 2);  draw_edge(p3, p0, BLUE, 2);
 
-    draw_world_line(p0, q0, RED  , 2);
-    draw_world_line(p1, q1, RED  , 2);
-    draw_world_line(p2, q2, RED  , 2);
-    draw_world_line(p3, q3, RED  , 2);
+    // Uprights (red)
+    draw_edge(p0, q0, RED, 2);   draw_edge(p1, q1, RED, 2);
+    draw_edge(p2, q2, RED, 2);   draw_edge(p3, q3, RED, 2);
 
-    draw_world_line(q0, q1, BLUE , 3);
-    draw_world_line(q1, q2, GREEN, 3);
-    draw_world_line(q2, q3, BLUE , 3);
-    draw_world_line(q3, q0, GREEN, 3);
+    // Lid (green, a touch thicker)
+    draw_edge(q0, q1, GREEN, 2); draw_edge(q1, q2, GREEN, 2);
+    draw_edge(q2, q3, GREEN, 2); draw_edge(q3, q0, GREEN, 2);
 }
 
 void ChessboardImage::recoverPose(const Chessboard & chessboard, const Camera & camera)
@@ -340,9 +353,9 @@ ChessboardData::ChessboardData(const std::filesystem::path & configPath)
                                 continue;
                             }
 
-                            // Select a subset of frames for calibration (don’t use them all)
-                            const int target  = 30;  // cap how many *successful* detections we keep
-                            const int stride   = std::max(1, nFrames / (target * 4)); //*2 returns 1 not found!
+                            // Select a subset of frames for calibration
+                            const int target  = 30; 
+                            const int stride   = std::max(1, nFrames / (target * 4)); //*2 returns 1 not found! larger bottom is more distance between frames used (more varitey)
                             int kept = 0;
                             
                             // Loop through selected frames
@@ -410,23 +423,28 @@ void ChessboardData::recoverPoses(const Camera & camera)
 
 void Camera::calibrate(ChessboardData & chessboardData)
 {
-    // --- Prepare object (3D) and image (2D) points
+    // get 3d planar points 
     std::vector<cv::Point3f> rPNn_all = chessboardData.chessboard.gridPoints();
 
     std::vector<std::vector<cv::Point2f>> rQOi_all;
     for (const auto & chessboardImage : chessboardData.chessboardImages)
     {
-        rQOi_all.push_back(chessboardImage.corners); // 2D points per image
+        rQOi_all.push_back(chessboardImage.corners); // collect 2D points per image
     }
     assert(!rQOi_all.empty());
 
+    // needed by solver
     imageSize = chessboardData.chessboardImages[0].image.size();
     
-    flags = cv::CALIB_RATIONAL_MODEL | cv::CALIB_THIN_PRISM_MODEL;
+    // distortion model
+    // increased precision in corners with tilted model included
+    flags = cv::CALIB_RATIONAL_MODEL | cv::CALIB_THIN_PRISM_MODEL | cv::CALIB_TILTED_MODEL;
 
     // Find intrinsic and extrinsic camera parameters
+    // initialise and allocate space
     cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
     distCoeffs = cv::Mat::zeros(12, 1, CV_64F);
+    // outputs per image rotations and translations
     std::vector<cv::Mat> Thetacn_all, rNCc_all;
     double rms;
     std::print("Calibrating camera...");
@@ -465,8 +483,8 @@ void Camera::calibrate(ChessboardData & chessboardData)
 
         // Build world->camera from OpenCV’s rvec/tvec, then invert to camera->world
         // From function below that does the math
-        Pose Tcn(Thetacn_all[k], rNCc_all[k]);
-        Tnc = Tcn.inverse();
+        Pose Tcn(Thetacn_all[k], rNCc_all[k]); // function top of script
+        Tnc = Tcn.inverse(); // cam to world
     }
     
     printCalibration();
@@ -501,9 +519,11 @@ void Camera::calcFieldOfView()
     // TODO:
     const double W = static_cast<double>(imageSize.width);
     const double H = static_cast<double>(imageSize.height);
+    // centre
     const double midx = (W - 1.0) * 0.5;
     const double midy = (H - 1.0) * 0.5;
 
+    // helper function (angle between 2 vecs)
     auto angle_between = [](const cv::Vec3d& a, const cv::Vec3d& b) {
         double c = a.dot(b) / (cv::norm(a) * cv::norm(b));
         c = std::clamp(c, -1.0, 1.0);
@@ -524,6 +544,23 @@ void Camera::calcFieldOfView()
     cv::Vec3d uTL = pixelToVector(cv::Vec2d(0.0,   0.0));
     cv::Vec3d uBR = pixelToVector(cv::Vec2d(W-1.0, H-1.0));
     dFOV = angle_between(uTL, uBR);
+
+    // --- azimuth-based theta limit table ---
+    cosThetaLimit_.assign(360, -1.0);
+    for (int deg = 0; deg < 360; ++deg) {
+        double maxTheta = 0.0;
+        double radAz = deg * CV_PI / 180.0;
+        // sample along border in this azimuth direction
+        for (int rstep = 0; rstep < 2; ++rstep) {
+            double r = 0.499 - 0.002 * rstep; // slightly inside
+            double u = (W - 1) * (0.5 + r * std::cos(radAz));
+            double v = (H - 1) * (0.5 + r * std::sin(radAz));
+            cv::Vec3d uPCc = pixelToVector(cv::Vec2d(u, v));
+            double theta = std::acos(std::clamp(uPCc[2] / cv::norm(uPCc), -1.0, 1.0));
+            maxTheta = std::max(maxTheta, theta);
+        }
+        cosThetaLimit_[deg] = std::cos(maxTheta + (10.0 * CV_PI / 180.0)); // margin
+    }
 }
 
 Pose Camera::cameraToBody(const Pose & Tnc) const
@@ -562,26 +599,19 @@ cv::Vec2d Camera::worldToPixel(const cv::Vec3d & rPNn, const Pose & Tnb) const
 
 cv::Vec2d Camera::vectorToPixel(const cv::Vec3d & rPCc) const
 {
-    // Prepare inputs for cv::projectPoints
-    std::vector<cv::Point3f> objectPoints;
-    objectPoints.emplace_back(
-        static_cast<float>(rPCc[0]),
-        static_cast<float>(rPCc[1]),
-        static_cast<float>(rPCc[2])
-    );
+    cv::Point3f P(static_cast<float>(rPCc[0]/rPCc[2]),
+                  static_cast<float>(rPCc[1]/rPCc[2]),
+                  1.0f);
 
-    std::vector<cv::Point2f> imagePoints;
+    std::vector<cv::Point3f> obj{P};
+    std::vector<cv::Point2f> img;
 
-    // No rotation/translation — already in camera coords
-    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64F);
-    cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64F);
+    cv::Mat rvec = cv::Mat::zeros(3,1,CV_64F);
+    cv::Mat tvec = cv::Mat::zeros(3,1,CV_64F);
 
-    cv::projectPoints(objectPoints, rvec, tvec, cameraMatrix, distCoeffs, imagePoints);
+    cv::projectPoints(obj, rvec, tvec, cameraMatrix, distCoeffs, img);
 
-    // Compute the pixel location (rQOi) for the given vector (rPCc)
-    cv::Vec2d rQOi(imagePoints[0].x, imagePoints[0].y);
-    // TODO
-    return rQOi;
+    return cv::Vec2d(img[0].x, img[0].y);
 }
 
 cv::Vec3d Camera::pixelToVector(const cv::Vec2d & rQOi) const
@@ -603,29 +633,60 @@ cv::Vec3d Camera::pixelToVector(const cv::Vec2d & rQOi) const
         1.0
     );
 
-    // Return the **unit vector** uPCc
+    // Return the unit vector uPCc
     cv::Vec3d uPCc = rPCc / cv::norm(rPCc);
     return uPCc;
 }
 
 bool Camera::isVectorWithinFOV(const cv::Vec3d & rPCc) const
 {
-    // 1) Must be finite and in front of the camera
-    if (!std::isfinite(rPCc[0]) || !std::isfinite(rPCc[1]) || !std::isfinite(rPCc[2]))
-        return false;
-    if (rPCc[2] <= 1e-9)
-        return false;
+    // finite & in front
+    if (!std::isfinite(rPCc[0]) || !std::isfinite(rPCc[1]) || !std::isfinite(rPCc[2])) return false;
+    if (rPCc[2] <= 1e-9) return false;
 
-    // 2) Project to pixel coordinates
-    cv::Vec2d rQOi = vectorToPixel(rPCc);
-    if (!std::isfinite(rQOi[0]) || !std::isfinite(rQOi[1]))
-        return false;
+    // Potential solutions ---------------------vv
 
-    // 3) Allow a small halo outside the strict image rectangle
-    //    so we don’t drop vertices right on the border
-    const double halo = 2.0; // pixels
-    return (rQOi[0] >= -halo && rQOi[0] < imageSize.width  + halo &&
-            rQOi[1] >= -halo && rQOi[1] < imageSize.height + halo);
+    cv::Vec3d dir = rPCc / cv::norm(rPCc);
+    const cv::Vec3d z(0,0,1);
+   
+    // --- azimuth-based check
+    // Compares angle of direction vector to optical axis using a lookup table
+    // cosThetaLimit_[bin] gives the minimum allowed cos(angle) at this azimuth
+    double az = std::atan2(dir[1], dir[0]) * 180.0 / CV_PI; // deg
+    int bin = static_cast<int>(std::lround(az));
+    bin = (bin % 360 + 360) % 360; // wrap to [0,359]
+    double cosang = dir.dot(z);
+    if (cosang < cosThetaLimit_[bin])
+        return false;
+    // --- end azimuth-based check ---
+
+    
+    // works but bit bendy in edges
+    // define forward axis for angle checks
+    // const cv::Vec3d z(0,0,1); 
+    // double cosang = (P.dot(z)) / (cv::norm(P)*1.0); // angle between ray and optical axis
+    // cosang = std::clamp(cosang, -1.0, 1.0);
+    // double ang = std::acos(cosang);
+    // if (ang > 0.5*dFOV + 1.0*CV_PI/180.0) return false; // 2° margin
+
+    // This is too aggressive because large FOV
+    // Frustum test (use half FOV) (for pinhole *flatter image)
+    // const double tan_h = std::tan(0.5 * hFOV);
+    // const double tan_v = std::tan(0.5 * vFOV);
+    // if (std::abs(P[0]) > tan_h) return false; // |x/z| > tan(hFOV/2)
+    // if (std::abs(P[1]) > tan_v) return false; // |y/z| > tan(vFOV/2)
+
+    // Potential solutions ---------------------^^
+
+    // normalize to z=1 (projection scale-invariant so normalizing makes math stable? idk if useful)
+    cv::Vec3d P(rPCc[0]/rPCc[2], rPCc[1]/rPCc[2], 1.0);
+    // project ray with distortion to pixel space and reject if not finite (maps to valid pixel)
+    cv::Vec2d px = vectorToPixel(P);
+    if (!std::isfinite(px[0]) || !std::isfinite(px[1])) return false;
+
+    // In-bounds (can add margin here)
+    return (px[0] >= 0.0 && px[0] < imageSize.width &&
+            px[1] >= 0.0 && px[1] < imageSize.height);
 }
 
 

@@ -125,6 +125,8 @@ struct Camera
     double hFOV = 0.0;                                      // Horizonal field of view
     double vFOV = 0.0;                                      // Vertical field of view
     double dFOV = 0.0;                                      // Diagonal field of view
+    std::vector<double> cosThetaLimit_;
+    
 };
 
 #endif
