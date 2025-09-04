@@ -34,6 +34,7 @@ std::vector<Eigen::Index> SystemBallistic::processNoiseIndex() const
     // Indices of process model equations where process noise is injected
     std::vector<Eigen::Index> idxQ;
     // TODO: Continuous-time process noise in 2nd and 3rd state equations
+    // no noise in h (0 based indexing)
     idxQ.reserve(2);
     idxQ.push_back(1);  // x2 dynamics
     idxQ.push_back(2);  // x3 dynamics
@@ -60,8 +61,8 @@ Eigen::VectorXd SystemBallistic::dynamics(double t, const Eigen::VectorXd & x, c
 
     Eigen::VectorXd f(x.size());
     // TODO: Set f
-    f(0) = v;
-    f(1) = -g - drag;
+    f(0) = v; //ḣ = v
+    f(1) = -g - drag; //v̇ = d - g, and d enters negative because drag opposes motion (sign via v|v|) // if 𝑣<0 (descending), then 𝑣∣𝑣∣=−𝑣2,so drag always opposes motion.
     f(2) = 0.0;
     return f;
 }

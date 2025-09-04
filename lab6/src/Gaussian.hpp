@@ -530,7 +530,7 @@ public:
         assert(nA + nB == n);
         assert(xB.size() == nB);
 
-        // (1) Build the column concatenation [ S_B  S_A ] = [ S(:, idxB)  S(:, idxA) ]
+        // (1) Build the column concatenation [ S(:,B)  S(:,A) ] ("swap" A/B block order)
         Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> SS(n, nB + nA);
         SS.leftCols(nB)  = S_(Eigen::all, idxB);
         SS.rightCols(nA) = S_(Eigen::all, idxA);
@@ -677,9 +677,9 @@ public:
         out.mu_ = h(mu_, C);
         // TODO
         const Eigen::Index m = out.mu_.size();
-        assert(C.rows() == m);
-        assert(C.cols() == dim());
-        // Form S*C^T (n x m)
+        assert(C.rows() == m); //m = output dimension (size of y = h(μ))
+        assert(C.cols() == dim()); //n = input/state dimension (size of x) dim() == n
+        // Form S*C^T (n x m) (equ 8-9 lab doc)
         Eigen::MatrixX<Scalar> SCt = S_ * C.transpose();
         // Q-less Householder QR: SCt = Q * R, we keep R in-place
         Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(SCt);
@@ -687,6 +687,7 @@ public:
         SCt = SCt.template triangularView<Eigen::Upper>();
         out.S_ = SCt.topRows(m).template triangularView<Eigen::Upper>();
         // out.S_ = C * S_ * C.transpose();
+        // p(y) = N^{1/2}( y ; h(μ), S_y=R1 ) eq. (9)
         return out;
     }
 
@@ -716,7 +717,7 @@ public:
         // y = S^{-T} e  (solve S^T y = e), so e^T P^{-1} e = ||y||^2
         const Eigen::VectorX<Scalar> y =
             S_.template triangularView<Eigen::Upper>().transpose().solve(e);
-        const Scalar quad = y.squaredNorm();
+        const Scalar quad = y.squaredNorm(); // Quadratic form = e^T P^{-1} e = ||y||²
 
         using std::log;
         using std::abs;
@@ -730,6 +731,8 @@ public:
         const Scalar log2pi = log(Scalar(2) * Scalar(std::numbers::pi));
         // log N(x; μ, P) = -0.5*quad - 0.5*n*log(2π) - 0.5*log|P|
         // and 0.5*log|P| = half_logdetP
+        // or // Formula (Lab eq. (6)):
+        // log N = -0.5*||y||² - 0.5*n*log(2π) - sum log|S_ii|
         return Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;
 
         // // Really bad version
@@ -764,13 +767,11 @@ public:
         const Eigen::VectorX<Scalar> e = x - mu_;
 
         // y = S^{-T} e
-        const Eigen::VectorX<Scalar> y =
-            S_.template triangularView<Eigen::Upper>().transpose().solve(e);
+        const Eigen::VectorX<Scalar> y = S_.template triangularView<Eigen::Upper>().transpose().solve(e);
         // z = S^{-1} y = P^{-1} e
-        const Eigen::VectorX<Scalar> z =
-            S_.template triangularView<Eigen::Upper>().solve(y);
+        const Eigen::VectorX<Scalar> z = S_.template triangularView<Eigen::Upper>().solve(y);
 
-        // gradient of log N wrt x
+        // gradient of log N wrt x ∂/∂x logN = -P^{-1}(x - μ))
         g = -z;
 
         using std::log;
@@ -819,8 +820,9 @@ public:
         // gradient
         g = -z;
 
-        // Hessian: -P^{-1}. Build stably with solves (no explicit inverse).
+        // Hessian: -P^{-1}
         // Solve S * X = I  ->  X = S^{-1}
+        // Build stably: compute X = S^{-1}, then H = -X X^T
         Eigen::MatrixX<Scalar> X =
             S_.template triangularView<Eigen::Upper>().solve(
                 Eigen::MatrixX<Scalar>::Identity(n, n)
@@ -920,7 +922,7 @@ public:
         // TODO
             assert(x.size() == n);
 
-        // Mahalanobis^2 via triangular solves: r^2 = (x-μ)^T P^{-1} (x-μ)
+        // Mahalanobis^2 via triangular solves: r^2 = (x-μ)^T P^{-1} (x-μ) || S^{-T} (x−μ) ||^2
         const Eigen::VectorX<Scalar> e = x - mu_;
         const Eigen::VectorX<Scalar> y = S_.template triangularView<Eigen::Upper>().transpose().solve(e);
         const double r2 = static_cast<double>(y.squaredNorm());
@@ -928,10 +930,10 @@ public:
         // Match 1D ±nSigma probability: p = 2*Φ(nSigma) - 1
         const double p = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
 
-        // χ² threshold with ν = n
+        // χ² threshold with ν = n / r² ≤ χ²_n(p)
         const double thr = chi2inv(p, static_cast<double>(n));
 
-        // Small numerical slack
+        // Small numerical slack (dont really need this, try guess it to be limit of machine precision)
         return r2 <= thr + 1e-12;
     }
 
@@ -954,15 +956,15 @@ public:
         
         Eigen::Matrix4<Scalar> Q;
         // TODO
-        // A = P^{-1} using the stable infoMat() (no explicit inversion)
+        // A = P^{-1} using the stable infoMat() (no explicit inverse of P)
         const Eigen::MatrixX<Scalar> A = infoMat();     // 3x3
         const Eigen::VectorX<Scalar> mu = mean();       // 3x1
-        const Eigen::VectorX<Scalar> k  = A * mu;       // 3x1
+        const Eigen::VectorX<Scalar> k  = A * mu;       // 3x1 ((used for the off-diagonal blocks))
 
         // Probability that corresponds to "± nSigma" in 1D
         const double p  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
         // Chi-square threshold for 3 DoF
-        const double c3 = chi2inv(p, 3.0);
+        const double c3 = chi2inv(p, 3.0); // 3 for 3 dof
 
         Q.setZero();
         Q.template topLeftCorner<3,3>() = A;
