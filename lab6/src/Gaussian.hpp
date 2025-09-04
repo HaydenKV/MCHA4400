@@ -97,7 +97,7 @@ protected:
         , S_(S)
     {
         assert(mu_.size() == S_.cols());
-        assert(S_.isUppperTriangular());
+        assert(S_.isUpperTriangular());
     }
     /**
      * @brief Declare Gaussian class as a friend for all scalar types.
@@ -551,8 +551,18 @@ public:
 
         // 4) Conditional mean: μ_A|B = μ_A + (R1^{-1} R2)^T (xB - μ_B)
         //    Compute K = R1 \ R2 via triangular solve, then K^T * deltaB (lab formula)
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> K = R1.template triangularView<Eigen::Upper>().solve(R2); // nB×nA
-        out.mu_ = mu_(idxA) + K.transpose() * (xB - mu_(idxB));
+        // deltaB = xB - muB
+        const Eigen::VectorX<Scalar> deltaB = xB - mu_(idxB);
+
+        // Solve R1^T y = deltaB  (since R1 is upper-triangular, R1^T is lower-triangular)
+        const Eigen::VectorX<Scalar> y =
+            R1.template triangularView<Eigen::Upper>()
+            .transpose()
+            .solve(deltaB);
+
+        // μ_A|B = μ_A + R2^T y   (mat-vec, no explicit K)
+        out.mu_ = mu_(idxA) + R2.transpose() * y;
+
 
         // 5) Conditional sqrt covariance is R3 directly S_{A|B} = S3
         out.S_ = R3;
@@ -723,10 +733,14 @@ public:
         using std::abs;
 
         // 0.5 * log|P| = sum_i log(|S_ii|)
-        Scalar half_logdetP = Scalar(0);
-        for (Eigen::Index i = 0; i < n; ++i) {
-            half_logdetP += log(abs(S_(i, i)));
-        }
+        // Slow way
+        // Scalar half_logdetP = Scalar(0);
+        // for (Eigen::Index i = 0; i < n; ++i) {
+        //     half_logdetP += log(abs(S_(i, i)));
+        // }
+        // 0.5 * log|P| = sum_i log(|S_ii|)
+        Scalar half_logdetP = (S_.diagonal().array().abs().log()).sum();
+
 
         const Scalar log2pi = log(Scalar(2) * Scalar(std::numbers::pi));
         // log N(x; μ, P) = -0.5*quad - 0.5*n*log(2π) - 0.5*log|P|
@@ -774,16 +788,7 @@ public:
         // gradient of log N wrt x ∂/∂x logN = -P^{-1}(x - μ))
         g = -z;
 
-        using std::log;
-        using std::abs;
-
-        Scalar half_logdetP = Scalar(0);
-        for (Eigen::Index i = 0; i < n; ++i) {
-            half_logdetP += log(abs(S_(i, i)));
-        }
-        const Scalar quad = y.squaredNorm();
-        const Scalar log2pi = log(Scalar(2) * Scalar(std::numbers::pi));
-        return Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;
+        return log(x);
         }
 
     /**
@@ -808,17 +813,6 @@ public:
         assert(x.size() == dim());
 
         const Eigen::Index n = dim();
-        const Eigen::VectorX<Scalar> e = x - mu_;
-
-        // y = S^{-T} e
-        const Eigen::VectorX<Scalar> y =
-            S_.template triangularView<Eigen::Upper>().transpose().solve(e);
-        // z = S^{-1} y = P^{-1} e
-        const Eigen::VectorX<Scalar> z =
-            S_.template triangularView<Eigen::Upper>().solve(y);
-
-        // gradient
-        g = -z;
 
         // Hessian: -P^{-1}
         // Solve S * X = I  ->  X = S^{-1}
@@ -829,16 +823,7 @@ public:
             );
         H = -(X * X.transpose());
 
-        using std::log;
-        using std::abs;
-
-        Scalar half_logdetP = Scalar(0);
-        for (Eigen::Index i = 0; i < n; ++i) {
-            half_logdetP += log(abs(S_(i, i)));
-        }
-        const Scalar quad = y.squaredNorm();
-        const Scalar log2pi = log(Scalar(2) * Scalar(std::numbers::pi));
-        return Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;
+        return log(x, g);
     }
 
     /**
@@ -933,8 +918,7 @@ public:
         // χ² threshold with ν = n / r² ≤ χ²_n(p)
         const double thr = chi2inv(p, static_cast<double>(n));
 
-        // Small numerical slack (dont really need this, try guess it to be limit of machine precision)
-        return r2 <= thr + 1e-12;
+        return r2 <= thr;
     }
 
     /**
@@ -962,7 +946,7 @@ public:
         const Eigen::VectorX<Scalar> k  = A * mu;       // 3x1 ((used for the off-diagonal blocks))
 
         // Probability that corresponds to "± nSigma" in 1D
-        const double p  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+        const double p  = 2.0 * normcdf(nSigma) - 1.0;
         // Chi-square threshold for 3 DoF
         const double c3 = chi2inv(p, 3.0); // 3 for 3 dof
 

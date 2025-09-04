@@ -448,332 +448,316 @@ $(function() {
 <div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span> </div>
 <div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>        <span class="comment">// 4) Conditional mean: μ_A|B = μ_A + (R1^{-1} R2)^T (xB - μ_B)</span></div>
 <div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>        <span class="comment">//    Compute K = R1 \ R2 via triangular solve, then K^T * deltaB (lab formula)</span></div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>        Eigen::Matrix&lt;Scalar, Eigen::Dynamic, Eigen::Dynamic&gt; K = R1.template triangularView&lt;Eigen::Upper&gt;().solve(R2); <span class="comment">// nB×nA</span></div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxA) + K.transpose() * (xB - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxB));</div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>        <span class="comment">// deltaB = xB - muB</span></div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; deltaB = xB - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxB);</div>
 <div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span> </div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>        <span class="comment">// 5) Conditional sqrt covariance is R3 directly S_{A|B} = S3</span></div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = R3;</div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span> </div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>        <span class="keywordflow">return</span> out;</div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>    }</div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>        <span class="comment">// Solve R1^T y = deltaB  (since R1 is upper-triangular, R1^T is lower-triangular)</span></div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y =</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>            R1.template triangularView&lt;Eigen::Upper&gt;()</div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>            .transpose()</div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>            .solve(deltaB);</div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span> </div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>        <span class="comment">// μ_A|B = μ_A + R2^T y   (mat-vec, no explicit K)</span></div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxA) + R2.transpose() * y;</div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span> </div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span> </div>
+<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>        <span class="comment">// 5) Conditional sqrt covariance is R3 directly S_{A|B} = S3</span></div>
+<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = R3;</div>
+<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span> </div>
+<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>        <span class="keywordflow">return</span> out;</div>
+<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>    }</div>
 </div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span></div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> IndexTypeA, <span class="keyword">typename</span> IndexTypeB&gt;</div>
-<div class="foldopen" id="foldopen00579" data-start="{" data-end="}">
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno"><a class="line" href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">  579</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">conditional</a>(<span class="keyword">const</span> IndexTypeA &amp; idxA, <span class="keyword">const</span> IndexTypeB &amp; idxB, <span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; pxB_y)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>        <span class="keyword">const</span> std::size_t &amp; nA = idxA.size();</div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>        <span class="keyword">const</span> std::size_t &amp; nB = idxB.size();</div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span> </div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>        <span class="comment">// Form [S(:, idxB), S(:, idxA)]</span></div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>        Eigen::MatrixX&lt;Scalar&gt; SS(<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>(), nA + nB);</div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>        SS &lt;&lt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(Eigen::all, idxB), <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(Eigen::all, idxA);</div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>        <span class="comment">// Q-less QR yields</span></div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>        <span class="comment">// [S1, S2;</span></div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>        <span class="comment">//   0, S3]</span></div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SS);   <span class="comment">// In-place QR decomposition</span></div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span> </div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>        <span class="comment">// K = S1\S2</span></div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>        Eigen::MatrixX&lt;Scalar&gt; K = SS.topLeftCorner(nB, nB).template triangularView&lt;Eigen::Upper&gt;().solve(SS.topRightCorner(nB, nA));</div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>        Eigen::MatrixX&lt;Scalar&gt; S3 = SS.bottomRightCorner(nA, nA).template triangularView&lt;Eigen::Upper&gt;();</div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span> </div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>        <span class="comment">// Form [pxB_y.S*K; S3]</span></div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>        Eigen::MatrixX&lt;Scalar&gt; RR(nA + nB, nA);</div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>        RR &lt;&lt; pxB_y.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> * K,</div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>              S3;</div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>        <span class="comment">// Q-less QR yields</span></div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>        <span class="comment">// [R1;</span></div>
-<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>        <span class="comment">//   0]</span></div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr_RR(RR);</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span> </div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>        <span class="comment">// p(x(idxA) | y) = N^-0.5(x(idxA); mu(idxA) + K.&#39;*(pxB_y.mu - mu(idxB))), R1)</span></div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out;</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxA) + K.transpose()*(pxB_y.<a class="code hl_function" href="classGaussian.html#a39e92048ba667390e2c29e5edc3c0689">mean</a>() - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxB));</div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = RR.topRows(nA).template triangularView&lt;Eigen::Upper&gt;();</div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>        <span class="keywordflow">return</span> out;</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span> </div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        <span class="comment">// ALTERNATE APPROACH THAT MAY BE MORE ROBUST AROUND INF values</span></div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>        <span class="comment">// const Eigen::Index nA = static_cast&lt;Eigen::Index&gt;(idxA.size());</span></div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>        <span class="comment">// const Eigen::Index nB = static_cast&lt;Eigen::Index&gt;(idxB.size());</span></div>
+<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span></div>
+<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> IndexTypeA, <span class="keyword">typename</span> IndexTypeB&gt;</div>
+<div class="foldopen" id="foldopen00589" data-start="{" data-end="}">
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno"><a class="line" href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">  589</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">conditional</a>(<span class="keyword">const</span> IndexTypeA &amp; idxA, <span class="keyword">const</span> IndexTypeB &amp; idxB, <span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; pxB_y)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>        <span class="keyword">const</span> std::size_t &amp; nA = idxA.size();</div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>        <span class="keyword">const</span> std::size_t &amp; nB = idxB.size();</div>
+<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span> </div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>        <span class="comment">// Form [S(:, idxB), S(:, idxA)]</span></div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>        Eigen::MatrixX&lt;Scalar&gt; SS(<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>(), nA + nB);</div>
+<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>        SS &lt;&lt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(Eigen::all, idxB), <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(Eigen::all, idxA);</div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>        <span class="comment">// Q-less QR yields</span></div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>        <span class="comment">// [S1, S2;</span></div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>        <span class="comment">//   0, S3]</span></div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SS);   <span class="comment">// In-place QR decomposition</span></div>
+<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span> </div>
+<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>        <span class="comment">// K = S1\S2</span></div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>        Eigen::MatrixX&lt;Scalar&gt; K = SS.topLeftCorner(nB, nB).template triangularView&lt;Eigen::Upper&gt;().solve(SS.topRightCorner(nB, nA));</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>        Eigen::MatrixX&lt;Scalar&gt; S3 = SS.bottomRightCorner(nA, nA).template triangularView&lt;Eigen::Upper&gt;();</div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span> </div>
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>        <span class="comment">// Form [pxB_y.S*K; S3]</span></div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>        Eigen::MatrixX&lt;Scalar&gt; RR(nA + nB, nA);</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>        RR &lt;&lt; pxB_y.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> * K,</div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>              S3;</div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>        <span class="comment">// Q-less QR yields</span></div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        <span class="comment">// [R1;</span></div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>        <span class="comment">//   0]</span></div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr_RR(RR);</div>
 <div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span> </div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>        <span class="comment">// // (1) Build [ S(:,B)  S(:,A) ] and QR-partition it.</span></div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; SS(dim(), nA + nB);</span></div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>        <span class="comment">// SS &lt;&lt; S_(Eigen::all, idxB), S_(Eigen::all, idxA);</span></div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span> </div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>        <span class="comment">// // Scale-in for robustness (prevents overflow in extreme tests).</span></div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>        <span class="comment">// Scalar s = SS.cwiseAbs().maxCoeff();</span></div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        <span class="comment">// if (!(s &gt; Scalar(0))) s = Scalar(1);</span></div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>        <span class="comment">// SS /= s;</span></div>
-<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span> </div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span>        <span class="comment">// // Q-less QR → R = [ S1 S2 ; 0 S3 ] stored in SS.</span></div>
-<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>        <span class="comment">// Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SS);</span></div>
-<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>        <span class="comment">// SS = SS.template triangularView&lt;Eigen::Upper&gt;();</span></div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span> </div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>        <span class="comment">// // Extract blocks (still scaled):</span></div>
-<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S1  = SS.topLeftCorner(nB, nB)</span></div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>        <span class="comment">//                                     .template triangularView&lt;Eigen::Upper&gt;();</span></div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S2  = SS.topRightCorner(nB, nA);</span></div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S3s = SS.bottomRightCorner(nA, nA)</span></div>
-<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>        <span class="comment">//                                     .template triangularView&lt;Eigen::Upper&gt;();</span></div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span> </div>
-<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>        <span class="comment">// // (2) K = S1^{-1} S2  via triangular solve (no explicit inverse).</span></div>
-<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; K = S1.template triangularView&lt;Eigen::Upper&gt;().solve(S2);</span></div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>        <span class="comment">// p(x(idxA) | y) = N^-0.5(x(idxA); mu(idxA) + K.&#39;*(pxB_y.mu - mu(idxB))), R1)</span></div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out;</div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxA) + K.transpose()*(pxB_y.<a class="code hl_function" href="classGaussian.html#a39e92048ba667390e2c29e5edc3c0689">mean</a>() - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>(idxB));</div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = RR.topRows(nA).template triangularView&lt;Eigen::Upper&gt;();</div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>        <span class="keywordflow">return</span> out;</div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span> </div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        <span class="comment">// ALTERNATE APPROACH THAT MAY BE MORE ROBUST AROUND INF values</span></div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>        <span class="comment">// const Eigen::Index nA = static_cast&lt;Eigen::Index&gt;(idxA.size());</span></div>
+<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>        <span class="comment">// const Eigen::Index nB = static_cast&lt;Eigen::Index&gt;(idxB.size());</span></div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span> </div>
+<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>        <span class="comment">// // (1) Build [ S(:,B)  S(:,A) ] and QR-partition it.</span></div>
+<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; SS(dim(), nA + nB);</span></div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>        <span class="comment">// SS &lt;&lt; S_(Eigen::all, idxB), S_(Eigen::all, idxA);</span></div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span> </div>
+<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>        <span class="comment">// // Scale-in for robustness (prevents overflow in extreme tests).</span></div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>        <span class="comment">// Scalar s = SS.cwiseAbs().maxCoeff();</span></div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>        <span class="comment">// if (!(s &gt; Scalar(0))) s = Scalar(1);</span></div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>        <span class="comment">// SS /= s;</span></div>
+<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span> </div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>        <span class="comment">// // Q-less QR → R = [ S1 S2 ; 0 S3 ] stored in SS.</span></div>
+<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>        <span class="comment">// Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SS);</span></div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>        <span class="comment">// SS = SS.template triangularView&lt;Eigen::Upper&gt;();</span></div>
 <div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span> </div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>        <span class="comment">// // (3) Conditional mean: mu_A + K^T (mu_{B|y} - mu_B).</span></div>
-<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>        <span class="comment">// const Eigen::VectorX&lt;Scalar&gt; delta = pxB_y.mean() - mu_(idxB);</span></div>
-<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>        <span class="comment">// Eigen::VectorX&lt;Scalar&gt; muA_cond = mu_(idxA) + K.transpose() * delta;</span></div>
-<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span> </div>
-<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>        <span class="comment">// // (4) Conditional sqrt-cov via a second QR on the stacked matrix:</span></div>
-<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>        <span class="comment">// //     RR = [ S_{B|y} * K ;  s * S3s ]  (we rescale S3s back here).</span></div>
-<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; RR(nA + nB, nA);</span></div>
-<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>        <span class="comment">// RR &lt;&lt; pxB_y.sqrtCov() * K,</span></div>
-<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>        <span class="comment">//     s * S3s;</span></div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>        <span class="comment">// // Extract blocks (still scaled):</span></div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S1  = SS.topLeftCorner(nB, nB)</span></div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>        <span class="comment">//                                     .template triangularView&lt;Eigen::Upper&gt;();</span></div>
+<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S2  = SS.topRightCorner(nB, nA);</span></div>
+<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>        <span class="comment">// const Eigen::MatrixX&lt;Scalar&gt; S3s = SS.bottomRightCorner(nA, nA)</span></div>
+<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>        <span class="comment">//                                     .template triangularView&lt;Eigen::Upper&gt;();</span></div>
+<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span> </div>
+<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>        <span class="comment">// // (2) K = S1^{-1} S2  via triangular solve (no explicit inverse).</span></div>
+<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; K = S1.template triangularView&lt;Eigen::Upper&gt;().solve(S2);</span></div>
 <div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span> </div>
-<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>        <span class="comment">// Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr_RR(RR);</span></div>
-<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span>        <span class="comment">// RR = RR.template triangularView&lt;Eigen::Upper&gt;();</span></div>
-<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; R1 = RR.topRows(nA).template triangularView&lt;Eigen::Upper&gt;();</span></div>
+<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>        <span class="comment">// // (3) Conditional mean: mu_A + K^T (mu_{B|y} - mu_B).</span></div>
+<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span>        <span class="comment">// const Eigen::VectorX&lt;Scalar&gt; delta = pxB_y.mean() - mu_(idxB);</span></div>
+<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span>        <span class="comment">// Eigen::VectorX&lt;Scalar&gt; muA_cond = mu_(idxA) + K.transpose() * delta;</span></div>
 <div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span> </div>
-<div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span>        <span class="comment">// Gaussian out;</span></div>
-<div class="line"><a id="l00653" name="l00653"></a><span class="lineno">  653</span>        <span class="comment">// out.mu_ = muA_cond;</span></div>
-<div class="line"><a id="l00654" name="l00654"></a><span class="lineno">  654</span>        <span class="comment">// out.S_  = R1;</span></div>
-<div class="line"><a id="l00655" name="l00655"></a><span class="lineno">  655</span>        <span class="comment">// return out;</span></div>
-<div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span>    }</div>
+<div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span>        <span class="comment">// // (4) Conditional sqrt-cov via a second QR on the stacked matrix:</span></div>
+<div class="line"><a id="l00653" name="l00653"></a><span class="lineno">  653</span>        <span class="comment">// //     RR = [ S_{B|y} * K ;  s * S3s ]  (we rescale S3s back here).</span></div>
+<div class="line"><a id="l00654" name="l00654"></a><span class="lineno">  654</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; RR(nA + nB, nA);</span></div>
+<div class="line"><a id="l00655" name="l00655"></a><span class="lineno">  655</span>        <span class="comment">// RR &lt;&lt; pxB_y.sqrtCov() * K,</span></div>
+<div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span>        <span class="comment">//     s * S3s;</span></div>
+<div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span> </div>
+<div class="line"><a id="l00658" name="l00658"></a><span class="lineno">  658</span>        <span class="comment">// Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr_RR(RR);</span></div>
+<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span>        <span class="comment">// RR = RR.template triangularView&lt;Eigen::Upper&gt;();</span></div>
+<div class="line"><a id="l00660" name="l00660"></a><span class="lineno">  660</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; R1 = RR.topRows(nA).template triangularView&lt;Eigen::Upper&gt;();</span></div>
+<div class="line"><a id="l00661" name="l00661"></a><span class="lineno">  661</span> </div>
+<div class="line"><a id="l00662" name="l00662"></a><span class="lineno">  662</span>        <span class="comment">// Gaussian out;</span></div>
+<div class="line"><a id="l00663" name="l00663"></a><span class="lineno">  663</span>        <span class="comment">// out.mu_ = muA_cond;</span></div>
+<div class="line"><a id="l00664" name="l00664"></a><span class="lineno">  664</span>        <span class="comment">// out.S_  = R1;</span></div>
+<div class="line"><a id="l00665" name="l00665"></a><span class="lineno">  665</span>        <span class="comment">// return out;</span></div>
+<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span>    }</div>
 </div>
-<div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span></div>
-<div class="line"><a id="l00671" name="l00671"></a><span class="lineno">  671</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Func&gt;</div>
-<div class="foldopen" id="foldopen00672" data-start="{" data-end="}">
-<div class="line"><a id="l00672" name="l00672"></a><span class="lineno"><a class="line" href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">  672</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">affineTransform</a>(Func h)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00673" name="l00673"></a><span class="lineno">  673</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00674" name="l00674"></a><span class="lineno">  674</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out;</div>
-<div class="line"><a id="l00675" name="l00675"></a><span class="lineno">  675</span>        <span class="comment">// Evaluate mean and Jacobian at μ: y = h(μ), C = ∂h/∂x |_{μ}</span></div>
-<div class="line"><a id="l00676" name="l00676"></a><span class="lineno">  676</span>        Eigen::MatrixX&lt;Scalar&gt; C;</div>
-<div class="line"><a id="l00677" name="l00677"></a><span class="lineno">  677</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = h(<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>, C);</div>
-<div class="line"><a id="l00678" name="l00678"></a><span class="lineno">  678</span>        <span class="comment">// TODO</span></div>
-<div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span>        <span class="keyword">const</span> Eigen::Index m = out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.size();</div>
-<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span>        assert(C.rows() == m); <span class="comment">//m = output dimension (size of y = h(μ))</span></div>
-<div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span>        assert(C.cols() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>()); <span class="comment">//n = input/state dimension (size of x) dim() == n</span></div>
-<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span>        <span class="comment">// Form S*C^T (n x m) (equ 8-9 lab doc)</span></div>
-<div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span>        Eigen::MatrixX&lt;Scalar&gt; SCt = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> * C.transpose();</div>
-<div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span>        <span class="comment">// Q-less Householder QR: SCt = Q * R, we keep R in-place</span></div>
-<div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SCt);</div>
-<div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span>        <span class="comment">// Extract upper-triangular R and take its top m×m block as R1</span></div>
-<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span>        SCt = SCt.template triangularView&lt;Eigen::Upper&gt;();</div>
-<div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = SCt.topRows(m).template triangularView&lt;Eigen::Upper&gt;();</div>
-<div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span>        <span class="comment">// out.S_ = C * S_ * C.transpose();</span></div>
-<div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span>        <span class="comment">// p(y) = N^{1/2}( y ; h(μ), S_y=R1 ) eq. (9)</span></div>
-<div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span>        <span class="keywordflow">return</span> out;</div>
-<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span>    }</div>
+<div class="line"><a id="l00667" name="l00667"></a><span class="lineno">  667</span></div>
+<div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Func&gt;</div>
+<div class="foldopen" id="foldopen00682" data-start="{" data-end="}">
+<div class="line"><a id="l00682" name="l00682"></a><span class="lineno"><a class="line" href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">  682</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">affineTransform</a>(Func h)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out;</div>
+<div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span>        <span class="comment">// Evaluate mean and Jacobian at μ: y = h(μ), C = ∂h/∂x |_{μ}</span></div>
+<div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span>        Eigen::MatrixX&lt;Scalar&gt; C;</div>
+<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> = h(<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>, C);</div>
+<div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span>        <span class="keyword">const</span> Eigen::Index m = out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.size();</div>
+<div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span>        assert(C.rows() == m); <span class="comment">//m = output dimension (size of y = h(μ))</span></div>
+<div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span>        assert(C.cols() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>()); <span class="comment">//n = input/state dimension (size of x) dim() == n</span></div>
+<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span>        <span class="comment">// Form S*C^T (n x m) (equ 8-9 lab doc)</span></div>
+<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span>        Eigen::MatrixX&lt;Scalar&gt; SCt = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> * C.transpose();</div>
+<div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span>        <span class="comment">// Q-less Householder QR: SCt = Q * R, we keep R in-place</span></div>
+<div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(SCt);</div>
+<div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>        <span class="comment">// Extract upper-triangular R and take its top m×m block as R1</span></div>
+<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span>        SCt = SCt.template triangularView&lt;Eigen::Upper&gt;();</div>
+<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> = SCt.topRows(m).template triangularView&lt;Eigen::Upper&gt;();</div>
+<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span>        <span class="comment">// out.S_ = C * S_ * C.transpose();</span></div>
+<div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span>        <span class="comment">// p(y) = N^{1/2}( y ; h(μ), S_y=R1 ) eq. (9)</span></div>
+<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span>        <span class="keywordflow">return</span> out;</div>
+<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span>    }</div>
 </div>
-<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span></div>
-<div class="foldopen" id="foldopen00705" data-start="{" data-end="}">
-<div class="line"><a id="l00705" name="l00705"></a><span class="lineno"><a class="line" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">  705</a></span>    <span class="keyword">virtual</span> Scalar <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x)<span class="keyword"> const override</span></div>
-<div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span>        assert(x.cols() == 1);</div>
-<div class="line"><a id="l00708" name="l00708"></a><span class="lineno">  708</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
-<div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span> </div>
-<div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span>        <span class="comment">// Compute log N(x; mu, P) where P = S.&#39;*S</span></div>
-<div class="line"><a id="l00711" name="l00711"></a><span class="lineno">  711</span>        <span class="comment">// log N(x; mu, P) = -0.5*(x - mu).&#39;*inv(P)*(x - mu) - 0.5*log(det(2*pi*P))</span></div>
-<div class="line"><a id="l00712" name="l00712"></a><span class="lineno">  712</span> </div>
-<div class="line"><a id="l00713" name="l00713"></a><span class="lineno">  713</span>        <span class="comment">// TODO: Numerically stable version</span></div>
-<div class="line"><a id="l00714" name="l00714"></a><span class="lineno">  714</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00715" name="l00715"></a><span class="lineno">  715</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span> </div>
-<div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span>        <span class="comment">// y = S^{-T} e  (solve S^T y = e), so e^T P^{-1} e = ||y||^2</span></div>
-<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y =</div>
-<div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
-<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>        <span class="keyword">const</span> Scalar quad = y.squaredNorm(); <span class="comment">// Quadratic form = e^T P^{-1} e = ||y||²</span></div>
-<div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span> </div>
-<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span>        <span class="keyword">using </span>std::log;</div>
-<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>        <span class="keyword">using </span>std::abs;</div>
-<div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span> </div>
-<div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span>        <span class="comment">// 0.5 * log|P| = sum_i log(|S_ii|)</span></div>
-<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span>        Scalar half_logdetP = Scalar(0);</div>
-<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span>        <span class="keywordflow">for</span> (Eigen::Index i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span>            half_logdetP += <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(abs(<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(i, i)));</div>
-<div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span>        }</div>
-<div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span> </div>
-<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span>        <span class="keyword">const</span> Scalar log2pi = <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(Scalar(2) * Scalar(std::numbers::pi));</div>
-<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span>        <span class="comment">// log N(x; μ, P) = -0.5*quad - 0.5*n*log(2π) - 0.5*log|P|</span></div>
-<div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span>        <span class="comment">// and 0.5*log|P| = half_logdetP</span></div>
-<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span>        <span class="comment">// or // Formula (Lab eq. (6)):</span></div>
-<div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span>        <span class="comment">// log N = -0.5*||y||² - 0.5*n*log(2π) - sum log|S_ii|</span></div>
-<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span>        <span class="keywordflow">return</span> Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;</div>
-<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span> </div>
-<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span>        <span class="comment">// // Really bad version</span></div>
-<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; P = S_.transpose()*S_;   // Bad, because unnecessary and loss of precision</span></div>
-<div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; Pinv = P.inverse();      // Bad, because you should know better (https://www.johndcook.com/blog/2010/01/19/dont-invert-that-matrix/)</span></div>
-<div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span>        <span class="comment">// Scalar quadraticForm = (x - mu_).transpose()*Pinv*(x - mu_);</span></div>
-<div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span>        <span class="comment">// using std::log, std::sqrt, std::exp;            // Bring selected math functions into global namespace</span></div>
-<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>        <span class="comment">// return log( 1.0/sqrt( (2*std::numbers::pi*P).determinant() )*exp(-0.5*quadraticForm) ); // Bad, because determinant, underflow, overflow and loss of precision</span></div>
-<div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span>    }</div>
+<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span></div>
+<div class="foldopen" id="foldopen00715" data-start="{" data-end="}">
+<div class="line"><a id="l00715" name="l00715"></a><span class="lineno"><a class="line" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">  715</a></span>    <span class="keyword">virtual</span> Scalar <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x)<span class="keyword"> const override</span></div>
+<div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span>        assert(x.cols() == 1);</div>
+<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
+<div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span> </div>
+<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>        <span class="comment">// Compute log N(x; mu, P) where P = S.&#39;*S</span></div>
+<div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span>        <span class="comment">// log N(x; mu, P) = -0.5*(x - mu).&#39;*inv(P)*(x - mu) - 0.5*log(det(2*pi*P))</span></div>
+<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span> </div>
+<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>        <span class="comment">// TODO: Numerically stable version</span></div>
+<div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
+<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span> </div>
+<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span>        <span class="comment">// y = S^{-T} e  (solve S^T y = e), so e^T P^{-1} e = ||y||^2</span></div>
+<div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y =</div>
+<div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
+<div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span>        <span class="keyword">const</span> Scalar quad = y.squaredNorm(); <span class="comment">// Quadratic form = e^T P^{-1} e = ||y||²</span></div>
+<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span> </div>
+<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span>        <span class="keyword">using </span>std::log;</div>
+<div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span>        <span class="keyword">using </span>std::abs;</div>
+<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span> </div>
+<div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span>        <span class="comment">// 0.5 * log|P| = sum_i log(|S_ii|)</span></div>
+<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span>        <span class="comment">// Slow way</span></div>
+<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span>        <span class="comment">// Scalar half_logdetP = Scalar(0);</span></div>
+<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span>        <span class="comment">// for (Eigen::Index i = 0; i &lt; n; ++i) {</span></div>
+<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span>        <span class="comment">//     half_logdetP += log(abs(S_(i, i)));</span></div>
+<div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span>        <span class="comment">// }</span></div>
+<div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span>        <span class="comment">// 0.5 * log|P| = sum_i log(|S_ii|)</span></div>
+<div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span>        Scalar half_logdetP = (<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.diagonal().array().abs().<a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>()).sum();</div>
+<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span> </div>
+<div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span> </div>
+<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span>        <span class="keyword">const</span> Scalar log2pi = <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(Scalar(2) * Scalar(std::numbers::pi));</div>
+<div class="line"><a id="l00746" name="l00746"></a><span class="lineno">  746</span>        <span class="comment">// log N(x; μ, P) = -0.5*quad - 0.5*n*log(2π) - 0.5*log|P|</span></div>
+<div class="line"><a id="l00747" name="l00747"></a><span class="lineno">  747</span>        <span class="comment">// and 0.5*log|P| = half_logdetP</span></div>
+<div class="line"><a id="l00748" name="l00748"></a><span class="lineno">  748</span>        <span class="comment">// or // Formula (Lab eq. (6)):</span></div>
+<div class="line"><a id="l00749" name="l00749"></a><span class="lineno">  749</span>        <span class="comment">// log N = -0.5*||y||² - 0.5*n*log(2π) - sum log|S_ii|</span></div>
+<div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span>        <span class="keywordflow">return</span> Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;</div>
+<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span> </div>
+<div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span>        <span class="comment">// // Really bad version</span></div>
+<div class="line"><a id="l00753" name="l00753"></a><span class="lineno">  753</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; P = S_.transpose()*S_;   // Bad, because unnecessary and loss of precision</span></div>
+<div class="line"><a id="l00754" name="l00754"></a><span class="lineno">  754</span>        <span class="comment">// Eigen::MatrixX&lt;Scalar&gt; Pinv = P.inverse();      // Bad, because you should know better (https://www.johndcook.com/blog/2010/01/19/dont-invert-that-matrix/)</span></div>
+<div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span>        <span class="comment">// Scalar quadraticForm = (x - mu_).transpose()*Pinv*(x - mu_);</span></div>
+<div class="line"><a id="l00756" name="l00756"></a><span class="lineno">  756</span>        <span class="comment">// using std::log, std::sqrt, std::exp;            // Bring selected math functions into global namespace</span></div>
+<div class="line"><a id="l00757" name="l00757"></a><span class="lineno">  757</span>        <span class="comment">// return log( 1.0/sqrt( (2*std::numbers::pi*P).determinant() )*exp(-0.5*quadraticForm) ); // Bad, because determinant, underflow, overflow and loss of precision</span></div>
+<div class="line"><a id="l00758" name="l00758"></a><span class="lineno">  758</span>    }</div>
 </div>
-<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span></div>
-<div class="foldopen" id="foldopen00759" data-start="{" data-end="}">
-<div class="line"><a id="l00759" name="l00759"></a><span class="lineno"><a class="line" href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">  759</a></span>    Scalar <a class="code hl_function" href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00761" name="l00761"></a><span class="lineno">  761</span>        <span class="comment">// TODO: Compute gradient of log N(x; mu, P) w.r.t. x and write it to g</span></div>
-<div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>        <span class="comment">// return log(x);</span></div>
-<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>        assert(x.cols() == 1);</div>
-<div class="line"><a id="l00764" name="l00764"></a><span class="lineno">  764</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
-<div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span> </div>
-<div class="line"><a id="l00766" name="l00766"></a><span class="lineno">  766</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00767" name="l00767"></a><span class="lineno">  767</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00768" name="l00768"></a><span class="lineno">  768</span> </div>
-<div class="line"><a id="l00769" name="l00769"></a><span class="lineno">  769</span>        <span class="comment">// y = S^{-T} e</span></div>
-<div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
-<div class="line"><a id="l00771" name="l00771"></a><span class="lineno">  771</span>        <span class="comment">// z = S^{-1} y = P^{-1} e</span></div>
-<div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; z = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().solve(y);</div>
-<div class="line"><a id="l00773" name="l00773"></a><span class="lineno">  773</span> </div>
-<div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span>        <span class="comment">// gradient of log N wrt x ∂/∂x logN = -P^{-1}(x - μ))</span></div>
-<div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span>        g = -z;</div>
-<div class="line"><a id="l00776" name="l00776"></a><span class="lineno">  776</span> </div>
-<div class="line"><a id="l00777" name="l00777"></a><span class="lineno">  777</span>        <span class="keyword">using </span>std::log;</div>
-<div class="line"><a id="l00778" name="l00778"></a><span class="lineno">  778</span>        <span class="keyword">using </span>std::abs;</div>
+<div class="line"><a id="l00759" name="l00759"></a><span class="lineno">  759</span></div>
+<div class="foldopen" id="foldopen00773" data-start="{" data-end="}">
+<div class="line"><a id="l00773" name="l00773"></a><span class="lineno"><a class="line" href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">  773</a></span>    Scalar <a class="code hl_function" href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span>        <span class="comment">// TODO: Compute gradient of log N(x; mu, P) w.r.t. x and write it to g</span></div>
+<div class="line"><a id="l00776" name="l00776"></a><span class="lineno">  776</span>        <span class="comment">// return log(x);</span></div>
+<div class="line"><a id="l00777" name="l00777"></a><span class="lineno">  777</span>        assert(x.cols() == 1);</div>
+<div class="line"><a id="l00778" name="l00778"></a><span class="lineno">  778</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
 <div class="line"><a id="l00779" name="l00779"></a><span class="lineno">  779</span> </div>
-<div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>        Scalar half_logdetP = Scalar(0);</div>
-<div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span>        <span class="keywordflow">for</span> (Eigen::Index i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span>            half_logdetP += <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(abs(<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(i, i)));</div>
-<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span>        }</div>
-<div class="line"><a id="l00784" name="l00784"></a><span class="lineno">  784</span>        <span class="keyword">const</span> Scalar quad = y.squaredNorm();</div>
-<div class="line"><a id="l00785" name="l00785"></a><span class="lineno">  785</span>        <span class="keyword">const</span> Scalar log2pi = <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(Scalar(2) * Scalar(std::numbers::pi));</div>
-<div class="line"><a id="l00786" name="l00786"></a><span class="lineno">  786</span>        <span class="keywordflow">return</span> Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;</div>
-<div class="line"><a id="l00787" name="l00787"></a><span class="lineno">  787</span>        }</div>
+<div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
+<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span> </div>
+<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span>        <span class="comment">// y = S^{-T} e</span></div>
+<div class="line"><a id="l00784" name="l00784"></a><span class="lineno">  784</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
+<div class="line"><a id="l00785" name="l00785"></a><span class="lineno">  785</span>        <span class="comment">// z = S^{-1} y = P^{-1} e</span></div>
+<div class="line"><a id="l00786" name="l00786"></a><span class="lineno">  786</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; z = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().solve(y);</div>
+<div class="line"><a id="l00787" name="l00787"></a><span class="lineno">  787</span> </div>
+<div class="line"><a id="l00788" name="l00788"></a><span class="lineno">  788</span>        <span class="comment">// gradient of log N wrt x ∂/∂x logN = -P^{-1}(x - μ))</span></div>
+<div class="line"><a id="l00789" name="l00789"></a><span class="lineno">  789</span>        g = -z;</div>
+<div class="line"><a id="l00790" name="l00790"></a><span class="lineno">  790</span> </div>
+<div class="line"><a id="l00791" name="l00791"></a><span class="lineno">  791</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(x);</div>
+<div class="line"><a id="l00792" name="l00792"></a><span class="lineno">  792</span>        }</div>
 </div>
-<div class="line"><a id="l00788" name="l00788"></a><span class="lineno">  788</span></div>
-<div class="foldopen" id="foldopen00803" data-start="{" data-end="}">
-<div class="line"><a id="l00803" name="l00803"></a><span class="lineno"><a class="line" href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">  803</a></span>    Scalar <a class="code hl_function" href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g, Eigen::MatrixX&lt;Scalar&gt; &amp; H)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00804" name="l00804"></a><span class="lineno">  804</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00805" name="l00805"></a><span class="lineno">  805</span>        <span class="comment">// TODO: Compute Hessian of log N(x; mu, P) w.r.t. x and write it to H</span></div>
-<div class="line"><a id="l00806" name="l00806"></a><span class="lineno">  806</span>        <span class="comment">// return log(x, g);</span></div>
-<div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span>        assert(x.cols() == 1);</div>
-<div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
-<div class="line"><a id="l00809" name="l00809"></a><span class="lineno">  809</span> </div>
-<div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00811" name="l00811"></a><span class="lineno">  811</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00812" name="l00812"></a><span class="lineno">  812</span> </div>
-<div class="line"><a id="l00813" name="l00813"></a><span class="lineno">  813</span>        <span class="comment">// y = S^{-T} e</span></div>
-<div class="line"><a id="l00814" name="l00814"></a><span class="lineno">  814</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y =</div>
-<div class="line"><a id="l00815" name="l00815"></a><span class="lineno">  815</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
-<div class="line"><a id="l00816" name="l00816"></a><span class="lineno">  816</span>        <span class="comment">// z = S^{-1} y = P^{-1} e</span></div>
-<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; z =</div>
-<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().solve(y);</div>
-<div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span> </div>
-<div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span>        <span class="comment">// gradient</span></div>
-<div class="line"><a id="l00821" name="l00821"></a><span class="lineno">  821</span>        g = -z;</div>
-<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span> </div>
-<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span>        <span class="comment">// Hessian: -P^{-1}</span></div>
-<div class="line"><a id="l00824" name="l00824"></a><span class="lineno">  824</span>        <span class="comment">// Solve S * X = I  -&gt;  X = S^{-1}</span></div>
-<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span>        <span class="comment">// Build stably: compute X = S^{-1}, then H = -X X^T</span></div>
-<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span>        Eigen::MatrixX&lt;Scalar&gt; X =</div>
-<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().solve(</div>
-<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span>                Eigen::MatrixX&lt;Scalar&gt;::Identity(n, n)</div>
-<div class="line"><a id="l00829" name="l00829"></a><span class="lineno">  829</span>            );</div>
-<div class="line"><a id="l00830" name="l00830"></a><span class="lineno">  830</span>        H = -(X * X.transpose());</div>
-<div class="line"><a id="l00831" name="l00831"></a><span class="lineno">  831</span> </div>
-<div class="line"><a id="l00832" name="l00832"></a><span class="lineno">  832</span>        <span class="keyword">using </span>std::log;</div>
-<div class="line"><a id="l00833" name="l00833"></a><span class="lineno">  833</span>        <span class="keyword">using </span>std::abs;</div>
-<div class="line"><a id="l00834" name="l00834"></a><span class="lineno">  834</span> </div>
-<div class="line"><a id="l00835" name="l00835"></a><span class="lineno">  835</span>        Scalar half_logdetP = Scalar(0);</div>
-<div class="line"><a id="l00836" name="l00836"></a><span class="lineno">  836</span>        <span class="keywordflow">for</span> (Eigen::Index i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00837" name="l00837"></a><span class="lineno">  837</span>            half_logdetP += <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(abs(<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>(i, i)));</div>
-<div class="line"><a id="l00838" name="l00838"></a><span class="lineno">  838</span>        }</div>
-<div class="line"><a id="l00839" name="l00839"></a><span class="lineno">  839</span>        <span class="keyword">const</span> Scalar quad = y.squaredNorm();</div>
-<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span>        <span class="keyword">const</span> Scalar log2pi = <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(Scalar(2) * Scalar(std::numbers::pi));</div>
-<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span>        <span class="keywordflow">return</span> Scalar(-0.5) * quad - Scalar(0.5) * Scalar(n) * log2pi - half_logdetP;</div>
-<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span>    }</div>
+<div class="line"><a id="l00793" name="l00793"></a><span class="lineno">  793</span></div>
+<div class="foldopen" id="foldopen00808" data-start="{" data-end="}">
+<div class="line"><a id="l00808" name="l00808"></a><span class="lineno"><a class="line" href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">  808</a></span>    Scalar <a class="code hl_function" href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g, Eigen::MatrixX&lt;Scalar&gt; &amp; H)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00809" name="l00809"></a><span class="lineno">  809</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span>        <span class="comment">// TODO: Compute Hessian of log N(x; mu, P) w.r.t. x and write it to H</span></div>
+<div class="line"><a id="l00811" name="l00811"></a><span class="lineno">  811</span>        <span class="comment">// return log(x, g);</span></div>
+<div class="line"><a id="l00812" name="l00812"></a><span class="lineno">  812</span>        assert(x.cols() == 1);</div>
+<div class="line"><a id="l00813" name="l00813"></a><span class="lineno">  813</span>        assert(x.size() == <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>());</div>
+<div class="line"><a id="l00814" name="l00814"></a><span class="lineno">  814</span> </div>
+<div class="line"><a id="l00815" name="l00815"></a><span class="lineno">  815</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00816" name="l00816"></a><span class="lineno">  816</span> </div>
+<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span>        <span class="comment">// Hessian: -P^{-1}</span></div>
+<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span>        <span class="comment">// Solve S * X = I  -&gt;  X = S^{-1}</span></div>
+<div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span>        <span class="comment">// Build stably: compute X = S^{-1}, then H = -X X^T</span></div>
+<div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span>        Eigen::MatrixX&lt;Scalar&gt; X =</div>
+<div class="line"><a id="l00821" name="l00821"></a><span class="lineno">  821</span>            <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().solve(</div>
+<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span>                Eigen::MatrixX&lt;Scalar&gt;::Identity(n, n)</div>
+<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span>            );</div>
+<div class="line"><a id="l00824" name="l00824"></a><span class="lineno">  824</span>        H = -(X * X.transpose());</div>
+<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span> </div>
+<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">log</a>(x, g);</div>
+<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span>    }</div>
 </div>
-<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span></div>
-<div class="foldopen" id="foldopen00854" data-start="{" data-end="}">
-<div class="line"><a id="l00854" name="l00854"></a><span class="lineno"><a class="line" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">  854</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">join</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00855" name="l00855"></a><span class="lineno">  855</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00856" name="l00856"></a><span class="lineno">  856</span>        <span class="keyword">const</span> Eigen::Index &amp; n1 = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00857" name="l00857"></a><span class="lineno">  857</span>        <span class="keyword">const</span> Eigen::Index &amp; n2 = other.<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00858" name="l00858"></a><span class="lineno">  858</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out(n1 + n2);</div>
-<div class="line"><a id="l00859" name="l00859"></a><span class="lineno">  859</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> &lt;&lt; <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>, other.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00860" name="l00860"></a><span class="lineno">  860</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> &lt;&lt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>,                                   Eigen::MatrixX&lt;Scalar&gt;::Zero(n1, n2),</div>
-<div class="line"><a id="l00861" name="l00861"></a><span class="lineno">  861</span>                  Eigen::MatrixX&lt;Scalar&gt;::Zero(n2, n1), other.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;</div>
-<div class="line"><a id="l00862" name="l00862"></a><span class="lineno">  862</span>        <span class="keywordflow">return</span> out;</div>
-<div class="line"><a id="l00863" name="l00863"></a><span class="lineno">  863</span>    }</div>
+<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span></div>
+<div class="foldopen" id="foldopen00839" data-start="{" data-end="}">
+<div class="line"><a id="l00839" name="l00839"></a><span class="lineno"><a class="line" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">  839</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">join</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span>        <span class="keyword">const</span> Eigen::Index &amp; n1 = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span>        <span class="keyword">const</span> Eigen::Index &amp; n2 = other.<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span>        <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> out(n1 + n2);</div>
+<div class="line"><a id="l00844" name="l00844"></a><span class="lineno">  844</span>        out.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a> &lt;&lt; <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>, other.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
+<div class="line"><a id="l00845" name="l00845"></a><span class="lineno">  845</span>        out.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a> &lt;&lt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>,                                   Eigen::MatrixX&lt;Scalar&gt;::Zero(n1, n2),</div>
+<div class="line"><a id="l00846" name="l00846"></a><span class="lineno">  846</span>                  Eigen::MatrixX&lt;Scalar&gt;::Zero(n2, n1), other.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;</div>
+<div class="line"><a id="l00847" name="l00847"></a><span class="lineno">  847</span>        <span class="keywordflow">return</span> out;</div>
+<div class="line"><a id="l00848" name="l00848"></a><span class="lineno">  848</span>    }</div>
 </div>
-<div class="line"><a id="l00864" name="l00864"></a><span class="lineno">  864</span></div>
-<div class="foldopen" id="foldopen00879" data-start="{" data-end="}">
-<div class="line"><a id="l00879" name="l00879"></a><span class="lineno"><a class="line" href="classGaussian.html#a228392294d03cf2edf1328290accda2b">  879</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a228392294d03cf2edf1328290accda2b">operator*</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">join</a>(other);</div>
-<div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>    }</div>
+<div class="line"><a id="l00849" name="l00849"></a><span class="lineno">  849</span></div>
+<div class="foldopen" id="foldopen00864" data-start="{" data-end="}">
+<div class="line"><a id="l00864" name="l00864"></a><span class="lineno"><a class="line" href="classGaussian.html#a228392294d03cf2edf1328290accda2b">  864</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> <a class="code hl_function" href="classGaussian.html#a228392294d03cf2edf1328290accda2b">operator*</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00865" name="l00865"></a><span class="lineno">  865</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00866" name="l00866"></a><span class="lineno">  866</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="classGaussian.html#a6712694fd5780a754703fffe164416f6">join</a>(other);</div>
+<div class="line"><a id="l00867" name="l00867"></a><span class="lineno">  867</span>    }</div>
 </div>
-<div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span></div>
-<div class="foldopen" id="foldopen00898" data-start="{" data-end="}">
-<div class="line"><a id="l00898" name="l00898"></a><span class="lineno"><a class="line" href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">  898</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; <a class="code hl_function" href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">operator*=</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)</div>
-<div class="line"><a id="l00899" name="l00899"></a><span class="lineno">  899</span>    {</div>
-<div class="line"><a id="l00900" name="l00900"></a><span class="lineno">  900</span>        <span class="keyword">const</span> Eigen::Index &amp; n1 = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00901" name="l00901"></a><span class="lineno">  901</span>        <span class="keyword">const</span> Eigen::Index &amp; n2 = other.<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00902" name="l00902"></a><span class="lineno">  902</span>        <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.conservativeResize(n1 + n2);</div>
-<div class="line"><a id="l00903" name="l00903"></a><span class="lineno">  903</span>        <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.tail(n2) = other.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00904" name="l00904"></a><span class="lineno">  904</span>        <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.conservativeResizeLike(Eigen::MatrixX&lt;Scalar&gt;::Zero(n1 + n2, n1 + n2));</div>
-<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span>        <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.bottomRightCorner(n2, n2) = other.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;</div>
-<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span>        <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
-<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span>    }</div>
+<div class="line"><a id="l00868" name="l00868"></a><span class="lineno">  868</span></div>
+<div class="foldopen" id="foldopen00883" data-start="{" data-end="}">
+<div class="line"><a id="l00883" name="l00883"></a><span class="lineno"><a class="line" href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">  883</a></span>    <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; <a class="code hl_function" href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">operator*=</a>(<span class="keyword">const</span> <a class="code hl_friend" href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian</a> &amp; other)</div>
+<div class="line"><a id="l00884" name="l00884"></a><span class="lineno">  884</span>    {</div>
+<div class="line"><a id="l00885" name="l00885"></a><span class="lineno">  885</span>        <span class="keyword">const</span> Eigen::Index &amp; n1 = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00886" name="l00886"></a><span class="lineno">  886</span>        <span class="keyword">const</span> Eigen::Index &amp; n2 = other.<a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00887" name="l00887"></a><span class="lineno">  887</span>        <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.conservativeResize(n1 + n2);</div>
+<div class="line"><a id="l00888" name="l00888"></a><span class="lineno">  888</span>        <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>.tail(n2) = other.<a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
+<div class="line"><a id="l00889" name="l00889"></a><span class="lineno">  889</span>        <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.conservativeResizeLike(Eigen::MatrixX&lt;Scalar&gt;::Zero(n1 + n2, n1 + n2));</div>
+<div class="line"><a id="l00890" name="l00890"></a><span class="lineno">  890</span>        <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.bottomRightCorner(n2, n2) = other.<a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;</div>
+<div class="line"><a id="l00891" name="l00891"></a><span class="lineno">  891</span>        <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a id="l00892" name="l00892"></a><span class="lineno">  892</span>    }</div>
 </div>
-<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span></div>
-<div class="foldopen" id="foldopen00919" data-start="{" data-end="}">
-<div class="line"><a id="l00919" name="l00919"></a><span class="lineno"><a class="line" href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">  919</a></span>    <span class="keyword">virtual</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">isWithinConfidenceRegion</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, <span class="keywordtype">double</span> nSigma = 3.0)<span class="keyword"> const override</span></div>
-<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span>        <span class="keyword">const</span> Eigen::Index &amp; n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00922" name="l00922"></a><span class="lineno">  922</span>        <span class="comment">// TODO</span></div>
-<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span>            assert(x.size() == n);</div>
-<div class="line"><a id="l00924" name="l00924"></a><span class="lineno">  924</span> </div>
-<div class="line"><a id="l00925" name="l00925"></a><span class="lineno">  925</span>        <span class="comment">// Mahalanobis^2 via triangular solves: r^2 = (x-μ)^T P^{-1} (x-μ) || S^{-T} (x−μ) ||^2</span></div>
-<div class="line"><a id="l00926" name="l00926"></a><span class="lineno">  926</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
-<div class="line"><a id="l00927" name="l00927"></a><span class="lineno">  927</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
-<div class="line"><a id="l00928" name="l00928"></a><span class="lineno">  928</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> r2 = <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(y.squaredNorm());</div>
-<div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span> </div>
-<div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span>        <span class="comment">// Match 1D ±nSigma probability: p = 2*Φ(nSigma) - 1</span></div>
-<div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> p = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(nSigma)) - 1.0;</div>
-<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span> </div>
-<div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span>        <span class="comment">// χ² threshold with ν = n / r² ≤ χ²_n(p)</span></div>
-<div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> thr = <a class="code hl_function" href="classGaussianBase.html#ad7a08a532a4a4bfef50960e1ceae45c6">chi2inv</a>(p, <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(n));</div>
-<div class="line"><a id="l00935" name="l00935"></a><span class="lineno">  935</span> </div>
-<div class="line"><a id="l00936" name="l00936"></a><span class="lineno">  936</span>        <span class="comment">// Small numerical slack (dont really need this, try guess it to be limit of machine precision)</span></div>
-<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span>        <span class="keywordflow">return</span> r2 &lt;= thr + 1e-12;</div>
-<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span>    }</div>
+<div class="line"><a id="l00893" name="l00893"></a><span class="lineno">  893</span></div>
+<div class="foldopen" id="foldopen00904" data-start="{" data-end="}">
+<div class="line"><a id="l00904" name="l00904"></a><span class="lineno"><a class="line" href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">  904</a></span>    <span class="keyword">virtual</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">isWithinConfidenceRegion</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, <span class="keywordtype">double</span> nSigma = 3.0)<span class="keyword"> const override</span></div>
+<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span>        <span class="keyword">const</span> Eigen::Index &amp; n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span>            assert(x.size() == n);</div>
+<div class="line"><a id="l00909" name="l00909"></a><span class="lineno">  909</span> </div>
+<div class="line"><a id="l00910" name="l00910"></a><span class="lineno">  910</span>        <span class="comment">// Mahalanobis^2 via triangular solves: r^2 = (x-μ)^T P^{-1} (x-μ) || S^{-T} (x−μ) ||^2</span></div>
+<div class="line"><a id="l00911" name="l00911"></a><span class="lineno">  911</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; e = x - <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;</div>
+<div class="line"><a id="l00912" name="l00912"></a><span class="lineno">  912</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; y = <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>.template triangularView&lt;Eigen::Upper&gt;().transpose().solve(e);</div>
+<div class="line"><a id="l00913" name="l00913"></a><span class="lineno">  913</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> r2 = <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(y.squaredNorm());</div>
+<div class="line"><a id="l00914" name="l00914"></a><span class="lineno">  914</span> </div>
+<div class="line"><a id="l00915" name="l00915"></a><span class="lineno">  915</span>        <span class="comment">// Match 1D ±nSigma probability: p = 2*Φ(nSigma) - 1</span></div>
+<div class="line"><a id="l00916" name="l00916"></a><span class="lineno">  916</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> p = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(nSigma)) - 1.0;</div>
+<div class="line"><a id="l00917" name="l00917"></a><span class="lineno">  917</span> </div>
+<div class="line"><a id="l00918" name="l00918"></a><span class="lineno">  918</span>        <span class="comment">// χ² threshold with ν = n / r² ≤ χ²_n(p)</span></div>
+<div class="line"><a id="l00919" name="l00919"></a><span class="lineno">  919</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> thr = <a class="code hl_function" href="classGaussianBase.html#ad7a08a532a4a4bfef50960e1ceae45c6">chi2inv</a>(p, <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(n));</div>
+<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span> </div>
+<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span>        <span class="keywordflow">return</span> r2 &lt;= thr;</div>
+<div class="line"><a id="l00922" name="l00922"></a><span class="lineno">  922</span>    }</div>
 </div>
-<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span></div>
-<div class="foldopen" id="foldopen00952" data-start="{" data-end="}">
-<div class="line"><a id="l00952" name="l00952"></a><span class="lineno"><a class="line" href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">  952</a></span>    Eigen::Matrix4&lt;Scalar&gt; <a class="code hl_function" href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">quadricSurface</a>(<span class="keywordtype">double</span> nSigma = 3.0)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span>        <span class="keyword">const</span> Eigen::Index &amp; n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
-<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span>        assert(n == 3);</div>
-<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span>        </div>
-<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span>        Eigen::Matrix4&lt;Scalar&gt; Q;</div>
-<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span>        <span class="comment">// TODO</span></div>
-<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span>        <span class="comment">// A = P^{-1} using the stable infoMat() (no explicit inverse of P)</span></div>
-<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span>        <span class="keyword">const</span> Eigen::MatrixX&lt;Scalar&gt; A = <a class="code hl_function" href="classGaussian.html#a506cad2a4b25b31cfb0866a779cdf12a">infoMat</a>();     <span class="comment">// 3x3</span></div>
-<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; mu = <a class="code hl_function" href="classGaussian.html#a39e92048ba667390e2c29e5edc3c0689">mean</a>();       <span class="comment">// 3x1</span></div>
-<div class="line"><a id="l00962" name="l00962"></a><span class="lineno">  962</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; k  = A * mu;       <span class="comment">// 3x1 ((used for the off-diagonal blocks))</span></div>
-<div class="line"><a id="l00963" name="l00963"></a><span class="lineno">  963</span> </div>
-<div class="line"><a id="l00964" name="l00964"></a><span class="lineno">  964</span>        <span class="comment">// Probability that corresponds to &quot;± nSigma&quot; in 1D</span></div>
-<div class="line"><a id="l00965" name="l00965"></a><span class="lineno">  965</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> p  = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(nSigma)) - 1.0;</div>
-<div class="line"><a id="l00966" name="l00966"></a><span class="lineno">  966</span>        <span class="comment">// Chi-square threshold for 3 DoF</span></div>
-<div class="line"><a id="l00967" name="l00967"></a><span class="lineno">  967</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> c3 = <a class="code hl_function" href="classGaussianBase.html#ad7a08a532a4a4bfef50960e1ceae45c6">chi2inv</a>(p, 3.0); <span class="comment">// 3 for 3 dof</span></div>
-<div class="line"><a id="l00968" name="l00968"></a><span class="lineno">  968</span> </div>
-<div class="line"><a id="l00969" name="l00969"></a><span class="lineno">  969</span>        Q.setZero();</div>
-<div class="line"><a id="l00970" name="l00970"></a><span class="lineno">  970</span>        Q.template topLeftCorner&lt;3,3&gt;() = A;</div>
-<div class="line"><a id="l00971" name="l00971"></a><span class="lineno">  971</span>        Q.template topRightCorner&lt;3,1&gt;() = -k;</div>
-<div class="line"><a id="l00972" name="l00972"></a><span class="lineno">  972</span>        Q.template bottomLeftCorner&lt;1,3&gt;() = -k.transpose();</div>
-<div class="line"><a id="l00973" name="l00973"></a><span class="lineno">  973</span>        Q(3,3) = <span class="keyword">static_cast&lt;</span>Scalar<span class="keyword">&gt;</span>(mu.dot(k) - c3);</div>
-<div class="line"><a id="l00974" name="l00974"></a><span class="lineno">  974</span> </div>
-<div class="line"><a id="l00975" name="l00975"></a><span class="lineno">  975</span>        <span class="keywordflow">return</span> Q;</div>
-<div class="line"><a id="l00976" name="l00976"></a><span class="lineno">  976</span>    }</div>
+<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span></div>
+<div class="foldopen" id="foldopen00936" data-start="{" data-end="}">
+<div class="line"><a id="l00936" name="l00936"></a><span class="lineno"><a class="line" href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">  936</a></span>    Eigen::Matrix4&lt;Scalar&gt; <a class="code hl_function" href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">quadricSurface</a>(<span class="keywordtype">double</span> nSigma = 3.0)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span>        <span class="keyword">const</span> Eigen::Index &amp; n = <a class="code hl_function" href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">dim</a>();</div>
+<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span>        assert(n == 3);</div>
+<div class="line"><a id="l00940" name="l00940"></a><span class="lineno">  940</span>        </div>
+<div class="line"><a id="l00941" name="l00941"></a><span class="lineno">  941</span>        Eigen::Matrix4&lt;Scalar&gt; Q;</div>
+<div class="line"><a id="l00942" name="l00942"></a><span class="lineno">  942</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00943" name="l00943"></a><span class="lineno">  943</span>        <span class="comment">// A = P^{-1} using the stable infoMat() (no explicit inverse of P)</span></div>
+<div class="line"><a id="l00944" name="l00944"></a><span class="lineno">  944</span>        <span class="keyword">const</span> Eigen::MatrixX&lt;Scalar&gt; A = <a class="code hl_function" href="classGaussian.html#a506cad2a4b25b31cfb0866a779cdf12a">infoMat</a>();     <span class="comment">// 3x3</span></div>
+<div class="line"><a id="l00945" name="l00945"></a><span class="lineno">  945</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; mu = <a class="code hl_function" href="classGaussian.html#a39e92048ba667390e2c29e5edc3c0689">mean</a>();       <span class="comment">// 3x1</span></div>
+<div class="line"><a id="l00946" name="l00946"></a><span class="lineno">  946</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; k  = A * mu;       <span class="comment">// 3x1 ((used for the off-diagonal blocks))</span></div>
+<div class="line"><a id="l00947" name="l00947"></a><span class="lineno">  947</span> </div>
+<div class="line"><a id="l00948" name="l00948"></a><span class="lineno">  948</span>        <span class="comment">// Probability that corresponds to &quot;± nSigma&quot; in 1D</span></div>
+<div class="line"><a id="l00949" name="l00949"></a><span class="lineno">  949</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> p  = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(nSigma) - 1.0;</div>
+<div class="line"><a id="l00950" name="l00950"></a><span class="lineno">  950</span>        <span class="comment">// Chi-square threshold for 3 DoF</span></div>
+<div class="line"><a id="l00951" name="l00951"></a><span class="lineno">  951</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> c3 = <a class="code hl_function" href="classGaussianBase.html#ad7a08a532a4a4bfef50960e1ceae45c6">chi2inv</a>(p, 3.0); <span class="comment">// 3 for 3 dof</span></div>
+<div class="line"><a id="l00952" name="l00952"></a><span class="lineno">  952</span> </div>
+<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span>        Q.setZero();</div>
+<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span>        Q.template topLeftCorner&lt;3,3&gt;() = A;</div>
+<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span>        Q.template topRightCorner&lt;3,1&gt;() = -k;</div>
+<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span>        Q.template bottomLeftCorner&lt;1,3&gt;() = -k.transpose();</div>
+<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span>        Q(3,3) = <span class="keyword">static_cast&lt;</span>Scalar<span class="keyword">&gt;</span>(mu.dot(k) - c3);</div>
+<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span> </div>
+<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span>        <span class="keywordflow">return</span> Q;</div>
+<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span>    }</div>
 </div>
-<div class="line"><a id="l00977" name="l00977"></a><span class="lineno">  977</span> </div>
-<div class="line"><a id="l00978" name="l00978"></a><span class="lineno">  978</span><span class="keyword">protected</span>:</div>
-<div class="line"><a id="l00979" name="l00979"></a><span class="lineno"><a class="line" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">  979</a></span>    Eigen::VectorX&lt;Scalar&gt; <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;  </div>
-<div class="line"><a id="l00980" name="l00980"></a><span class="lineno"><a class="line" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">  980</a></span>    Eigen::MatrixX&lt;Scalar&gt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;   </div>
-<div class="line"><a id="l00981" name="l00981"></a><span class="lineno">  981</span>};</div>
+<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span> </div>
+<div class="line"><a id="l00962" name="l00962"></a><span class="lineno">  962</span><span class="keyword">protected</span>:</div>
+<div class="line"><a id="l00963" name="l00963"></a><span class="lineno"><a class="line" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">  963</a></span>    Eigen::VectorX&lt;Scalar&gt; <a class="code hl_variable" href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">mu_</a>;  </div>
+<div class="line"><a id="l00964" name="l00964"></a><span class="lineno"><a class="line" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">  964</a></span>    Eigen::MatrixX&lt;Scalar&gt; <a class="code hl_variable" href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">S_</a>;   </div>
+<div class="line"><a id="l00965" name="l00965"></a><span class="lineno">  965</span>};</div>
 </div>
-<div class="line"><a id="l00982" name="l00982"></a><span class="lineno">  982</span> </div>
-<div class="line"><a id="l00983" name="l00983"></a><span class="lineno">  983</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00966" name="l00966"></a><span class="lineno">  966</span> </div>
+<div class="line"><a id="l00967" name="l00967"></a><span class="lineno">  967</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aGaussianBase_8hpp_html"><div class="ttname"><a href="GaussianBase_8hpp.html">GaussianBase.hpp</a></div><div class="ttdoc">Defines the base class for Gaussian distributions.</div></div>
 <div class="ttc" id="aclassGaussianBase_html"><div class="ttname"><a href="classGaussianBase.html">GaussianBase</a></div><div class="ttdoc">Base class for Gaussian distributions.</div><div class="ttdef"><b>Definition</b> GaussianBase.hpp:29</div></div>
 <div class="ttc" id="aclassGaussianBase_html_a8437c8ae7f2d45391fc68d0e18e3e5e9"><div class="ttname"><a href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">GaussianBase&lt; double &gt;::normcdf</a></div><div class="ttdeci">static double normcdf(double w)</div><div class="ttdef"><b>Definition</b> GaussianBase.hpp:131</div></div>
@@ -781,39 +765,39 @@ $(function() {
 <div class="ttc" id="aclassGaussian_html_a00c7a2df5dd3f20b13cbffbc48b920d6"><div class="ttname"><a href="classGaussian.html#a00c7a2df5dd3f20b13cbffbc48b920d6">Gaussian::sqrtInfoMat</a></div><div class="ttdeci">virtual Eigen::MatrixX&lt; Scalar &gt; sqrtInfoMat() const override</div><div class="ttdoc">Get the square root of the information matrix.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:408</div></div>
 <div class="ttc" id="aclassGaussian_html_a132209b8c2b7879be2ad13a67d415367"><div class="ttname"><a href="classGaussian.html#a132209b8c2b7879be2ad13a67d415367">Gaussian::fromSqrtInfo</a></div><div class="ttdeci">static Gaussian fromSqrtInfo(const Eigen::VectorX&lt; Scalar &gt; &amp;nu, const Eigen::MatrixX&lt; Scalar &gt; &amp;Xi)</div><div class="ttdoc">Creates a Gaussian object from square root information parameters.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:215</div></div>
 <div class="ttc" id="aclassGaussian_html_a20582914304ddba5138706991e8a3dd0"><div class="ttname"><a href="classGaussian.html#a20582914304ddba5138706991e8a3dd0">Gaussian::fromSqrtMoment</a></div><div class="ttdeci">static Gaussian fromSqrtMoment(const Eigen::MatrixX&lt; Scalar &gt; &amp;S)</div><div class="ttdoc">Creates a Gaussian object from square root covariance matrix with zero mean.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:273</div></div>
-<div class="ttc" id="aclassGaussian_html_a21e2c0d710a1f04fd637b59cf22dcad9"><div class="ttname"><a href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">Gaussian::operator*=</a></div><div class="ttdeci">Gaussian &amp; operator*=(const Gaussian &amp;other)</div><div class="ttdoc">Append another Gaussian distribution to this one.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:898</div></div>
-<div class="ttc" id="aclassGaussian_html_a228392294d03cf2edf1328290accda2b"><div class="ttname"><a href="classGaussian.html#a228392294d03cf2edf1328290accda2b">Gaussian::operator*</a></div><div class="ttdeci">Gaussian operator*(const Gaussian &amp;other) const</div><div class="ttdoc">Create a new Gaussian distribution by appending another Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:879</div></div>
+<div class="ttc" id="aclassGaussian_html_a21e2c0d710a1f04fd637b59cf22dcad9"><div class="ttname"><a href="classGaussian.html#a21e2c0d710a1f04fd637b59cf22dcad9">Gaussian::operator*=</a></div><div class="ttdeci">Gaussian &amp; operator*=(const Gaussian &amp;other)</div><div class="ttdoc">Append another Gaussian distribution to this one.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:883</div></div>
+<div class="ttc" id="aclassGaussian_html_a228392294d03cf2edf1328290accda2b"><div class="ttname"><a href="classGaussian.html#a228392294d03cf2edf1328290accda2b">Gaussian::operator*</a></div><div class="ttdeci">Gaussian operator*(const Gaussian &amp;other) const</div><div class="ttdoc">Create a new Gaussian distribution by appending another Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:864</div></div>
 <div class="ttc" id="aclassGaussian_html_a2c94bc42fa33b200869486ce1c3bd3e3"><div class="ttname"><a href="classGaussian.html#a2c94bc42fa33b200869486ce1c3bd3e3">Gaussian::sqrtInfoVec</a></div><div class="ttdeci">virtual Eigen::VectorX&lt; Scalar &gt; sqrtInfoVec() const override</div><div class="ttdoc">Get the square root of the information vector.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:427</div></div>
 <div class="ttc" id="aclassGaussian_html_a2d527db93ddb976f33b001a00ecc8814"><div class="ttname"><a href="classGaussian.html#a2d527db93ddb976f33b001a00ecc8814">Gaussian::Gaussian</a></div><div class="ttdeci">Gaussian()</div><div class="ttdoc">Default constructor for Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:52</div></div>
 <div class="ttc" id="aclassGaussian_html_a2d59f2aecd35ff0c47658925d794da17"><div class="ttname"><a href="classGaussian.html#a2d59f2aecd35ff0c47658925d794da17">Gaussian::infoVec</a></div><div class="ttdeci">virtual Eigen::VectorX&lt; Scalar &gt; infoVec() const override</div><div class="ttdoc">Get the information vector of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:392</div></div>
-<div class="ttc" id="aclassGaussian_html_a338a329ad040caa11df6387cb4c6bb95"><div class="ttname"><a href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">Gaussian::log</a></div><div class="ttdeci">Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x, Eigen::VectorX&lt; Scalar &gt; &amp;g) const</div><div class="ttdoc">Compute the log-likelihood of a given point and its gradient under the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:759</div></div>
+<div class="ttc" id="aclassGaussian_html_a338a329ad040caa11df6387cb4c6bb95"><div class="ttname"><a href="classGaussian.html#a338a329ad040caa11df6387cb4c6bb95">Gaussian::log</a></div><div class="ttdeci">Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x, Eigen::VectorX&lt; Scalar &gt; &amp;g) const</div><div class="ttdoc">Compute the log-likelihood of a given point and its gradient under the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:773</div></div>
 <div class="ttc" id="aclassGaussian_html_a39e92048ba667390e2c29e5edc3c0689"><div class="ttname"><a href="classGaussian.html#a39e92048ba667390e2c29e5edc3c0689">Gaussian::mean</a></div><div class="ttdeci">virtual Eigen::VectorX&lt; Scalar &gt; mean() const override</div><div class="ttdoc">Get the mean vector of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:344</div></div>
 <div class="ttc" id="aclassGaussian_html_a3e9b58a0969b0aede9f810afc318a917"><div class="ttname"><a href="classGaussian.html#a3e9b58a0969b0aede9f810afc318a917">Gaussian::conditional</a></div><div class="ttdeci">Gaussian conditional(const IndexTypeA &amp;idxA, const IndexTypeB &amp;idxB, const Eigen::VectorX&lt; Scalar &gt; &amp;xB) const</div><div class="ttdoc">Compute the conditional distribution given a subset of variables.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:514</div></div>
 <div class="ttc" id="aclassGaussian_html_a416b1486d74f1567aca071a779404f3d"><div class="ttname"><a href="classGaussian.html#a416b1486d74f1567aca071a779404f3d">Gaussian::dim</a></div><div class="ttdeci">virtual Eigen::Index dim() const override</div><div class="ttdoc">Get the dimension of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:334</div></div>
-<div class="ttc" id="aclassGaussian_html_a4c4aadcb551042a9deeb961b2e0ab11e"><div class="ttname"><a href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">Gaussian::S_</a></div><div class="ttdeci">Eigen::MatrixX&lt; Scalar &gt; S_</div><div class="ttdoc">The square root of the covariance matrix (upper triangular).</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:980</div></div>
+<div class="ttc" id="aclassGaussian_html_a4c4aadcb551042a9deeb961b2e0ab11e"><div class="ttname"><a href="classGaussian.html#a4c4aadcb551042a9deeb961b2e0ab11e">Gaussian::S_</a></div><div class="ttdeci">Eigen::MatrixX&lt; Scalar &gt; S_</div><div class="ttdoc">The square root of the covariance matrix (upper triangular).</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:964</div></div>
 <div class="ttc" id="aclassGaussian_html_a506cad2a4b25b31cfb0866a779cdf12a"><div class="ttname"><a href="classGaussian.html#a506cad2a4b25b31cfb0866a779cdf12a">Gaussian::infoMat</a></div><div class="ttdeci">virtual Eigen::MatrixX&lt; Scalar &gt; infoMat() const override</div><div class="ttdoc">Get the information matrix of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:377</div></div>
 <div class="ttc" id="aclassGaussian_html_a542115dee7d78b24db88546e40c0cd87"><div class="ttname"><a href="classGaussian.html#a542115dee7d78b24db88546e40c0cd87">Gaussian::marginal</a></div><div class="ttdeci">Gaussian marginal(const IndexType &amp;idx) const</div><div class="ttdoc">Compute the marginal distribution of a subset of variables.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:475</div></div>
 <div class="ttc" id="aclassGaussian_html_a55c640e5f16531b480911b1cd5b85123"><div class="ttname"><a href="classGaussian.html#a55c640e5f16531b480911b1cd5b85123">Gaussian::fromSqrtInfo</a></div><div class="ttdeci">static Gaussian fromSqrtInfo(const Eigen::MatrixX&lt; Scalar &gt; &amp;Xi)</div><div class="ttdoc">Creates a Gaussian object from square root information matrix with zero information vector.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:307</div></div>
 <div class="ttc" id="aclassGaussian_html_a58c9db6030879d73e5eb59448f85a36e"><div class="ttname"><a href="classGaussian.html#a58c9db6030879d73e5eb59448f85a36e">Gaussian::Gaussian</a></div><div class="ttdeci">friend class Gaussian</div><div class="ttdoc">Declare Gaussian class as a friend for all scalar types.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:108</div></div>
-<div class="ttc" id="aclassGaussian_html_a599adbcb17bb04cd5838c98193fb2004"><div class="ttname"><a href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">Gaussian::conditional</a></div><div class="ttdeci">Gaussian conditional(const IndexTypeA &amp;idxA, const IndexTypeB &amp;idxB, const Gaussian &amp;pxB_y) const</div><div class="ttdoc">Compute the conditional distribution given a subset of variables and their conditional distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:579</div></div>
+<div class="ttc" id="aclassGaussian_html_a599adbcb17bb04cd5838c98193fb2004"><div class="ttname"><a href="classGaussian.html#a599adbcb17bb04cd5838c98193fb2004">Gaussian::conditional</a></div><div class="ttdeci">Gaussian conditional(const IndexTypeA &amp;idxA, const IndexTypeB &amp;idxB, const Gaussian &amp;pxB_y) const</div><div class="ttdoc">Compute the conditional distribution given a subset of variables and their conditional distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:589</div></div>
 <div class="ttc" id="aclassGaussian_html_a5bae4c0120073660541d2b3e7e3e0656"><div class="ttname"><a href="classGaussian.html#a5bae4c0120073660541d2b3e7e3e0656">Gaussian::fromSqrtMoment</a></div><div class="ttdeci">static Gaussian fromSqrtMoment(const Eigen::VectorX&lt; Scalar &gt; &amp;mu, const Eigen::MatrixX&lt; Scalar &gt; &amp;S)</div><div class="ttdoc">Creates a Gaussian object from square root moment parameters.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:165</div></div>
-<div class="ttc" id="aclassGaussian_html_a5cfc431373d485b389f54d6702e3c28b"><div class="ttname"><a href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">Gaussian::isWithinConfidenceRegion</a></div><div class="ttdeci">virtual bool isWithinConfidenceRegion(const Eigen::VectorX&lt; Scalar &gt; &amp;x, double nSigma=3.0) const override</div><div class="ttdoc">Check if a given point is within the confidence region of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:919</div></div>
-<div class="ttc" id="aclassGaussian_html_a6105b84cff5cbf642812bb4db2c47ece"><div class="ttname"><a href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">Gaussian::affineTransform</a></div><div class="ttdeci">Gaussian affineTransform(Func h) const</div><div class="ttdoc">Propagate the Gaussian distribution through a nonlinear function.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:672</div></div>
-<div class="ttc" id="aclassGaussian_html_a6712694fd5780a754703fffe164416f6"><div class="ttname"><a href="classGaussian.html#a6712694fd5780a754703fffe164416f6">Gaussian::join</a></div><div class="ttdeci">Gaussian join(const Gaussian &amp;other) const</div><div class="ttdoc">Join two Gaussian distributions into a joint distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:854</div></div>
+<div class="ttc" id="aclassGaussian_html_a5cfc431373d485b389f54d6702e3c28b"><div class="ttname"><a href="classGaussian.html#a5cfc431373d485b389f54d6702e3c28b">Gaussian::isWithinConfidenceRegion</a></div><div class="ttdeci">virtual bool isWithinConfidenceRegion(const Eigen::VectorX&lt; Scalar &gt; &amp;x, double nSigma=3.0) const override</div><div class="ttdoc">Check if a given point is within the confidence region of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:904</div></div>
+<div class="ttc" id="aclassGaussian_html_a6105b84cff5cbf642812bb4db2c47ece"><div class="ttname"><a href="classGaussian.html#a6105b84cff5cbf642812bb4db2c47ece">Gaussian::affineTransform</a></div><div class="ttdeci">Gaussian affineTransform(Func h) const</div><div class="ttdoc">Propagate the Gaussian distribution through a nonlinear function.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:682</div></div>
+<div class="ttc" id="aclassGaussian_html_a6712694fd5780a754703fffe164416f6"><div class="ttname"><a href="classGaussian.html#a6712694fd5780a754703fffe164416f6">Gaussian::join</a></div><div class="ttdeci">Gaussian join(const Gaussian &amp;other) const</div><div class="ttdoc">Join two Gaussian distributions into a joint distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:839</div></div>
 <div class="ttc" id="aclassGaussian_html_a7c540ec12961bdefd7e1cdca72556474"><div class="ttname"><a href="classGaussian.html#a7c540ec12961bdefd7e1cdca72556474">Gaussian::fromInfo</a></div><div class="ttdeci">static Gaussian fromInfo(const Eigen::MatrixX&lt; Scalar &gt; &amp;Lambda)</div><div class="ttdoc">Creates a Gaussian object from information matrix with zero information vector.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:324</div></div>
 <div class="ttc" id="aclassGaussian_html_a91bdbd19aacfde3e783b971887905a27"><div class="ttname"><a href="classGaussian.html#a91bdbd19aacfde3e783b971887905a27">Gaussian::Gaussian</a></div><div class="ttdeci">Gaussian(std::size_t n)</div><div class="ttdoc">Constructor for Gaussian distribution with specified dimension.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:64</div></div>
 <div class="ttc" id="aclassGaussian_html_a9a67ff6810507ced2a22de3839fc8c5f"><div class="ttname"><a href="classGaussian.html#a9a67ff6810507ced2a22de3839fc8c5f">Gaussian::Gaussian</a></div><div class="ttdeci">Gaussian(const Eigen::MatrixX&lt; Scalar &gt; &amp;S)</div><div class="ttdoc">Construct a Gaussian distribution with zero mean and given square root covariance matrix.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:75</div></div>
 <div class="ttc" id="aclassGaussian_html_ab1ac7a715496d7d91a349d551852801f"><div class="ttname"><a href="classGaussian.html#ab1ac7a715496d7d91a349d551852801f">Gaussian::fromMoment</a></div><div class="ttdeci">static Gaussian fromMoment(const Eigen::MatrixX&lt; Scalar &gt; &amp;P)</div><div class="ttdoc">Creates a Gaussian object from covariance matrix with zero mean.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:290</div></div>
 <div class="ttc" id="aclassGaussian_html_ab380b28fc7afc9e5ed3afc16377f8ffa"><div class="ttname"><a href="classGaussian.html#ab380b28fc7afc9e5ed3afc16377f8ffa">Gaussian::cast</a></div><div class="ttdeci">Gaussian&lt; OtherScalar &gt; cast() const</div><div class="ttdoc">Casts the Gaussian distribution to a different scalar type.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:143</div></div>
-<div class="ttc" id="aclassGaussian_html_ab3ed81bd4af4737c00adf67b89796e51"><div class="ttname"><a href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">Gaussian::mu_</a></div><div class="ttdeci">Eigen::VectorX&lt; Scalar &gt; mu_</div><div class="ttdoc">The mean vector of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:979</div></div>
+<div class="ttc" id="aclassGaussian_html_ab3ed81bd4af4737c00adf67b89796e51"><div class="ttname"><a href="classGaussian.html#ab3ed81bd4af4737c00adf67b89796e51">Gaussian::mu_</a></div><div class="ttdeci">Eigen::VectorX&lt; Scalar &gt; mu_</div><div class="ttdoc">The mean vector of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:963</div></div>
 <div class="ttc" id="aclassGaussian_html_ab5e94c615611f3de94e2341cee1b1ec6"><div class="ttname"><a href="classGaussian.html#ab5e94c615611f3de94e2341cee1b1ec6">Gaussian::Gaussian</a></div><div class="ttdeci">Gaussian(const Eigen::VectorX&lt; Scalar &gt; &amp;mu, const Eigen::MatrixX&lt; Scalar &gt; &amp;S)</div><div class="ttdoc">Construct a Gaussian distribution with given mean and square root covariance matrix.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:94</div></div>
 <div class="ttc" id="aclassGaussian_html_abfd47d269b59e1e8008f0ab783d79547"><div class="ttname"><a href="classGaussian.html#abfd47d269b59e1e8008f0ab783d79547">Gaussian::fromInfo</a></div><div class="ttdeci">static Gaussian fromInfo(const Eigen::VectorX&lt; Scalar &gt; &amp;eta, const Eigen::MatrixX&lt; Scalar &gt; &amp;Lambda)</div><div class="ttdoc">Creates a Gaussian object from information parameters.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:245</div></div>
 <div class="ttc" id="aclassGaussian_html_ac246f9cccd7ebc2893f83873f726c2ab"><div class="ttname"><a href="classGaussian.html#ac246f9cccd7ebc2893f83873f726c2ab">Gaussian::fromMoment</a></div><div class="ttdeci">static Gaussian fromMoment(const Eigen::VectorX&lt; Scalar &gt; &amp;mu, const Eigen::MatrixX&lt; Scalar &gt; &amp;P)</div><div class="ttdoc">Creates a Gaussian object from moment parameters.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:189</div></div>
-<div class="ttc" id="aclassGaussian_html_ac60f746f189e902faac832d1b9b32434"><div class="ttname"><a href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">Gaussian::log</a></div><div class="ttdeci">Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x, Eigen::VectorX&lt; Scalar &gt; &amp;g, Eigen::MatrixX&lt; Scalar &gt; &amp;H) const</div><div class="ttdoc">Compute the log-likelihood of a given point, its gradient, and Hessian under the Gaussian distributio...</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:803</div></div>
-<div class="ttc" id="aclassGaussian_html_ac656d83cf800b1e5611ebcf69367fe91"><div class="ttname"><a href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">Gaussian::quadricSurface</a></div><div class="ttdeci">Eigen::Matrix4&lt; Scalar &gt; quadricSurface(double nSigma=3.0) const</div><div class="ttdoc">Compute the quadric surface coefficients for a given number of standard deviations.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:952</div></div>
+<div class="ttc" id="aclassGaussian_html_ac60f746f189e902faac832d1b9b32434"><div class="ttname"><a href="classGaussian.html#ac60f746f189e902faac832d1b9b32434">Gaussian::log</a></div><div class="ttdeci">Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x, Eigen::VectorX&lt; Scalar &gt; &amp;g, Eigen::MatrixX&lt; Scalar &gt; &amp;H) const</div><div class="ttdoc">Compute the log-likelihood of a given point, its gradient, and Hessian under the Gaussian distributio...</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:808</div></div>
+<div class="ttc" id="aclassGaussian_html_ac656d83cf800b1e5611ebcf69367fe91"><div class="ttname"><a href="classGaussian.html#ac656d83cf800b1e5611ebcf69367fe91">Gaussian::quadricSurface</a></div><div class="ttdeci">Eigen::Matrix4&lt; Scalar &gt; quadricSurface(double nSigma=3.0) const</div><div class="ttdoc">Compute the quadric surface coefficients for a given number of standard deviations.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:936</div></div>
 <div class="ttc" id="aclassGaussian_html_acb63e110439b9c29d945e9de640347d9"><div class="ttname"><a href="classGaussian.html#acb63e110439b9c29d945e9de640347d9">Gaussian::fromSamples</a></div><div class="ttdeci">static Gaussian fromSamples(const Eigen::MatrixX&lt; Scalar &gt; &amp;X)</div><div class="ttdoc">Creates a Gaussian object from a set of samples.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:446</div></div>
 <div class="ttc" id="aclassGaussian_html_adb37a73b84399bcad9f9c0e9320ebfae"><div class="ttname"><a href="classGaussian.html#adb37a73b84399bcad9f9c0e9320ebfae">Gaussian::Gaussian</a></div><div class="ttdeci">Gaussian(const Gaussian&lt; OtherScalar &gt; &amp;p)</div><div class="ttdoc">Convert a Gaussian distribution from one scalar type to another.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:124</div></div>
-<div class="ttc" id="aclassGaussian_html_ae2b32cb1627b3cf0cb46e21a6c8f782c"><div class="ttname"><a href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">Gaussian::log</a></div><div class="ttdeci">virtual Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x) const override</div><div class="ttdoc">Compute the log-likelihood of a given point under the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:705</div></div>
+<div class="ttc" id="aclassGaussian_html_ae2b32cb1627b3cf0cb46e21a6c8f782c"><div class="ttname"><a href="classGaussian.html#ae2b32cb1627b3cf0cb46e21a6c8f782c">Gaussian::log</a></div><div class="ttdeci">virtual Scalar log(const Eigen::VectorX&lt; Scalar &gt; &amp;x) const override</div><div class="ttdoc">Compute the log-likelihood of a given point under the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:715</div></div>
 <div class="ttc" id="aclassGaussian_html_aeaef85731458efa56e4f2bbf1adb388f"><div class="ttname"><a href="classGaussian.html#aeaef85731458efa56e4f2bbf1adb388f">Gaussian::sqrtCov</a></div><div class="ttdeci">virtual Eigen::MatrixX&lt; Scalar &gt; sqrtCov() const override</div><div class="ttdoc">Get the square root of the covariance matrix.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:357</div></div>
 <div class="ttc" id="aclassGaussian_html_afe7297cb30034030e79a647b4f26caed"><div class="ttname"><a href="classGaussian.html#afe7297cb30034030e79a647b4f26caed">Gaussian::cov</a></div><div class="ttdeci">virtual Eigen::MatrixX&lt; Scalar &gt; cov() const override</div><div class="ttdoc">Get the covariance matrix of the Gaussian distribution.</div><div class="ttdef"><b>Definition</b> Gaussian.hpp:367</div></div>
 </div><!-- fragment --></div><!-- contents -->

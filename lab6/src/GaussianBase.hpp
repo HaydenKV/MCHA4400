@@ -134,14 +134,15 @@ public:
         // Phi(w) = 0.5 * erfc(-w / sqrt(2))
         // Branch by sign for a touch more numerical stability in the tails, can just use 'return 0.5 * std::erfc(-w / s2);'
         const double s2 = std::numbers::sqrt2;
-        if (w >= 0.0)
-        {
-            return 1.0 - 0.5 * std::erfc(w / s2);
-        }
-        else
-        {
-            return 0.5 * std::erfc(-w / s2);
-        }
+        // if (w >= 0.0)
+        // {
+        //     return 1.0 - 0.5 * std::erfc(w / s2);
+        // }
+        // else
+        // {
+        //     return 0.5 * std::erfc(-w / s2);
+        // }
+        return 0.5 * std::erfc(-w / s2);
     }
 
     /**
@@ -262,24 +263,20 @@ public:
         const double thr = chi2inv(p, 2.0);
         const Scalar r   = static_cast<Scalar>(std::sqrt(thr));
 
-        const Eigen::MatrixX<Scalar> ST = sqrtCov().transpose(); // S^T
+        const Eigen::MatrixX<Scalar> ST = sqrtCov().transpose(); // S^T (2x2)
 
-        // Sample angles; make last point equal to the first to close the loop
-        for (int i = 0; i < nSamples; ++i)
-        {
-            const double t =
-                (nSamples == 1) ? 0.0 : (2.0 * std::numbers::pi * i) / static_cast<double>(nSamples - 1);
+        // Angles: include both 0 and 2π so the last column equals the first (closed loop)
+        const Eigen::Array<Scalar, Eigen::Dynamic, 1> theta =
+            Eigen::Array<Scalar, Eigen::Dynamic, 1>::LinSpaced(nSamples,
+                Scalar(0), Scalar(2.0 * std::numbers::pi));
 
-            const Scalar c = static_cast<Scalar>(std::cos(t));
-            const Scalar s = static_cast<Scalar>(std::sin(t));
+        // Unit circle, scaled by r  →  Y is 2×N
+        Eigen::Matrix<Scalar, 2, Eigen::Dynamic> Y(2, nSamples);
+        Y.row(0) = (r * theta.cos()).matrix().transpose(); // r*cos θ
+        Y.row(1) = (r * theta.sin()).matrix().transpose(); // r*sin θ
 
-            // y = r * [cos t; sin t]
-            Eigen::Matrix<Scalar, 2, 1> y;
-            y << r * c, r * s;
-
-            // x = mu + S^T * y
-            X.col(i) = mean() + ST * y;
-        }
+        // Affine transform: x = μ + S^T * y  (broadcast μ over columns)
+        X = mean().rowwise().replicate(nSamples) + ST * Y;
 
         assert(X.cols() == nSamples);
         assert(X.rows() == 2);

@@ -172,7 +172,7 @@ void plot_simulation(
     topLeftChart->GetBackgroundBrush()->SetOpacityF(0.4);
 
     // Title
-    topLeftChart->SetTitle("State estimates");
+    //topLeftChart->SetTitle("State estimates");
     topLeftChart->GetTitleProperties()->SetFontSize(title_fontsize);
     topLeftChart->GetTitleProperties()->SetColor(colors->GetColor3d(title_fontcolour).GetData());
 
@@ -305,7 +305,7 @@ void plot_simulation(
     bottomLeftChart->GetBackgroundBrush()->SetOpacityF(0.4);
 
     // Title
-    bottomLeftChart->SetTitle("State estimates");
+    //bottomLeftChart->SetTitle("State estimates");
     bottomLeftChart->GetTitleProperties()->SetFontSize(title_fontsize);
     bottomLeftChart->GetTitleProperties()->SetColor(colors->GetColor3d(title_fontcolour).GetData());
 

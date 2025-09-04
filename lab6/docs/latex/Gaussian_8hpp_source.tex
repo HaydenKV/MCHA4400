@@ -287,309 +287,293 @@
 \DoxyCodeLine{00551\ }
 \DoxyCodeLine{00552\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 4)\ Conditional\ mean:\ μ\_A|B\ =\ μ\_A\ +\ (R1\string^\{-\/1\}\ R2)\string^T\ (xB\ -\/\ μ\_B)}}
 \DoxyCodeLine{00553\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ Compute\ K\ =\ R1\ \(\backslash\)\ R2\ via\ triangular\ solve,\ then\ K\string^T\ *\ deltaB\ (lab\ formula)}}
-\DoxyCodeLine{00554\ \ \ \ \ \ \ \ \ Eigen::Matrix<Scalar,\ Eigen::Dynamic,\ Eigen::Dynamic>\ K\ =\ R1.template\ triangularView<Eigen::Upper>().solve(R2);\ \textcolor{comment}{//\ nB×nA}}
-\DoxyCodeLine{00555\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxA)\ +\ K.transpose()\ *\ (xB\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxB));}
+\DoxyCodeLine{00554\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ deltaB\ =\ xB\ -\/\ muB}}
+\DoxyCodeLine{00555\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ deltaB\ =\ xB\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxB);}
 \DoxyCodeLine{00556\ }
-\DoxyCodeLine{00557\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 5)\ Conditional\ sqrt\ covariance\ is\ R3\ directly\ S\_\{A|B\}\ =\ S3}}
-\DoxyCodeLine{00558\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ R3;}
-\DoxyCodeLine{00559\ }
-\DoxyCodeLine{00560\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
-\DoxyCodeLine{00561\ \ \ \ \ \}}
+\DoxyCodeLine{00557\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Solve\ R1\string^T\ y\ =\ deltaB\ \ (since\ R1\ is\ upper-\/triangular,\ R1\string^T\ is\ lower-\/triangular)}}
+\DoxyCodeLine{00558\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =}
+\DoxyCodeLine{00559\ \ \ \ \ \ \ \ \ \ \ \ \ R1.template\ triangularView<Eigen::Upper>()}
+\DoxyCodeLine{00560\ \ \ \ \ \ \ \ \ \ \ \ \ .transpose()}
+\DoxyCodeLine{00561\ \ \ \ \ \ \ \ \ \ \ \ \ .solve(deltaB);}
 \DoxyCodeLine{00562\ }
-\DoxyCodeLine{00578\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ IndexTypeA,\ \textcolor{keyword}{typename}\ IndexTypeB>}
-\DoxyCodeLine{00579\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a599adbcb17bb04cd5838c98193fb2004}{conditional}}(\textcolor{keyword}{const}\ IndexTypeA\ \&\ idxA,\ \textcolor{keyword}{const}\ IndexTypeB\ \&\ idxB,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ pxB\_y)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00580\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00581\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::size\_t\ \&\ nA\ =\ idxA.size();}
-\DoxyCodeLine{00582\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::size\_t\ \&\ nB\ =\ idxB.size();}
-\DoxyCodeLine{00583\ }
-\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ [S(:,\ idxB),\ S(:,\ idxA)]}}
-\DoxyCodeLine{00585\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ SS(\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}(),\ nA\ +\ nB);}
-\DoxyCodeLine{00586\ \ \ \ \ \ \ \ \ SS\ <<\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(Eigen::all,\ idxB),\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(Eigen::all,\ idxA);}
-\DoxyCodeLine{00587\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ QR\ yields}}
-\DoxyCodeLine{00588\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [S1,\ S2;}}
-\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ 0,\ S3]}}
-\DoxyCodeLine{00590\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SS);\ \ \ \textcolor{comment}{//\ In-\/place\ QR\ decomposition}}
-\DoxyCodeLine{00591\ }
-\DoxyCodeLine{00592\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ K\ =\ S1\(\backslash\)S2}}
-\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ K\ =\ SS.topLeftCorner(nB,\ nB).template\ triangularView<Eigen::Upper>().solve(SS.topRightCorner(nB,\ nA));}
-\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ S3\ =\ SS.bottomRightCorner(nA,\ nA).template\ triangularView<Eigen::Upper>();}
-\DoxyCodeLine{00595\ }
-\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ [pxB\_y.S*K;\ S3]}}
-\DoxyCodeLine{00597\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ RR(nA\ +\ nB,\ nA);}
-\DoxyCodeLine{00598\ \ \ \ \ \ \ \ \ RR\ <<\ pxB\_y.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ *\ K,}
-\DoxyCodeLine{00599\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ S3;}
-\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ QR\ yields}}
-\DoxyCodeLine{00601\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [R1;}}
-\DoxyCodeLine{00602\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ 0]}}
-\DoxyCodeLine{00603\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr\_RR(RR);}
-\DoxyCodeLine{00604\ }
-\DoxyCodeLine{00605\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ p(x(idxA)\ |\ y)\ =\ N\string^-\/0.5(x(idxA);\ mu(idxA)\ +\ K.'*(pxB\_y.mu\ -\/\ mu(idxB))),\ R1)}}
-\DoxyCodeLine{00606\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out;}
-\DoxyCodeLine{00607\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxA)\ +\ K.transpose()*(pxB\_y.\mbox{\hyperlink{classGaussian_a39e92048ba667390e2c29e5edc3c0689}{mean}}()\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxB));}
-\DoxyCodeLine{00608\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ RR.topRows(nA).template\ triangularView<Eigen::Upper>();}
-\DoxyCodeLine{00609\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
-\DoxyCodeLine{00610\ }
-\DoxyCodeLine{00611\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ALTERNATE\ APPROACH\ THAT\ MAY\ BE\ MORE\ ROBUST\ AROUND\ INF\ values}}
-\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::Index\ nA\ =\ static\_cast<Eigen::Index>(idxA.size());}}
-\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::Index\ nB\ =\ static\_cast<Eigen::Index>(idxB.size());}}
+\DoxyCodeLine{00563\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ μ\_A|B\ =\ μ\_A\ +\ R2\string^T\ y\ \ \ (mat-\/vec,\ no\ explicit\ K)}}
+\DoxyCodeLine{00564\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxA)\ +\ R2.transpose()\ *\ y;}
+\DoxyCodeLine{00565\ }
+\DoxyCodeLine{00566\ }
+\DoxyCodeLine{00567\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 5)\ Conditional\ sqrt\ covariance\ is\ R3\ directly\ S\_\{A|B\}\ =\ S3}}
+\DoxyCodeLine{00568\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ R3;}
+\DoxyCodeLine{00569\ }
+\DoxyCodeLine{00570\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
+\DoxyCodeLine{00571\ \ \ \ \ \}}
+\DoxyCodeLine{00572\ }
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ IndexTypeA,\ \textcolor{keyword}{typename}\ IndexTypeB>}
+\DoxyCodeLine{00589\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a599adbcb17bb04cd5838c98193fb2004}{conditional}}(\textcolor{keyword}{const}\ IndexTypeA\ \&\ idxA,\ \textcolor{keyword}{const}\ IndexTypeB\ \&\ idxB,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ pxB\_y)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00590\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::size\_t\ \&\ nA\ =\ idxA.size();}
+\DoxyCodeLine{00592\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::size\_t\ \&\ nB\ =\ idxB.size();}
+\DoxyCodeLine{00593\ }
+\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ [S(:,\ idxB),\ S(:,\ idxA)]}}
+\DoxyCodeLine{00595\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ SS(\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}(),\ nA\ +\ nB);}
+\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ SS\ <<\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(Eigen::all,\ idxB),\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(Eigen::all,\ idxA);}
+\DoxyCodeLine{00597\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ QR\ yields}}
+\DoxyCodeLine{00598\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [S1,\ S2;}}
+\DoxyCodeLine{00599\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ 0,\ S3]}}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SS);\ \ \ \textcolor{comment}{//\ In-\/place\ QR\ decomposition}}
+\DoxyCodeLine{00601\ }
+\DoxyCodeLine{00602\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ K\ =\ S1\(\backslash\)S2}}
+\DoxyCodeLine{00603\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ K\ =\ SS.topLeftCorner(nB,\ nB).template\ triangularView<Eigen::Upper>().solve(SS.topRightCorner(nB,\ nA));}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ S3\ =\ SS.bottomRightCorner(nA,\ nA).template\ triangularView<Eigen::Upper>();}
+\DoxyCodeLine{00605\ }
+\DoxyCodeLine{00606\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ [pxB\_y.S*K;\ S3]}}
+\DoxyCodeLine{00607\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ RR(nA\ +\ nB,\ nA);}
+\DoxyCodeLine{00608\ \ \ \ \ \ \ \ \ RR\ <<\ pxB\_y.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ *\ K,}
+\DoxyCodeLine{00609\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ S3;}
+\DoxyCodeLine{00610\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ QR\ yields}}
+\DoxyCodeLine{00611\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [R1;}}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ 0]}}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr\_RR(RR);}
 \DoxyCodeLine{00614\ }
-\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (1)\ Build\ [\ S(:,B)\ \ S(:,A)\ ]\ and\ QR-\/partition\ it.}}
-\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ SS(dim(),\ nA\ +\ nB);}}
-\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ <<\ S\_(Eigen::all,\ idxB),\ S\_(Eigen::all,\ idxA);}}
-\DoxyCodeLine{00618\ }
-\DoxyCodeLine{00619\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Scale-\/in\ for\ robustness\ (prevents\ overflow\ in\ extreme\ tests).}}
-\DoxyCodeLine{00620\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Scalar\ s\ =\ SS.cwiseAbs().maxCoeff();}}
-\DoxyCodeLine{00621\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ if\ (!(s\ >\ Scalar(0)))\ s\ =\ Scalar(1);}}
-\DoxyCodeLine{00622\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ /=\ s;}}
-\DoxyCodeLine{00623\ }
-\DoxyCodeLine{00624\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Q-\/less\ QR\ →\ R\ =\ [\ S1\ S2\ ;\ 0\ S3\ ]\ stored\ in\ SS.}}
-\DoxyCodeLine{00625\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SS);}}
-\DoxyCodeLine{00626\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ =\ SS.template\ triangularView<Eigen::Upper>();}}
-\DoxyCodeLine{00627\ }
-\DoxyCodeLine{00628\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Extract\ blocks\ (still\ scaled):}}
-\DoxyCodeLine{00629\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S1\ \ =\ SS.topLeftCorner(nB,\ nB)}}
-\DoxyCodeLine{00630\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .template\ triangularView<Eigen::Upper>();}}
-\DoxyCodeLine{00631\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S2\ \ =\ SS.topRightCorner(nB,\ nA);}}
-\DoxyCodeLine{00632\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S3s\ =\ SS.bottomRightCorner(nA,\ nA)}}
-\DoxyCodeLine{00633\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .template\ triangularView<Eigen::Upper>();}}
-\DoxyCodeLine{00634\ }
-\DoxyCodeLine{00635\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (2)\ K\ =\ S1\string^\{-\/1\}\ S2\ \ via\ triangular\ solve\ (no\ explicit\ inverse).}}
-\DoxyCodeLine{00636\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ K\ =\ S1.template\ triangularView<Eigen::Upper>().solve(S2);}}
+\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ p(x(idxA)\ |\ y)\ =\ N\string^-\/0.5(x(idxA);\ mu(idxA)\ +\ K.'*(pxB\_y.mu\ -\/\ mu(idxB))),\ R1)}}
+\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out;}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxA)\ +\ K.transpose()*(pxB\_y.\mbox{\hyperlink{classGaussian_a39e92048ba667390e2c29e5edc3c0689}{mean}}()\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}(idxB));}
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ RR.topRows(nA).template\ triangularView<Eigen::Upper>();}
+\DoxyCodeLine{00619\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
+\DoxyCodeLine{00620\ }
+\DoxyCodeLine{00621\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ALTERNATE\ APPROACH\ THAT\ MAY\ BE\ MORE\ ROBUST\ AROUND\ INF\ values}}
+\DoxyCodeLine{00622\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::Index\ nA\ =\ static\_cast<Eigen::Index>(idxA.size());}}
+\DoxyCodeLine{00623\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::Index\ nB\ =\ static\_cast<Eigen::Index>(idxB.size());}}
+\DoxyCodeLine{00624\ }
+\DoxyCodeLine{00625\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (1)\ Build\ [\ S(:,B)\ \ S(:,A)\ ]\ and\ QR-\/partition\ it.}}
+\DoxyCodeLine{00626\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ SS(dim(),\ nA\ +\ nB);}}
+\DoxyCodeLine{00627\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ <<\ S\_(Eigen::all,\ idxB),\ S\_(Eigen::all,\ idxA);}}
+\DoxyCodeLine{00628\ }
+\DoxyCodeLine{00629\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Scale-\/in\ for\ robustness\ (prevents\ overflow\ in\ extreme\ tests).}}
+\DoxyCodeLine{00630\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Scalar\ s\ =\ SS.cwiseAbs().maxCoeff();}}
+\DoxyCodeLine{00631\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ if\ (!(s\ >\ Scalar(0)))\ s\ =\ Scalar(1);}}
+\DoxyCodeLine{00632\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ /=\ s;}}
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00634\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Q-\/less\ QR\ →\ R\ =\ [\ S1\ S2\ ;\ 0\ S3\ ]\ stored\ in\ SS.}}
+\DoxyCodeLine{00635\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SS);}}
+\DoxyCodeLine{00636\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ SS\ =\ SS.template\ triangularView<Eigen::Upper>();}}
 \DoxyCodeLine{00637\ }
-\DoxyCodeLine{00638\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (3)\ Conditional\ mean:\ mu\_A\ +\ K\string^T\ (mu\_\{B|y\}\ -\/\ mu\_B).}}
-\DoxyCodeLine{00639\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::VectorX<Scalar>\ delta\ =\ pxB\_y.mean()\ -\/\ mu\_(idxB);}}
-\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::VectorX<Scalar>\ muA\_cond\ =\ mu\_(idxA)\ +\ K.transpose()\ *\ delta;}}
-\DoxyCodeLine{00641\ }
-\DoxyCodeLine{00642\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (4)\ Conditional\ sqrt-\/cov\ via\ a\ second\ QR\ on\ the\ stacked\ matrix:}}
-\DoxyCodeLine{00643\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ \ \ \ \ RR\ =\ [\ S\_\{B|y\}\ *\ K\ ;\ \ s\ *\ S3s\ ]\ \ (we\ rescale\ S3s\ back\ here).}}
-\DoxyCodeLine{00644\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ RR(nA\ +\ nB,\ nA);}}
-\DoxyCodeLine{00645\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RR\ <<\ pxB\_y.sqrtCov()\ *\ K,}}
-\DoxyCodeLine{00646\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ s\ *\ S3s;}}
+\DoxyCodeLine{00638\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Extract\ blocks\ (still\ scaled):}}
+\DoxyCodeLine{00639\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S1\ \ =\ SS.topLeftCorner(nB,\ nB)}}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .template\ triangularView<Eigen::Upper>();}}
+\DoxyCodeLine{00641\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S2\ \ =\ SS.topRightCorner(nB,\ nA);}}
+\DoxyCodeLine{00642\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::MatrixX<Scalar>\ S3s\ =\ SS.bottomRightCorner(nA,\ nA)}}
+\DoxyCodeLine{00643\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .template\ triangularView<Eigen::Upper>();}}
+\DoxyCodeLine{00644\ }
+\DoxyCodeLine{00645\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (2)\ K\ =\ S1\string^\{-\/1\}\ S2\ \ via\ triangular\ solve\ (no\ explicit\ inverse).}}
+\DoxyCodeLine{00646\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ K\ =\ S1.template\ triangularView<Eigen::Upper>().solve(S2);}}
 \DoxyCodeLine{00647\ }
-\DoxyCodeLine{00648\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr\_RR(RR);}}
-\DoxyCodeLine{00649\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RR\ =\ RR.template\ triangularView<Eigen::Upper>();}}
-\DoxyCodeLine{00650\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ R1\ =\ RR.topRows(nA).template\ triangularView<Eigen::Upper>();}}
+\DoxyCodeLine{00648\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (3)\ Conditional\ mean:\ mu\_A\ +\ K\string^T\ (mu\_\{B|y\}\ -\/\ mu\_B).}}
+\DoxyCodeLine{00649\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ const\ Eigen::VectorX<Scalar>\ delta\ =\ pxB\_y.mean()\ -\/\ mu\_(idxB);}}
+\DoxyCodeLine{00650\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::VectorX<Scalar>\ muA\_cond\ =\ mu\_(idxA)\ +\ K.transpose()\ *\ delta;}}
 \DoxyCodeLine{00651\ }
-\DoxyCodeLine{00652\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Gaussian\ out;}}
-\DoxyCodeLine{00653\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.mu\_\ =\ muA\_cond;}}
-\DoxyCodeLine{00654\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.S\_\ \ =\ R1;}}
-\DoxyCodeLine{00655\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ out;}}
-\DoxyCodeLine{00656\ \ \ \ \ \}}
+\DoxyCodeLine{00652\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ (4)\ Conditional\ sqrt-\/cov\ via\ a\ second\ QR\ on\ the\ stacked\ matrix:}}
+\DoxyCodeLine{00653\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ \ \ \ \ RR\ =\ [\ S\_\{B|y\}\ *\ K\ ;\ \ s\ *\ S3s\ ]\ \ (we\ rescale\ S3s\ back\ here).}}
+\DoxyCodeLine{00654\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ RR(nA\ +\ nB,\ nA);}}
+\DoxyCodeLine{00655\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RR\ <<\ pxB\_y.sqrtCov()\ *\ K,}}
+\DoxyCodeLine{00656\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ s\ *\ S3s;}}
 \DoxyCodeLine{00657\ }
-\DoxyCodeLine{00671\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Func>}
-\DoxyCodeLine{00672\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a6105b84cff5cbf642812bb4db2c47ece}{affineTransform}}(Func\ h)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00673\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00674\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out;}
-\DoxyCodeLine{00675\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Evaluate\ mean\ and\ Jacobian\ at\ μ:\ y\ =\ h(μ),\ C\ =\ ∂h/∂x\ |\_\{μ\}}}
-\DoxyCodeLine{00676\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ C;}
-\DoxyCodeLine{00677\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ h(\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}},\ C);}
-\DoxyCodeLine{00678\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
-\DoxyCodeLine{00679\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ m\ =\ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.size();}
-\DoxyCodeLine{00680\ \ \ \ \ \ \ \ \ assert(C.rows()\ ==\ m);\ \textcolor{comment}{//m\ =\ output\ dimension\ (size\ of\ y\ =\ h(μ))}}
-\DoxyCodeLine{00681\ \ \ \ \ \ \ \ \ assert(C.cols()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());\ \textcolor{comment}{//n\ =\ input/state\ dimension\ (size\ of\ x)\ dim()\ ==\ n}}
-\DoxyCodeLine{00682\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ S*C\string^T\ (n\ x\ m)\ (equ\ 8-\/9\ lab\ doc)}}
-\DoxyCodeLine{00683\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ SCt\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ *\ C.transpose();}
-\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ Householder\ QR:\ SCt\ =\ Q\ *\ R,\ we\ keep\ R\ in-\/place}}
-\DoxyCodeLine{00685\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SCt);}
-\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Extract\ upper-\/triangular\ R\ and\ take\ its\ top\ m×m\ block\ as\ R1}}
-\DoxyCodeLine{00687\ \ \ \ \ \ \ \ \ SCt\ =\ SCt.template\ triangularView<Eigen::Upper>();}
-\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ SCt.topRows(m).template\ triangularView<Eigen::Upper>();}
-\DoxyCodeLine{00689\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.S\_\ =\ C\ *\ S\_\ *\ C.transpose();}}
-\DoxyCodeLine{00690\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ p(y)\ =\ N\string^\{1/2\}(\ y\ ;\ h(μ),\ S\_y=R1\ )\ eq.\ (9)}}
-\DoxyCodeLine{00691\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
-\DoxyCodeLine{00692\ \ \ \ \ \}}
-\DoxyCodeLine{00693\ }
-\DoxyCodeLine{00705\ \ \ \ \ \textcolor{keyword}{virtual}\ Scalar\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x)\textcolor{keyword}{\ const\ override}}
-\DoxyCodeLine{00706\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00707\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
-\DoxyCodeLine{00708\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
-\DoxyCodeLine{00709\ }
-\DoxyCodeLine{00710\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Compute\ log\ N(x;\ mu,\ P)\ where\ P\ =\ S.'*S}}
-\DoxyCodeLine{00711\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N(x;\ mu,\ P)\ =\ -\/0.5*(x\ -\/\ mu).'*inv(P)*(x\ -\/\ mu)\ -\/\ 0.5*log(det(2*pi*P))}}
-\DoxyCodeLine{00712\ }
-\DoxyCodeLine{00713\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Numerically\ stable\ version}}
-\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00715\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00716\ }
-\DoxyCodeLine{00717\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ y\ =\ S\string^\{-\/T\}\ e\ \ (solve\ S\string^T\ y\ =\ e),\ so\ e\string^T\ P\string^\{-\/1\}\ e\ =\ ||y||\string^2}}
-\DoxyCodeLine{00718\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =}
-\DoxyCodeLine{00719\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
-\DoxyCodeLine{00720\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ quad\ =\ y.squaredNorm();\ \textcolor{comment}{//\ Quadratic\ form\ =\ e\string^T\ P\string^\{-\/1\}\ e\ =\ ||y||²}}
-\DoxyCodeLine{00721\ }
-\DoxyCodeLine{00722\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::log;}
-\DoxyCodeLine{00723\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
-\DoxyCodeLine{00724\ }
-\DoxyCodeLine{00725\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 0.5\ *\ log|P|\ =\ sum\_i\ log(|S\_ii|)}}
-\DoxyCodeLine{00726\ \ \ \ \ \ \ \ \ Scalar\ half\_logdetP\ =\ Scalar(0);}
-\DoxyCodeLine{00727\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Eigen::Index\ i\ =\ 0;\ i\ <\ n;\ ++i)\ \{}
-\DoxyCodeLine{00728\ \ \ \ \ \ \ \ \ \ \ \ \ half\_logdetP\ +=\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(abs(\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(i,\ i)));}
-\DoxyCodeLine{00729\ \ \ \ \ \ \ \ \ \}}
-\DoxyCodeLine{00730\ }
-\DoxyCodeLine{00731\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ log2pi\ =\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(Scalar(2)\ *\ Scalar(std::numbers::pi));}
-\DoxyCodeLine{00732\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N(x;\ μ,\ P)\ =\ -\/0.5*quad\ -\/\ 0.5*n*log(2π)\ -\/\ 0.5*log|P|}}
-\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ and\ 0.5*log|P|\ =\ half\_logdetP}}
-\DoxyCodeLine{00734\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ or\ //\ Formula\ (Lab\ eq.\ (6)):}}
-\DoxyCodeLine{00735\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N\ =\ -\/0.5*||y||²\ -\/\ 0.5*n*log(2π)\ -\/\ sum\ log|S\_ii|}}
-\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(-\/0.5)\ *\ quad\ -\/\ Scalar(0.5)\ *\ Scalar(n)\ *\ log2pi\ -\/\ half\_logdetP;}
-\DoxyCodeLine{00737\ }
-\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Really\ bad\ version}}
-\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ P\ =\ S\_.transpose()*S\_;\ \ \ //\ Bad,\ because\ unnecessary\ and\ loss\ of\ precision}}
-\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ Pinv\ =\ P.inverse();\ \ \ \ \ \ //\ Bad,\ because\ you\ should\ know\ better\ (https://www.johndcook.com/blog/2010/01/19/dont-\/invert-\/that-\/matrix/)}}
-\DoxyCodeLine{00741\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Scalar\ quadraticForm\ =\ (x\ -\/\ mu\_).transpose()*Pinv*(x\ -\/\ mu\_);}}
-\DoxyCodeLine{00742\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ using\ std::log,\ std::sqrt,\ std::exp;\ \ \ \ \ \ \ \ \ \ \ \ //\ Bring\ selected\ math\ functions\ into\ global\ namespace}}
-\DoxyCodeLine{00743\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(\ 1.0/sqrt(\ (2*std::numbers::pi*P).determinant()\ )*exp(-\/0.5*quadraticForm)\ );\ //\ Bad,\ because\ determinant,\ underflow,\ overflow\ and\ loss\ of\ precision}}
-\DoxyCodeLine{00744\ \ \ \ \ \}}
-\DoxyCodeLine{00745\ }
-\DoxyCodeLine{00759\ \ \ \ \ Scalar\ \mbox{\hyperlink{classGaussian_a338a329ad040caa11df6387cb4c6bb95}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ Eigen::VectorX<Scalar>\ \&\ g)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00760\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00761\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Compute\ gradient\ of\ log\ N(x;\ mu,\ P)\ w.r.t.\ x\ and\ write\ it\ to\ g}}
-\DoxyCodeLine{00762\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(x);}}
-\DoxyCodeLine{00763\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
-\DoxyCodeLine{00764\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
-\DoxyCodeLine{00765\ }
-\DoxyCodeLine{00766\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00767\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00768\ }
-\DoxyCodeLine{00769\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ y\ =\ S\string^\{-\/T\}\ e}}
-\DoxyCodeLine{00770\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
-\DoxyCodeLine{00771\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ z\ =\ S\string^\{-\/1\}\ y\ =\ P\string^\{-\/1\}\ e}}
-\DoxyCodeLine{00772\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ z\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().solve(y);}
-\DoxyCodeLine{00773\ }
-\DoxyCodeLine{00774\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ gradient\ of\ log\ N\ wrt\ x\ ∂/∂x\ logN\ =\ -\/P\string^\{-\/1\}(x\ -\/\ μ))}}
-\DoxyCodeLine{00775\ \ \ \ \ \ \ \ \ g\ =\ -\/z;}
-\DoxyCodeLine{00776\ }
-\DoxyCodeLine{00777\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::log;}
-\DoxyCodeLine{00778\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00658\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr\_RR(RR);}}
+\DoxyCodeLine{00659\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ RR\ =\ RR.template\ triangularView<Eigen::Upper>();}}
+\DoxyCodeLine{00660\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ R1\ =\ RR.topRows(nA).template\ triangularView<Eigen::Upper>();}}
+\DoxyCodeLine{00661\ }
+\DoxyCodeLine{00662\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Gaussian\ out;}}
+\DoxyCodeLine{00663\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.mu\_\ =\ muA\_cond;}}
+\DoxyCodeLine{00664\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.S\_\ \ =\ R1;}}
+\DoxyCodeLine{00665\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ out;}}
+\DoxyCodeLine{00666\ \ \ \ \ \}}
+\DoxyCodeLine{00667\ }
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00682\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a6105b84cff5cbf642812bb4db2c47ece}{affineTransform}}(Func\ h)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00683\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out;}
+\DoxyCodeLine{00685\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Evaluate\ mean\ and\ Jacobian\ at\ μ:\ y\ =\ h(μ),\ C\ =\ ∂h/∂x\ |\_\{μ\}}}
+\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ C;}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ =\ h(\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}},\ C);}
+\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00689\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ m\ =\ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.size();}
+\DoxyCodeLine{00690\ \ \ \ \ \ \ \ \ assert(C.rows()\ ==\ m);\ \textcolor{comment}{//m\ =\ output\ dimension\ (size\ of\ y\ =\ h(μ))}}
+\DoxyCodeLine{00691\ \ \ \ \ \ \ \ \ assert(C.cols()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());\ \textcolor{comment}{//n\ =\ input/state\ dimension\ (size\ of\ x)\ dim()\ ==\ n}}
+\DoxyCodeLine{00692\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Form\ S*C\string^T\ (n\ x\ m)\ (equ\ 8-\/9\ lab\ doc)}}
+\DoxyCodeLine{00693\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ SCt\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ *\ C.transpose();}
+\DoxyCodeLine{00694\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Q-\/less\ Householder\ QR:\ SCt\ =\ Q\ *\ R,\ we\ keep\ R\ in-\/place}}
+\DoxyCodeLine{00695\ \ \ \ \ \ \ \ \ Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>>\ qr(SCt);}
+\DoxyCodeLine{00696\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Extract\ upper-\/triangular\ R\ and\ take\ its\ top\ m×m\ block\ as\ R1}}
+\DoxyCodeLine{00697\ \ \ \ \ \ \ \ \ SCt\ =\ SCt.template\ triangularView<Eigen::Upper>();}
+\DoxyCodeLine{00698\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ =\ SCt.topRows(m).template\ triangularView<Eigen::Upper>();}
+\DoxyCodeLine{00699\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ out.S\_\ =\ C\ *\ S\_\ *\ C.transpose();}}
+\DoxyCodeLine{00700\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ p(y)\ =\ N\string^\{1/2\}(\ y\ ;\ h(μ),\ S\_y=R1\ )\ eq.\ (9)}}
+\DoxyCodeLine{00701\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
+\DoxyCodeLine{00702\ \ \ \ \ \}}
+\DoxyCodeLine{00703\ }
+\DoxyCodeLine{00715\ \ \ \ \ \textcolor{keyword}{virtual}\ Scalar\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x)\textcolor{keyword}{\ const\ override}}
+\DoxyCodeLine{00716\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00717\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
+\DoxyCodeLine{00718\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00720\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Compute\ log\ N(x;\ mu,\ P)\ where\ P\ =\ S.'*S}}
+\DoxyCodeLine{00721\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N(x;\ mu,\ P)\ =\ -\/0.5*(x\ -\/\ mu).'*inv(P)*(x\ -\/\ mu)\ -\/\ 0.5*log(det(2*pi*P))}}
+\DoxyCodeLine{00722\ }
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Numerically\ stable\ version}}
+\DoxyCodeLine{00724\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00725\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
+\DoxyCodeLine{00726\ }
+\DoxyCodeLine{00727\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ y\ =\ S\string^\{-\/T\}\ e\ \ (solve\ S\string^T\ y\ =\ e),\ so\ e\string^T\ P\string^\{-\/1\}\ e\ =\ ||y||\string^2}}
+\DoxyCodeLine{00728\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =}
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ quad\ =\ y.squaredNorm();\ \textcolor{comment}{//\ Quadratic\ form\ =\ e\string^T\ P\string^\{-\/1\}\ e\ =\ ||y||²}}
+\DoxyCodeLine{00731\ }
+\DoxyCodeLine{00732\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::log;}
+\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00734\ }
+\DoxyCodeLine{00735\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 0.5\ *\ log|P|\ =\ sum\_i\ log(|S\_ii|)}}
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Slow\ way}}
+\DoxyCodeLine{00737\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Scalar\ half\_logdetP\ =\ Scalar(0);}}
+\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ for\ (Eigen::Index\ i\ =\ 0;\ i\ <\ n;\ ++i)\ \{}}
+\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ half\_logdetP\ +=\ log(abs(S\_(i,\ i)));}}
+\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \}}}
+\DoxyCodeLine{00741\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 0.5\ *\ log|P|\ =\ sum\_i\ log(|S\_ii|)}}
+\DoxyCodeLine{00742\ \ \ \ \ \ \ \ \ Scalar\ half\_logdetP\ =\ (\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.diagonal().array().abs().\mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}()).sum();}
+\DoxyCodeLine{00743\ }
+\DoxyCodeLine{00744\ }
+\DoxyCodeLine{00745\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ log2pi\ =\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(Scalar(2)\ *\ Scalar(std::numbers::pi));}
+\DoxyCodeLine{00746\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N(x;\ μ,\ P)\ =\ -\/0.5*quad\ -\/\ 0.5*n*log(2π)\ -\/\ 0.5*log|P|}}
+\DoxyCodeLine{00747\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ and\ 0.5*log|P|\ =\ half\_logdetP}}
+\DoxyCodeLine{00748\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ or\ //\ Formula\ (Lab\ eq.\ (6)):}}
+\DoxyCodeLine{00749\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ log\ N\ =\ -\/0.5*||y||²\ -\/\ 0.5*n*log(2π)\ -\/\ sum\ log|S\_ii|}}
+\DoxyCodeLine{00750\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(-\/0.5)\ *\ quad\ -\/\ Scalar(0.5)\ *\ Scalar(n)\ *\ log2pi\ -\/\ half\_logdetP;}
+\DoxyCodeLine{00751\ }
+\DoxyCodeLine{00752\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ //\ Really\ bad\ version}}
+\DoxyCodeLine{00753\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ P\ =\ S\_.transpose()*S\_;\ \ \ //\ Bad,\ because\ unnecessary\ and\ loss\ of\ precision}}
+\DoxyCodeLine{00754\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Eigen::MatrixX<Scalar>\ Pinv\ =\ P.inverse();\ \ \ \ \ \ //\ Bad,\ because\ you\ should\ know\ better\ (https://www.johndcook.com/blog/2010/01/19/dont-\/invert-\/that-\/matrix/)}}
+\DoxyCodeLine{00755\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Scalar\ quadraticForm\ =\ (x\ -\/\ mu\_).transpose()*Pinv*(x\ -\/\ mu\_);}}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ using\ std::log,\ std::sqrt,\ std::exp;\ \ \ \ \ \ \ \ \ \ \ \ //\ Bring\ selected\ math\ functions\ into\ global\ namespace}}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(\ 1.0/sqrt(\ (2*std::numbers::pi*P).determinant()\ )*exp(-\/0.5*quadraticForm)\ );\ //\ Bad,\ because\ determinant,\ underflow,\ overflow\ and\ loss\ of\ precision}}
+\DoxyCodeLine{00758\ \ \ \ \ \}}
+\DoxyCodeLine{00759\ }
+\DoxyCodeLine{00773\ \ \ \ \ Scalar\ \mbox{\hyperlink{classGaussian_a338a329ad040caa11df6387cb4c6bb95}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ Eigen::VectorX<Scalar>\ \&\ g)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00774\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00775\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Compute\ gradient\ of\ log\ N(x;\ mu,\ P)\ w.r.t.\ x\ and\ write\ it\ to\ g}}
+\DoxyCodeLine{00776\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(x);}}
+\DoxyCodeLine{00777\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
+\DoxyCodeLine{00778\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
 \DoxyCodeLine{00779\ }
-\DoxyCodeLine{00780\ \ \ \ \ \ \ \ \ Scalar\ half\_logdetP\ =\ Scalar(0);}
-\DoxyCodeLine{00781\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Eigen::Index\ i\ =\ 0;\ i\ <\ n;\ ++i)\ \{}
-\DoxyCodeLine{00782\ \ \ \ \ \ \ \ \ \ \ \ \ half\_logdetP\ +=\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(abs(\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(i,\ i)));}
-\DoxyCodeLine{00783\ \ \ \ \ \ \ \ \ \}}
-\DoxyCodeLine{00784\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ quad\ =\ y.squaredNorm();}
-\DoxyCodeLine{00785\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ log2pi\ =\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(Scalar(2)\ *\ Scalar(std::numbers::pi));}
-\DoxyCodeLine{00786\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(-\/0.5)\ *\ quad\ -\/\ Scalar(0.5)\ *\ Scalar(n)\ *\ log2pi\ -\/\ half\_logdetP;}
-\DoxyCodeLine{00787\ \ \ \ \ \ \ \ \ \}}
-\DoxyCodeLine{00788\ }
-\DoxyCodeLine{00803\ \ \ \ \ Scalar\ \mbox{\hyperlink{classGaussian_ac60f746f189e902faac832d1b9b32434}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ Eigen::VectorX<Scalar>\ \&\ g,\ Eigen::MatrixX<Scalar>\ \&\ H)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00804\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00805\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Compute\ Hessian\ of\ log\ N(x;\ mu,\ P)\ w.r.t.\ x\ and\ write\ it\ to\ H}}
-\DoxyCodeLine{00806\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(x,\ g);}}
-\DoxyCodeLine{00807\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
-\DoxyCodeLine{00808\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
-\DoxyCodeLine{00809\ }
-\DoxyCodeLine{00810\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00811\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00812\ }
-\DoxyCodeLine{00813\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ y\ =\ S\string^\{-\/T\}\ e}}
-\DoxyCodeLine{00814\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =}
-\DoxyCodeLine{00815\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
-\DoxyCodeLine{00816\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ z\ =\ S\string^\{-\/1\}\ y\ =\ P\string^\{-\/1\}\ e}}
-\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ z\ =}
-\DoxyCodeLine{00818\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().solve(y);}
-\DoxyCodeLine{00819\ }
-\DoxyCodeLine{00820\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ gradient}}
-\DoxyCodeLine{00821\ \ \ \ \ \ \ \ \ g\ =\ -\/z;}
-\DoxyCodeLine{00822\ }
-\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Hessian:\ -\/P\string^\{-\/1\}}}
-\DoxyCodeLine{00824\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Solve\ S\ *\ X\ =\ I\ \ -\/>\ \ X\ =\ S\string^\{-\/1\}}}
-\DoxyCodeLine{00825\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Build\ stably:\ compute\ X\ =\ S\string^\{-\/1\},\ then\ H\ =\ -\/X\ X\string^T}}
-\DoxyCodeLine{00826\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ X\ =}
-\DoxyCodeLine{00827\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().solve(}
-\DoxyCodeLine{00828\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Identity(n,\ n)}
-\DoxyCodeLine{00829\ \ \ \ \ \ \ \ \ \ \ \ \ );}
-\DoxyCodeLine{00830\ \ \ \ \ \ \ \ \ H\ =\ -\/(X\ *\ X.transpose());}
-\DoxyCodeLine{00831\ }
-\DoxyCodeLine{00832\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::log;}
-\DoxyCodeLine{00833\ \ \ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
-\DoxyCodeLine{00834\ }
-\DoxyCodeLine{00835\ \ \ \ \ \ \ \ \ Scalar\ half\_logdetP\ =\ Scalar(0);}
-\DoxyCodeLine{00836\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Eigen::Index\ i\ =\ 0;\ i\ <\ n;\ ++i)\ \{}
-\DoxyCodeLine{00837\ \ \ \ \ \ \ \ \ \ \ \ \ half\_logdetP\ +=\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(abs(\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}(i,\ i)));}
-\DoxyCodeLine{00838\ \ \ \ \ \ \ \ \ \}}
-\DoxyCodeLine{00839\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ quad\ =\ y.squaredNorm();}
-\DoxyCodeLine{00840\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ log2pi\ =\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(Scalar(2)\ *\ Scalar(std::numbers::pi));}
-\DoxyCodeLine{00841\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(-\/0.5)\ *\ quad\ -\/\ Scalar(0.5)\ *\ Scalar(n)\ *\ log2pi\ -\/\ half\_logdetP;}
-\DoxyCodeLine{00842\ \ \ \ \ \}}
-\DoxyCodeLine{00843\ }
-\DoxyCodeLine{00854\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a6712694fd5780a754703fffe164416f6}{join}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00855\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00856\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n1\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00857\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n2\ =\ other.\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00858\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out(n1\ +\ n2);}
-\DoxyCodeLine{00859\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ <<\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}},\ other.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00860\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ <<\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Zero(n1,\ n2),}
-\DoxyCodeLine{00861\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Zero(n2,\ n1),\ other.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};}
-\DoxyCodeLine{00862\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
-\DoxyCodeLine{00863\ \ \ \ \ \}}
-\DoxyCodeLine{00864\ }
-\DoxyCodeLine{00879\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a228392294d03cf2edf1328290accda2b}{operator*}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00880\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00881\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classGaussian_a6712694fd5780a754703fffe164416f6}{join}}(other);}
-\DoxyCodeLine{00882\ \ \ \ \ \}}
-\DoxyCodeLine{00883\ }
-\DoxyCodeLine{00898\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ \mbox{\hyperlink{classGaussian_a21e2c0d710a1f04fd637b59cf22dcad9}{operator*=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)}
-\DoxyCodeLine{00899\ \ \ \ \ \{}
-\DoxyCodeLine{00900\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n1\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00901\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n2\ =\ other.\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00902\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.conservativeResize(n1\ +\ n2);}
-\DoxyCodeLine{00903\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.tail(n2)\ =\ other.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00904\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.conservativeResizeLike(Eigen::MatrixX<Scalar>::Zero(n1\ +\ n2,\ n1\ +\ n2));}
-\DoxyCodeLine{00905\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.bottomRightCorner(n2,\ n2)\ =\ other.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};}
-\DoxyCodeLine{00906\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
-\DoxyCodeLine{00907\ \ \ \ \ \}}
-\DoxyCodeLine{00908\ }
-\DoxyCodeLine{00919\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classGaussian_a5cfc431373d485b389f54d6702e3c28b}{isWithinConfidenceRegion}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ \textcolor{keywordtype}{double}\ nSigma\ =\ 3.0)\textcolor{keyword}{\ const\ override}}
-\DoxyCodeLine{00920\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00921\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00922\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
-\DoxyCodeLine{00923\ \ \ \ \ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ n);}
-\DoxyCodeLine{00924\ }
-\DoxyCodeLine{00925\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Mahalanobis\string^2\ via\ triangular\ solves:\ r\string^2\ =\ (x-\/μ)\string^T\ P\string^\{-\/1\}\ (x-\/μ)\ ||\ S\string^\{-\/T\}\ (x−μ)\ ||\string^2}}
-\DoxyCodeLine{00926\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
-\DoxyCodeLine{00927\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
-\DoxyCodeLine{00928\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ r2\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(y.squaredNorm());}
-\DoxyCodeLine{00929\ }
-\DoxyCodeLine{00930\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Match\ 1D\ ±nSigma\ probability:\ p\ =\ 2*Φ(nSigma)\ -\/\ 1}}
-\DoxyCodeLine{00931\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ p\ =\ 2.0\ *\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(nSigma))\ -\/\ 1.0;}
-\DoxyCodeLine{00932\ }
-\DoxyCodeLine{00933\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ χ²\ threshold\ with\ ν\ =\ n\ /\ r²\ ≤\ χ²\_n(p)}}
-\DoxyCodeLine{00934\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ thr\ =\ \mbox{\hyperlink{classGaussianBase_ad7a08a532a4a4bfef50960e1ceae45c6}{chi2inv}}(p,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(n));}
-\DoxyCodeLine{00935\ }
-\DoxyCodeLine{00936\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Small\ numerical\ slack\ (dont\ really\ need\ this,\ try\ guess\ it\ to\ be\ limit\ of\ machine\ precision)}}
-\DoxyCodeLine{00937\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ r2\ <=\ thr\ +\ 1e-\/12;}
-\DoxyCodeLine{00938\ \ \ \ \ \}}
-\DoxyCodeLine{00939\ }
-\DoxyCodeLine{00952\ \ \ \ \ Eigen::Matrix4<Scalar>\ \mbox{\hyperlink{classGaussian_ac656d83cf800b1e5611ebcf69367fe91}{quadricSurface}}(\textcolor{keywordtype}{double}\ nSigma\ =\ 3.0)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00953\ \textcolor{keyword}{\ \ \ \ }\{}
-\DoxyCodeLine{00954\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
-\DoxyCodeLine{00955\ \ \ \ \ \ \ \ \ assert(n\ ==\ 3);}
-\DoxyCodeLine{00956\ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00957\ \ \ \ \ \ \ \ \ Eigen::Matrix4<Scalar>\ Q;}
-\DoxyCodeLine{00958\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
-\DoxyCodeLine{00959\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ A\ =\ P\string^\{-\/1\}\ using\ the\ stable\ infoMat()\ (no\ explicit\ inverse\ of\ P)}}
-\DoxyCodeLine{00960\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::MatrixX<Scalar>\ A\ =\ \mbox{\hyperlink{classGaussian_a506cad2a4b25b31cfb0866a779cdf12a}{infoMat}}();\ \ \ \ \ \textcolor{comment}{//\ 3x3}}
-\DoxyCodeLine{00961\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ mu\ =\ \mbox{\hyperlink{classGaussian_a39e92048ba667390e2c29e5edc3c0689}{mean}}();\ \ \ \ \ \ \ \textcolor{comment}{//\ 3x1}}
-\DoxyCodeLine{00962\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ k\ \ =\ A\ *\ mu;\ \ \ \ \ \ \ \textcolor{comment}{//\ 3x1\ ((used\ for\ the\ off-\/diagonal\ blocks))}}
-\DoxyCodeLine{00963\ }
-\DoxyCodeLine{00964\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Probability\ that\ corresponds\ to\ "{}±\ nSigma"{}\ in\ 1D}}
-\DoxyCodeLine{00965\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ p\ \ =\ 2.0\ *\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(nSigma))\ -\/\ 1.0;}
-\DoxyCodeLine{00966\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Chi-\/square\ threshold\ for\ 3\ DoF}}
-\DoxyCodeLine{00967\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ c3\ =\ \mbox{\hyperlink{classGaussianBase_ad7a08a532a4a4bfef50960e1ceae45c6}{chi2inv}}(p,\ 3.0);\ \textcolor{comment}{//\ 3\ for\ 3\ dof}}
-\DoxyCodeLine{00968\ }
-\DoxyCodeLine{00969\ \ \ \ \ \ \ \ \ Q.setZero();}
-\DoxyCodeLine{00970\ \ \ \ \ \ \ \ \ Q.template\ topLeftCorner<3,3>()\ =\ A;}
-\DoxyCodeLine{00971\ \ \ \ \ \ \ \ \ Q.template\ topRightCorner<3,1>()\ =\ -\/k;}
-\DoxyCodeLine{00972\ \ \ \ \ \ \ \ \ Q.template\ bottomLeftCorner<1,3>()\ =\ -\/k.transpose();}
-\DoxyCodeLine{00973\ \ \ \ \ \ \ \ \ Q(3,3)\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(mu.dot(k)\ -\/\ c3);}
-\DoxyCodeLine{00974\ }
-\DoxyCodeLine{00975\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Q;}
-\DoxyCodeLine{00976\ \ \ \ \ \}}
-\DoxyCodeLine{00977\ }
-\DoxyCodeLine{00978\ \textcolor{keyword}{protected}:}
-\DoxyCodeLine{00979\ \ \ \ \ Eigen::VectorX<Scalar>\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};\ \ }
-\DoxyCodeLine{00980\ \ \ \ \ Eigen::MatrixX<Scalar>\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};\ \ \ }
-\DoxyCodeLine{00981\ \};}
-\DoxyCodeLine{00982\ }
-\DoxyCodeLine{00983\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00780\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00781\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
+\DoxyCodeLine{00782\ }
+\DoxyCodeLine{00783\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ y\ =\ S\string^\{-\/T\}\ e}}
+\DoxyCodeLine{00784\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
+\DoxyCodeLine{00785\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ z\ =\ S\string^\{-\/1\}\ y\ =\ P\string^\{-\/1\}\ e}}
+\DoxyCodeLine{00786\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ z\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().solve(y);}
+\DoxyCodeLine{00787\ }
+\DoxyCodeLine{00788\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ gradient\ of\ log\ N\ wrt\ x\ ∂/∂x\ logN\ =\ -\/P\string^\{-\/1\}(x\ -\/\ μ))}}
+\DoxyCodeLine{00789\ \ \ \ \ \ \ \ \ g\ =\ -\/z;}
+\DoxyCodeLine{00790\ }
+\DoxyCodeLine{00791\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(x);}
+\DoxyCodeLine{00792\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00793\ }
+\DoxyCodeLine{00808\ \ \ \ \ Scalar\ \mbox{\hyperlink{classGaussian_ac60f746f189e902faac832d1b9b32434}{log}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ Eigen::VectorX<Scalar>\ \&\ g,\ Eigen::MatrixX<Scalar>\ \&\ H)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00809\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00810\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO:\ Compute\ Hessian\ of\ log\ N(x;\ mu,\ P)\ w.r.t.\ x\ and\ write\ it\ to\ H}}
+\DoxyCodeLine{00811\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ return\ log(x,\ g);}}
+\DoxyCodeLine{00812\ \ \ \ \ \ \ \ \ assert(x.cols()\ ==\ 1);}
+\DoxyCodeLine{00813\ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}());}
+\DoxyCodeLine{00814\ }
+\DoxyCodeLine{00815\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00816\ }
+\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Hessian:\ -\/P\string^\{-\/1\}}}
+\DoxyCodeLine{00818\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Solve\ S\ *\ X\ =\ I\ \ -\/>\ \ X\ =\ S\string^\{-\/1\}}}
+\DoxyCodeLine{00819\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Build\ stably:\ compute\ X\ =\ S\string^\{-\/1\},\ then\ H\ =\ -\/X\ X\string^T}}
+\DoxyCodeLine{00820\ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>\ X\ =}
+\DoxyCodeLine{00821\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().solve(}
+\DoxyCodeLine{00822\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Identity(n,\ n)}
+\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{00824\ \ \ \ \ \ \ \ \ H\ =\ -\/(X\ *\ X.transpose());}
+\DoxyCodeLine{00825\ }
+\DoxyCodeLine{00826\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classGaussian_ae2b32cb1627b3cf0cb46e21a6c8f782c}{log}}(x,\ g);}
+\DoxyCodeLine{00827\ \ \ \ \ \}}
+\DoxyCodeLine{00828\ }
+\DoxyCodeLine{00839\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a6712694fd5780a754703fffe164416f6}{join}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00840\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00841\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n1\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00842\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n2\ =\ other.\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00843\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ out(n1\ +\ n2);}
+\DoxyCodeLine{00844\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}\ <<\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}},\ other.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
+\DoxyCodeLine{00845\ \ \ \ \ \ \ \ \ out.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}\ <<\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Zero(n1,\ n2),}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixX<Scalar>::Zero(n2,\ n1),\ other.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};}
+\DoxyCodeLine{00847\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ out;}
+\DoxyCodeLine{00848\ \ \ \ \ \}}
+\DoxyCodeLine{00849\ }
+\DoxyCodeLine{00864\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \mbox{\hyperlink{classGaussian_a228392294d03cf2edf1328290accda2b}{operator*}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00865\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00866\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classGaussian_a6712694fd5780a754703fffe164416f6}{join}}(other);}
+\DoxyCodeLine{00867\ \ \ \ \ \}}
+\DoxyCodeLine{00868\ }
+\DoxyCodeLine{00883\ \ \ \ \ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ \mbox{\hyperlink{classGaussian_a21e2c0d710a1f04fd637b59cf22dcad9}{operator*=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classGaussian_a58c9db6030879d73e5eb59448f85a36e}{Gaussian}}\ \&\ other)}
+\DoxyCodeLine{00884\ \ \ \ \ \{}
+\DoxyCodeLine{00885\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n1\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00886\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n2\ =\ other.\mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00887\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.conservativeResize(n1\ +\ n2);}
+\DoxyCodeLine{00888\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}}.tail(n2)\ =\ other.\mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
+\DoxyCodeLine{00889\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.conservativeResizeLike(Eigen::MatrixX<Scalar>::Zero(n1\ +\ n2,\ n1\ +\ n2));}
+\DoxyCodeLine{00890\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.bottomRightCorner(n2,\ n2)\ =\ other.\mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};}
+\DoxyCodeLine{00891\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00892\ \ \ \ \ \}}
+\DoxyCodeLine{00893\ }
+\DoxyCodeLine{00904\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classGaussian_a5cfc431373d485b389f54d6702e3c28b}{isWithinConfidenceRegion}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ \&\ x,\ \textcolor{keywordtype}{double}\ nSigma\ =\ 3.0)\textcolor{keyword}{\ const\ override}}
+\DoxyCodeLine{00905\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00906\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00907\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ \ \ \ \ assert(x.size()\ ==\ n);}
+\DoxyCodeLine{00909\ }
+\DoxyCodeLine{00910\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Mahalanobis\string^2\ via\ triangular\ solves:\ r\string^2\ =\ (x-\/μ)\string^T\ P\string^\{-\/1\}\ (x-\/μ)\ ||\ S\string^\{-\/T\}\ (x−μ)\ ||\string^2}}
+\DoxyCodeLine{00911\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ e\ =\ x\ -\/\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ y\ =\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}}.template\ triangularView<Eigen::Upper>().transpose().solve(e);}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ r2\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(y.squaredNorm());}
+\DoxyCodeLine{00914\ }
+\DoxyCodeLine{00915\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Match\ 1D\ ±nSigma\ probability:\ p\ =\ 2*Φ(nSigma)\ -\/\ 1}}
+\DoxyCodeLine{00916\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ p\ =\ 2.0\ *\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(nSigma))\ -\/\ 1.0;}
+\DoxyCodeLine{00917\ }
+\DoxyCodeLine{00918\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ χ²\ threshold\ with\ ν\ =\ n\ /\ r²\ ≤\ χ²\_n(p)}}
+\DoxyCodeLine{00919\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ thr\ =\ \mbox{\hyperlink{classGaussianBase_ad7a08a532a4a4bfef50960e1ceae45c6}{chi2inv}}(p,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(n));}
+\DoxyCodeLine{00920\ }
+\DoxyCodeLine{00921\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ r2\ <=\ thr;}
+\DoxyCodeLine{00922\ \ \ \ \ \}}
+\DoxyCodeLine{00923\ }
+\DoxyCodeLine{00936\ \ \ \ \ Eigen::Matrix4<Scalar>\ \mbox{\hyperlink{classGaussian_ac656d83cf800b1e5611ebcf69367fe91}{quadricSurface}}(\textcolor{keywordtype}{double}\ nSigma\ =\ 3.0)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00937\ \textcolor{keyword}{\ \ \ \ }\{}
+\DoxyCodeLine{00938\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Index\ \&\ n\ =\ \mbox{\hyperlink{classGaussian_a416b1486d74f1567aca071a779404f3d}{dim}}();}
+\DoxyCodeLine{00939\ \ \ \ \ \ \ \ \ assert(n\ ==\ 3);}
+\DoxyCodeLine{00940\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00941\ \ \ \ \ \ \ \ \ Eigen::Matrix4<Scalar>\ Q;}
+\DoxyCodeLine{00942\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00943\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ A\ =\ P\string^\{-\/1\}\ using\ the\ stable\ infoMat()\ (no\ explicit\ inverse\ of\ P)}}
+\DoxyCodeLine{00944\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::MatrixX<Scalar>\ A\ =\ \mbox{\hyperlink{classGaussian_a506cad2a4b25b31cfb0866a779cdf12a}{infoMat}}();\ \ \ \ \ \textcolor{comment}{//\ 3x3}}
+\DoxyCodeLine{00945\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ mu\ =\ \mbox{\hyperlink{classGaussian_a39e92048ba667390e2c29e5edc3c0689}{mean}}();\ \ \ \ \ \ \ \textcolor{comment}{//\ 3x1}}
+\DoxyCodeLine{00946\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\ k\ \ =\ A\ *\ mu;\ \ \ \ \ \ \ \textcolor{comment}{//\ 3x1\ ((used\ for\ the\ off-\/diagonal\ blocks))}}
+\DoxyCodeLine{00947\ }
+\DoxyCodeLine{00948\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Probability\ that\ corresponds\ to\ "{}±\ nSigma"{}\ in\ 1D}}
+\DoxyCodeLine{00949\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ p\ \ =\ 2.0\ *\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(nSigma)\ -\/\ 1.0;}
+\DoxyCodeLine{00950\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Chi-\/square\ threshold\ for\ 3\ DoF}}
+\DoxyCodeLine{00951\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ c3\ =\ \mbox{\hyperlink{classGaussianBase_ad7a08a532a4a4bfef50960e1ceae45c6}{chi2inv}}(p,\ 3.0);\ \textcolor{comment}{//\ 3\ for\ 3\ dof}}
+\DoxyCodeLine{00952\ }
+\DoxyCodeLine{00953\ \ \ \ \ \ \ \ \ Q.setZero();}
+\DoxyCodeLine{00954\ \ \ \ \ \ \ \ \ Q.template\ topLeftCorner<3,3>()\ =\ A;}
+\DoxyCodeLine{00955\ \ \ \ \ \ \ \ \ Q.template\ topRightCorner<3,1>()\ =\ -\/k;}
+\DoxyCodeLine{00956\ \ \ \ \ \ \ \ \ Q.template\ bottomLeftCorner<1,3>()\ =\ -\/k.transpose();}
+\DoxyCodeLine{00957\ \ \ \ \ \ \ \ \ Q(3,3)\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(mu.dot(k)\ -\/\ c3);}
+\DoxyCodeLine{00958\ }
+\DoxyCodeLine{00959\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Q;}
+\DoxyCodeLine{00960\ \ \ \ \ \}}
+\DoxyCodeLine{00961\ }
+\DoxyCodeLine{00962\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00963\ \ \ \ \ Eigen::VectorX<Scalar>\ \mbox{\hyperlink{classGaussian_ab3ed81bd4af4737c00adf67b89796e51}{mu\_}};\ \ }
+\DoxyCodeLine{00964\ \ \ \ \ Eigen::MatrixX<Scalar>\ \mbox{\hyperlink{classGaussian_a4c4aadcb551042a9deeb961b2e0ab11e}{S\_}};\ \ \ }
+\DoxyCodeLine{00965\ \};}
+\DoxyCodeLine{00966\ }
+\DoxyCodeLine{00967\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}
