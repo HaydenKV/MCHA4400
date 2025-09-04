@@ -478,6 +478,21 @@ public:
         // TODO
         // out.mu_ = ???
         // out.S_ = ???
+
+        // 1) Mean: μ_I (in the order of idx)
+        out.mu_ = mu_(idx);
+
+        // 2) Square-root covariance:
+        //    Take the columns of S corresponding to idx → S(:,I) (n x n_I)
+        const std::size_t nI = idx.size();
+        Eigen::MatrixX<Scalar> S_colI = S_(Eigen::all, idx);
+
+        // Q-less QR factorization: S_colI = Q * R (we only keep R, in-place)
+        Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(S_colI);
+
+        // Extract the upper-triangular part and take the top n_I rows as R1
+        S_colI = S_colI.template triangularView<Eigen::Upper>();
+        out.S_ = S_colI.topRows(static_cast<Eigen::Index>(nI)).template triangularView<Eigen::Upper>();
         return out;
     }
 
@@ -498,13 +513,20 @@ public:
     template <typename IndexTypeA, typename IndexTypeB>
     Gaussian conditional(const IndexTypeA & idxA, const IndexTypeB & idxB, const Eigen::VectorX<Scalar> & xB) const
     {
-        // FIXME: The following implementation is in error, but it does pass some of the unit tests
-        Gaussian out;
-        out.mu_ = mu_(idxA) +
-            S_(idxB, idxA).transpose()*
-            S_(idxB, idxB).eval().template triangularView<Eigen::Upper>().transpose().solve(xB - mu_(idxB));
-        out.S_ = S_(idxA, idxA);
-        return out;
+        // // FIXME: The following implementation is in error, but it does pass some of the unit tests
+        // Gaussian out;
+        // out.mu_ = mu_(idxA) +
+        //     S_(idxB, idxA).transpose()*
+        //     S_(idxB, idxB).eval().template triangularView<Eigen::Upper>().transpose().solve(xB - mu_(idxB));
+        // out.S_ = S_(idxA, idxA);
+        // return out;
+
+        // Treat xB as a delta Gaussian: N^{-1/2}(xB; xB, 0)
+        Eigen::MatrixX<Scalar> SZ = Eigen::MatrixX<Scalar>::Zero(xB.size(), xB.size());
+        Gaussian pxB_y = Gaussian::fromSqrtMoment(xB, SZ);
+
+        // Reuse the robust square-root conditional implementation
+        return conditional(idxA, idxB, pxB_y);
     }
 
     /**
@@ -573,10 +595,21 @@ public:
     Gaussian affineTransform(Func h) const
     {
         Gaussian out;
+        // Evaluate mean and Jacobian at μ: y = h(μ), C = ∂h/∂x |_{μ}
         Eigen::MatrixX<Scalar> C;
         out.mu_ = h(mu_, C);
         // TODO
-        // out.S_ = ???
+        const Eigen::Index m = out.mu_.size();
+        assert(C.rows() == m);
+        assert(C.cols() == dim());
+        // Form S*C^T (n x m)
+        Eigen::MatrixX<Scalar> SCt = S_ * C.transpose();
+        // Q-less Householder QR: SCt = Q * R, we keep R in-place
+        Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(SCt);
+        // Extract upper-triangular R and take its top m×m block as R1
+        SCt = SCt.template triangularView<Eigen::Upper>();
+        out.S_ = SCt.topRows(m).template triangularView<Eigen::Upper>();
+        // out.S_ = C * S_ * C.transpose();
         return out;
     }
 

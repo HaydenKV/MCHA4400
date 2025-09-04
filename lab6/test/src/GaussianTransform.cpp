@@ -24,7 +24,7 @@ static Eigen::VectorXd transformTestFunc(const Eigen::VectorXd & x, Eigen::Matri
     return f;
 }
 
-SCENARIO("Gaussian affine transform" * doctest::skip())
+SCENARIO("Gaussian affine transform")
 {
     GIVEN("A Gaussian density")
     {

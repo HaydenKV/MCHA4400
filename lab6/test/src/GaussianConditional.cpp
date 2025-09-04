@@ -119,7 +119,7 @@ static void testConditional(const Gaussian<double> & p, const IndexTypeA & idxA,
     testConditionalDist(p, idxA, idxB, pB);
 }
 
-SCENARIO("Gaussian conditional density" * doctest::skip())
+SCENARIO("Gaussian conditional density")
 {
     GIVEN("A joint Gaussian density (size = 4)")
     {
@@ -256,7 +256,7 @@ SCENARIO("Gaussian conditional density" * doctest::skip())
     }
 }
 
-SCENARIO("Gaussian conditional covariance overflow" * doctest::skip())
+SCENARIO("Gaussian conditional covariance overflow")
 {
     GIVEN("Parameters that may cause the covariance to overflow")
     {

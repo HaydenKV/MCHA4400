@@ -49,7 +49,7 @@ static void testMarginal(const Gaussian<double> & p, const IndexType & idx)
     }
 }
 
-SCENARIO("Gaussian marginal density" * doctest::skip())
+SCENARIO("Gaussian marginal density")
 {
     GIVEN("A Gaussian density (size = 5)")
     {
@@ -99,7 +99,7 @@ SCENARIO("Gaussian marginal density" * doctest::skip())
     }
 }
 
-SCENARIO("Gaussian marginal covariance overflow" * doctest::skip())
+SCENARIO("Gaussian marginal covariance overflow")
 {
     GIVEN("Parameters that may cause the covariance to overflow")
     {
