@@ -14,6 +14,7 @@
 #include <boost/random/normal_distribution.hpp>
 #include <Eigen/Core>
 #include "DensityBase.hpp"
+#include <boost/math/special_functions/gamma.hpp>
 
 
 /**
@@ -109,8 +110,17 @@ public:
     {
         assert(p >= 0);
         assert(p < 1);
+        assert(nu > 0.0); // added
         // TODO
-        return 0.0;
+        // Handle a couple of trivial edges
+        if (p == 0.0) return 0.0; // F^{-1}(0)=0 for chi-square
+
+        const double a = 0.5 * nu;          // shape for the gamma
+        // Invert the regularized lower incomplete gamma:
+        // P(a, x) = p  =>  x = gamma_p_inv(a, p)
+        const double x = boost::math::gamma_p_inv(a, p);
+
+        return 2.0 * x; // chi-square quantile
     }
 
     /**
@@ -121,7 +131,17 @@ public:
     static double normcdf(double w)
     {
         // TODO
-        return 0.0;
+        // Phi(w) = 0.5 * erfc(-w / sqrt(2))
+        // Branch by sign for a touch more numerical stability in the tails, can just use 'return 0.5 * std::erfc(-w / s2);'
+        const double s2 = std::numbers::sqrt2;
+        if (w >= 0.0)
+        {
+            return 1.0 - 0.5 * std::erfc(w / s2);
+        }
+        else
+        {
+            return 0.5 * std::erfc(-w / s2);
+        }
     }
 
     /**
@@ -231,9 +251,36 @@ public:
     {
         const Eigen::Index & n = dim();
         assert(n == 2);
+        assert(nSamples >= 2); // added
 
         Eigen::Matrix<Scalar, 2, Eigen::Dynamic> X(2, nSamples);
+
         // TODO
+        // Probability that corresponds to "± nSigma" in 1D
+        const double p   = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+        // Chi-square threshold for 2 DoF, then radius in whitened coordinates
+        const double thr = chi2inv(p, 2.0);
+        const Scalar r   = static_cast<Scalar>(std::sqrt(thr));
+
+        const Eigen::MatrixX<Scalar> ST = sqrtCov().transpose(); // S^T
+
+        // Sample angles; make last point equal to the first to close the loop
+        for (int i = 0; i < nSamples; ++i)
+        {
+            const double t =
+                (nSamples == 1) ? 0.0 : (2.0 * std::numbers::pi * i) / static_cast<double>(nSamples - 1);
+
+            const Scalar c = static_cast<Scalar>(std::cos(t));
+            const Scalar s = static_cast<Scalar>(std::sin(t));
+
+            // y = r * [cos t; sin t]
+            Eigen::Matrix<Scalar, 2, 1> y;
+            y << r * c, r * s;
+
+            // x = mu + S^T * y
+            X.col(i) = mean() + ST * y;
+        }
+
         assert(X.cols() == nSamples);
         assert(X.rows() == 2);
         return X;

@@ -8,7 +8,7 @@
 #define CAPTURE_EIGEN(x) INFO(#x " = \n", x.format(Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ";\n", "", "", "[", "]")));
 #endif
 
-SCENARIO("Gaussian logIntegral" * doctest::skip())
+SCENARIO("Gaussian logIntegral")
 {
     GIVEN("Mean within interval")
     {

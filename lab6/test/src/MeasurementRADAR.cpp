@@ -11,7 +11,7 @@
 #define CAPTURE_EIGEN(x) INFO(#x " = \n", x.format(Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ";\n", "", "", "[", "]")));
 #endif
 
-SCENARIO("MeasurementRADAR" * doctest::skip())
+SCENARIO("MeasurementRADAR")
 {
     const Eigen::Index ny = 1;
     Eigen::VectorXd y(ny);

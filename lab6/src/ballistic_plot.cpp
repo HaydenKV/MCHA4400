@@ -300,6 +300,34 @@ void plot_simulation(
      *  SOMEBODY TOUCHA MY SPAGHET!
      */ 
 
+    // Background
+    bottomLeftChart->GetBackgroundBrush()->SetColorF(colors->GetColor3d("White").GetData());
+    bottomLeftChart->GetBackgroundBrush()->SetOpacityF(0.4);
+
+    // Title
+    bottomLeftChart->SetTitle("State estimates");
+    bottomLeftChart->GetTitleProperties()->SetFontSize(title_fontsize);
+    bottomLeftChart->GetTitleProperties()->SetColor(colors->GetColor3d(title_fontcolour).GetData());
+
+    // X axis
+    xAxis = bottomLeftChart->GetAxis(vtkAxis::BOTTOM);
+    xAxis->GetGridPen()->SetColor(200, 200, 200, 255);
+    xAxis->SetTitle("Time [s]");
+    xAxis->GetTitleProperties()->SetFontSize(axis_fontsize);
+    xAxis->GetTitleProperties()->SetColor(colors->GetColor3d(axis_fontcolour).GetData());
+    xAxis->GetLabelProperties()->SetFontSize(label_fontsize);
+    xAxis->GetLabelProperties()->SetColor(colors->GetColor3d(label_fontcolour).GetData());
+
+    // Y axis
+    yAxis = bottomLeftChart->GetAxis(vtkAxis::LEFT);
+    yAxis->GetGridPen()->SetColor(200, 200, 200, 255);
+    yAxis->SetTitle("Ballistic coefficient (m²/kg)");
+    yAxis->GetTitleProperties()->SetFontSize(axis_fontsize);
+    yAxis->GetTitleProperties()->SetColor(colors->GetColor3d(axis_fontcolour).GetData());
+    yAxis->GetLabelProperties()->SetFontSize(label_fontsize);
+    yAxis->GetLabelProperties()->SetColor(colors->GetColor3d(label_fontcolour).GetData());
+
+
     // Bottom right (Ballistic coefficient standard deviation vs Time)
     // -----------------------------------------------
     vtkChart *bottomRightChart = matrix->GetChart(vtkVector2i(1, 0));
@@ -320,6 +348,34 @@ void plot_simulation(
      *         \_______ /
      *  SOMEBODY TOUCHA MY SPAGHET!
      */ 
+
+    // Background
+    bottomRightChart->GetBackgroundBrush()->SetColorF(colors->GetColor3d("White").GetData());
+    bottomRightChart->GetBackgroundBrush()->SetOpacityF(0.4);
+
+    // Title
+    bottomRightChart->SetTitle("Marginal standard deviations");
+    bottomRightChart->GetTitleProperties()->SetFontSize(title_fontsize);
+    bottomRightChart->GetTitleProperties()->SetColor(colors->GetColor3d(title_fontcolour).GetData());
+
+    // X axis
+    xAxis = bottomRightChart->GetAxis(vtkAxis::BOTTOM);
+    xAxis->GetGridPen()->SetColor(200, 200, 200, 255);
+    xAxis->SetTitle("Time [s]");
+    xAxis->GetTitleProperties()->SetFontSize(axis_fontsize);
+    xAxis->GetTitleProperties()->SetColor(colors->GetColor3d(axis_fontcolour).GetData());
+    xAxis->GetLabelProperties()->SetFontSize(label_fontsize);
+    xAxis->GetLabelProperties()->SetColor(colors->GetColor3d(label_fontcolour).GetData());
+
+    // Y axis
+    yAxis = bottomRightChart->GetAxis(vtkAxis::LEFT);
+    yAxis->GetGridPen()->SetColor(200, 200, 200, 255);
+    yAxis->SetTitle("Ballistic coefficient (m²/kg)");
+    yAxis->GetTitleProperties()->SetFontSize(axis_fontsize);
+    yAxis->GetTitleProperties()->SetColor(colors->GetColor3d(axis_fontcolour).GetData());
+    yAxis->GetLabelProperties()->SetFontSize(label_fontsize);
+    yAxis->GetLabelProperties()->SetColor(colors->GetColor3d(label_fontcolour).GetData());
+    yAxis->SetLogScale(true);
 
     // -----------------------------------------------
     // -----------------------------------------------
@@ -540,6 +596,36 @@ void plot_simulation(
      *         \_______ /
      *  SOMEBODY TOUCHA MY SPAGHET!
      */ 
+    // Bottom left plot (Ballistic coeff vs Time)
+    // true value
+    line = bottomLeftChart->AddPlot(vtkChart::LINE);
+    line->SetInputData(table, 0, TABLE_BCOEFF_TRUE);
+    line->SetColor(255, 0, 0, 255); // Red for true values
+    line->SetWidth(linewidth);
+    line->SetLabel("true");
+
+    // mean value
+    line = bottomLeftChart->AddPlot(vtkChart::LINE);
+    line->SetInputData(table, 0, TABLE_BCOEFF_EST);
+    line->SetColor(0, 0, 255, 255); // Blue for estimated values
+    line->SetWidth(linewidth);
+    line->SetLabel("mean");
+
+    // confidence region (99.7%)
+    area = dynamic_cast<vtkPlotArea *>(bottomLeftChart->AddPlot(vtkChart::AREA));
+    area->SetInputData(table);
+    area->SetInputArray(0, KEY(TABLE_TIME));
+    area->SetInputArray(1, KEY(TABLE_MU3_PLUS_SIGMA3));
+    area->SetInputArray(2, KEY(TABLE_MU3_MINUS_SIGMA3));
+    area->GetBrush()->SetColorF(0, 0, 1, 0.1); // Blue with low opacity
+    area->SetLabel("99.7% CR");
+
+    // Show legend
+    bottomLeftChart->SetShowLegend(true);
+    bottomLeftChart->GetLegend()->SetHorizontalAlignment(vtkChartLegend::RIGHT);
+    bottomLeftChart->GetLegend()->SetVerticalAlignment(vtkChartLegend::BOTTOM);
+    bottomLeftChart->GetLegend()->SetLabelSize(legend_fontsize);
+
 
     // Bottom right plot (Ballistic coeff standard deviation vs Time)
     // -----------------------------------------------
@@ -560,6 +646,13 @@ void plot_simulation(
      *         \_______ /
      *  SOMEBODY TOUCHA MY SPAGHET!
      */  
+    // Bottom right plot (Ballistic coeff standard deviation vs Time)
+    line = bottomRightChart->AddPlot(vtkChart::LINE);
+    line->SetInputData(table, 0, TABLE_SIGMA3);
+    line->SetColor(0, 0, 255, 255);
+    line->SetWidth(linewidth);
+
+    bottomRightChart->SetShowLegend(false);
 
     #undef KEY
 

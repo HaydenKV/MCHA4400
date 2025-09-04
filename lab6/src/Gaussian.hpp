@@ -521,12 +521,43 @@ public:
         // out.S_ = S_(idxA, idxA);
         // return out;
 
-        // Treat xB as a delta Gaussian: N^{-1/2}(xB; xB, 0)
-        Eigen::MatrixX<Scalar> SZ = Eigen::MatrixX<Scalar>::Zero(xB.size(), xB.size());
-        Gaussian pxB_y = Gaussian::fromSqrtMoment(xB, SZ);
+        Gaussian out;
 
-        // Reuse the robust square-root conditional implementation
-        return conditional(idxA, idxB, pxB_y);
+        // Sizes and basic checks
+        const Eigen::Index nA = static_cast<Eigen::Index>(idxA.size());
+        const Eigen::Index nB = static_cast<Eigen::Index>(idxB.size());
+        const Eigen::Index n  = dim();
+        assert(nA + nB == n);
+        assert(xB.size() == nB);
+
+        // (1) Build the column concatenation [ S_B  S_A ] = [ S(:, idxB)  S(:, idxA) ]
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> SS(n, nB + nA);
+        SS.leftCols(nB)  = S_(Eigen::all, idxB);
+        SS.rightCols(nA) = S_(Eigen::all, idxA);
+
+        // (2) Q-less QR on [ S_B  S_A ]
+        Eigen::HouseholderQR<Eigen::Ref<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>> qr(SS);
+
+        // Extract the square R = [ S1 S2 ; 0 S3 ] from the top rows and keep only the upper triangle.
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> R =
+            SS.topRows(nB + nA).template triangularView<Eigen::Upper>();
+
+        // (3) Partition R into its blocks:
+        //     R = [ R1  R2 ;
+        //           0   R3 ]
+        const auto R1 = R.topLeftCorner(nB, nB);        // upper-triangular
+        const auto R2 = R.topRightCorner(nB, nA);   //(nB×nA)
+        const auto R3 = R.bottomRightCorner(nA, nA);    // nA×nA, upper triangular
+
+        // 4) Conditional mean: μ_A|B = μ_A + (R1^{-1} R2)^T (xB - μ_B)
+        //    Compute K = R1 \ R2 via triangular solve, then K^T * deltaB (lab formula)
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> K = R1.template triangularView<Eigen::Upper>().solve(R2); // nB×nA
+        out.mu_ = mu_(idxA) + K.transpose() * (xB - mu_(idxB));
+
+        // 5) Conditional sqrt covariance is R3 directly S_{A|B} = S3
+        out.S_ = R3;
+
+        return out;
     }
 
     /**
@@ -576,6 +607,52 @@ public:
         out.mu_ = mu_(idxA) + K.transpose()*(pxB_y.mean() - mu_(idxB));
         out.S_ = RR.topRows(nA).template triangularView<Eigen::Upper>();
         return out;
+
+        // ALTERNATE APPROACH THAT MAY BE MORE ROBUST AROUND INF values
+        // const Eigen::Index nA = static_cast<Eigen::Index>(idxA.size());
+        // const Eigen::Index nB = static_cast<Eigen::Index>(idxB.size());
+
+        // // (1) Build [ S(:,B)  S(:,A) ] and QR-partition it.
+        // Eigen::MatrixX<Scalar> SS(dim(), nA + nB);
+        // SS << S_(Eigen::all, idxB), S_(Eigen::all, idxA);
+
+        // // Scale-in for robustness (prevents overflow in extreme tests).
+        // Scalar s = SS.cwiseAbs().maxCoeff();
+        // if (!(s > Scalar(0))) s = Scalar(1);
+        // SS /= s;
+
+        // // Q-less QR → R = [ S1 S2 ; 0 S3 ] stored in SS.
+        // Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(SS);
+        // SS = SS.template triangularView<Eigen::Upper>();
+
+        // // Extract blocks (still scaled):
+        // const Eigen::MatrixX<Scalar> S1  = SS.topLeftCorner(nB, nB)
+        //                                     .template triangularView<Eigen::Upper>();
+        // const Eigen::MatrixX<Scalar> S2  = SS.topRightCorner(nB, nA);
+        // const Eigen::MatrixX<Scalar> S3s = SS.bottomRightCorner(nA, nA)
+        //                                     .template triangularView<Eigen::Upper>();
+
+        // // (2) K = S1^{-1} S2  via triangular solve (no explicit inverse).
+        // Eigen::MatrixX<Scalar> K = S1.template triangularView<Eigen::Upper>().solve(S2);
+
+        // // (3) Conditional mean: mu_A + K^T (mu_{B|y} - mu_B).
+        // const Eigen::VectorX<Scalar> delta = pxB_y.mean() - mu_(idxB);
+        // Eigen::VectorX<Scalar> muA_cond = mu_(idxA) + K.transpose() * delta;
+
+        // // (4) Conditional sqrt-cov via a second QR on the stacked matrix:
+        // //     RR = [ S_{B|y} * K ;  s * S3s ]  (we rescale S3s back here).
+        // Eigen::MatrixX<Scalar> RR(nA + nB, nA);
+        // RR << pxB_y.sqrtCov() * K,
+        //     s * S3s;
+
+        // Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr_RR(RR);
+        // RR = RR.template triangularView<Eigen::Upper>();
+        // Eigen::MatrixX<Scalar> R1 = RR.topRows(nA).template triangularView<Eigen::Upper>();
+
+        // Gaussian out;
+        // out.mu_ = muA_cond;
+        // out.S_  = R1;
+        // return out;
     }
 
     /**
@@ -841,7 +918,21 @@ public:
     {
         const Eigen::Index & n = dim();
         // TODO
-        return false;
+            assert(x.size() == n);
+
+        // Mahalanobis^2 via triangular solves: r^2 = (x-μ)^T P^{-1} (x-μ)
+        const Eigen::VectorX<Scalar> e = x - mu_;
+        const Eigen::VectorX<Scalar> y = S_.template triangularView<Eigen::Upper>().transpose().solve(e);
+        const double r2 = static_cast<double>(y.squaredNorm());
+
+        // Match 1D ±nSigma probability: p = 2*Φ(nSigma) - 1
+        const double p = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+
+        // χ² threshold with ν = n
+        const double thr = chi2inv(p, static_cast<double>(n));
+
+        // Small numerical slack
+        return r2 <= thr + 1e-12;
     }
 
     /**
@@ -863,6 +954,22 @@ public:
         
         Eigen::Matrix4<Scalar> Q;
         // TODO
+        // A = P^{-1} using the stable infoMat() (no explicit inversion)
+        const Eigen::MatrixX<Scalar> A = infoMat();     // 3x3
+        const Eigen::VectorX<Scalar> mu = mean();       // 3x1
+        const Eigen::VectorX<Scalar> k  = A * mu;       // 3x1
+
+        // Probability that corresponds to "± nSigma" in 1D
+        const double p  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+        // Chi-square threshold for 3 DoF
+        const double c3 = chi2inv(p, 3.0);
+
+        Q.setZero();
+        Q.template topLeftCorner<3,3>() = A;
+        Q.template topRightCorner<3,1>() = -k;
+        Q.template bottomLeftCorner<1,3>() = -k.transpose();
+        Q(3,3) = static_cast<Scalar>(mu.dot(k) - c3);
+
         return Q;
     }
 

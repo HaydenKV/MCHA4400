@@ -8,7 +8,7 @@
 #define CAPTURE_EIGEN(x) INFO(#x " = \n", x.format(Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ";\n", "", "", "[", "]")));
 #endif
 
-SCENARIO("SystemBallistic" * doctest::skip())
+SCENARIO("SystemBallistic")
 {
     const std::size_t n = 3;
     Gaussian<double> p0 = Gaussian<double>::fromSqrtMoment(Eigen::MatrixXd::Zero(n, n));

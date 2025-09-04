@@ -7,7 +7,7 @@
 #define CAPTURE_EIGEN(x) INFO(#x " = \n", x.format(Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ";\n", "", "", "[", "]")));
 #endif
 
-SCENARIO("Inverse cdf of chi^2 distribution" * doctest::skip())
+SCENARIO("Inverse cdf of chi^2 distribution")
 {
     GIVEN("c = 0.5, nu = 1")
     {
@@ -74,7 +74,7 @@ SCENARIO("Inverse cdf of chi^2 distribution" * doctest::skip())
     }
 }
 
-SCENARIO("cdf of standard normal distribution" * doctest::skip())
+SCENARIO("cdf of standard normal distribution")
 {
     GIVEN("x = 0")
     {
@@ -122,7 +122,7 @@ SCENARIO("cdf of standard normal distribution" * doctest::skip())
     }
 }
 
-SCENARIO("Gaussian confidence ellipse" * doctest::skip())
+SCENARIO("Gaussian confidence ellipse")
 {
     GIVEN("Gaussian p, where S is identity, mu is [0.5; 1.5]")
     {
@@ -220,7 +220,7 @@ SCENARIO("Gaussian confidence ellipse" * doctest::skip())
     }
 }
 
-SCENARIO("Gaussian quadric surface coefficients" * doctest::skip())
+SCENARIO("Gaussian quadric surface coefficients")
 {
     GIVEN("Gaussian p, where S is identity, mu is zero")
     {
