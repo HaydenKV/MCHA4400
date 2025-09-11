@@ -611,6 +611,8 @@ public:
         const Eigen::MatrixX<Scalar> U = svd.matrixU();         // m x m
         const Eigen::MatrixX<Scalar> V = svd.matrixV();         // n x n
 
+        // call svd.rank TODO
+
         // Numerical rank threshold: tol = max(m,n) * eps * max(s)
         const Scalar tol = std::max(m, n) * Eigen::NumTraits<Scalar>::epsilon() * (s.size() ? s.maxCoeff() : Scalar(0));
         const Eigen::Index r = (s.array() > tol).count();       // MATLAB: r = nnz(s > tol);
