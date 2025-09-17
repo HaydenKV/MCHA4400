@@ -189,17 +189,22 @@ void QuadricPlot::update(const GaussianInfo<double> & positionDensity)
     // Get quadric surface coefficients from Gaussian position density
     Eigen::Matrix4d Q = positionDensity.quadricSurface(3);
     double a0, a1, a2, a3, a4, a5, a6, a7, a8, a9;
+
+    // pull out in easy to read form
+    const Eigen::Matrix3d& L = Q.topLeftCorner<3,3>();    // Λ
+    const Eigen::Vector3d  eta = -Q.topRightCorner<3,1>(); // since Q stores -η
+    const double d = Q(3,3);
     
-    a0 = 0;     // TODO: Lab 8
-    a1 = 0;     // TODO: Lab 8
-    a2 = 0;     // TODO: Lab 8
-    a3 = 0;     // TODO: Lab 8
-    a4 = 0;     // TODO: Lab 8
-    a5 = 0;     // TODO: Lab 8
-    a6 = 0;     // TODO: Lab 8
-    a7 = 0;     // TODO: Lab 8
-    a8 = 0;     // TODO: Lab 8
-    a9 = 0;     // TODO: Lab 8
+    a0 = L(0,0);     // TODO: Lab 8
+    a1 = L(1,1);     // TODO: Lab 8
+    a2 = L(2,2);     // TODO: Lab 8
+    a3 = 2.0 * L(0,1);     // TODO: Lab 8
+    a4 = 2.0 * L(1,2);     // TODO: Lab 8
+    a5 = 2.0 * L(0,2);     // TODO: Lab 8
+    a6 = -2.0 * eta(0);     // TODO: Lab 8
+    a7 = -2.0 * eta(1);     // TODO: Lab 8
+    a8 = -2.0 * eta(2);     // TODO: Lab 8
+    a9 = d;     // TODO: Lab 8
 
     quadric->SetCoefficients(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
 
@@ -509,7 +514,8 @@ Plot::Plot(const Camera & camera)
 {
     double aspectRatio  = (1.0*camera.imageSize.width)/camera.imageSize.height;
 
-    double windowHeight       = 2*540;
+    // double windowHeight       = 2*540;
+    double windowHeight       = 1*540;
     double windowWidth        = 2*aspectRatio*windowHeight;
 
     vtkNew<vtkNamedColors> colors;

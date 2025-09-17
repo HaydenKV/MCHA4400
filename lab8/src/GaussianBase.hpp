@@ -110,8 +110,17 @@ public:
     {
         assert(p >= 0);
         assert(p < 1);
-        // TODO: Merge from Lab 6 or 7
-        return 0.0;
+        assert(nu > 0.0); // added
+        // TODO
+        // Handle a couple of trivial edges
+        if (p == 0.0) return 0.0; // F^{-1}(0)=0 for chi-square
+
+        const double a = 0.5 * nu;          // shape for the gamma
+        // Invert the regularized lower incomplete gamma:
+        // P(a, x) = p  =>  x = gamma_p_inv(a, p)
+        const double x = boost::math::gamma_p_inv(a, p);
+
+        return 2.0 * x; // chi-square quantile
     }
 
     /**
@@ -121,8 +130,19 @@ public:
      */
     static double normcdf(double w)
     {
-        // TODO: Merge from Lab 6 or 7
-        return 0.0;
+        // TODO
+        // Phi(w) = 0.5 * erfc(-w / sqrt(2))
+        // Branch by sign for a touch more numerical stability in the tails, can just use 'return 0.5 * std::erfc(-w / s2);'
+        const double s2 = std::numbers::sqrt2;
+        // if (w >= 0.0)
+        // {
+        //     return 1.0 - 0.5 * std::erfc(w / s2);
+        // }
+        // else
+        // {
+        //     return 0.5 * std::erfc(-w / s2);
+        // }
+        return 0.5 * std::erfc(-w / s2);
     }
 
     /**
@@ -232,9 +252,32 @@ public:
     {
         const Eigen::Index & n = dim();
         assert(n == 2);
+        assert(nSamples >= 2); // added
 
         Eigen::Matrix<Scalar, 2, Eigen::Dynamic> X(2, nSamples);
-        // TODO: Merge from Lab 6 or 7
+
+        // TODO
+        // Probability that corresponds to "± nSigma" in 1D
+        const double p   = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+        // Chi-square threshold for 2 DoF, then radius in whitened coordinates
+        const double thr = chi2inv(p, 2.0);
+        const Scalar r   = static_cast<Scalar>(std::sqrt(thr));
+
+        const Eigen::MatrixX<Scalar> ST = sqrtCov().transpose(); // S^T (2x2)
+
+        // Angles: include both 0 and 2π so the last column equals the first (closed loop)
+        const Eigen::Array<Scalar, Eigen::Dynamic, 1> theta =
+            Eigen::Array<Scalar, Eigen::Dynamic, 1>::LinSpaced(nSamples,
+                Scalar(0), Scalar(2.0 * std::numbers::pi));
+
+        // Unit circle, scaled by r  →  Y is 2×N
+        Eigen::Matrix<Scalar, 2, Eigen::Dynamic> Y(2, nSamples);
+        Y.row(0) = (r * theta.cos()).matrix().transpose(); // r*cos θ
+        Y.row(1) = (r * theta.sin()).matrix().transpose(); // r*sin θ
+
+        // Affine transform: x = μ + S^T * y  (broadcast μ over columns)
+        X = mean().rowwise().replicate(nSamples) + ST * Y;
+
         assert(X.cols() == nSamples);
         assert(X.rows() == 2);
         return X;

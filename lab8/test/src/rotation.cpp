@@ -12,7 +12,7 @@
 
 #include "../../src/rotation.hpp"
 
-SCENARIO("rotx" * doctest::skip())
+SCENARIO("rotx")
 {
     GIVEN("x = 0")
     {
@@ -349,7 +349,7 @@ SCENARIO("rotx" * doctest::skip())
 }
 
 
-SCENARIO("roty" * doctest::skip())
+SCENARIO("roty")
 {
     GIVEN("x = 0")
     {
@@ -684,7 +684,7 @@ SCENARIO("roty" * doctest::skip())
     }
 }
 
-SCENARIO("rotz" * doctest::skip())
+SCENARIO("rotz")
 {
     GIVEN("x = 0")
     {
@@ -1020,7 +1020,7 @@ SCENARIO("rotz" * doctest::skip())
     }
 }
 
-SCENARIO("rpy2rot" * doctest::skip())
+SCENARIO("rpy2rot")
 {
     GIVEN("Theta = [1; 2; 3]")
     {
@@ -1069,7 +1069,7 @@ SCENARIO("rpy2rot" * doctest::skip())
     }
 }
 
-SCENARIO("rot2rpy" * doctest::skip())
+SCENARIO("rot2rpy")
 {
     GIVEN("R is identity")
     {

@@ -48,11 +48,13 @@ Eigen::Vector2<Scalar> MeasurementPointBundle::predictFeature(const Eigen::Vecto
     Eigen::Vector3<Scalar> rPNn = x.template segment<3>(idx);
 
     // Camera vector
-    Eigen::Vector3<Scalar> rPCc;
+    // Transform nav → camera: rPCc = Rcn * (rPNn - rCNn), with Rcn = Rncᵀ
+    const Eigen::Matrix3<Scalar> Rcn = Tnc.rotationMatrix.transpose();
+    Eigen::Vector3<Scalar> rPCc = Rcn * (rPNn - Tnc.translationVector);
     // TODO: Lab 8
 
     // Pixel coordinates
-    Eigen::Vector2<Scalar> rQOi;
+    Eigen::Vector2<Scalar> rQOi = camera_.vectorToPixel(rPCc);
     // TODO: Lab 8
     return rQOi;
 }

@@ -23,7 +23,7 @@
 #include <Eigen/SVD>
 #include <Eigen/QR>
 #include <Eigen/Cholesky>
-#include <Eigen/LU> // TODO: Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests
+//#include <Eigen/LU> // TODO: Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests
 #include "GaussianBase.hpp"
 
 /**
@@ -419,19 +419,23 @@ public:
         assert(n == dim());
 
         // Form [Xi(:, idxNot), Xi(:, idx), nu]
-        // TODO: Merge from Lab 7
+        // TODO
+        Eigen::MatrixX<Scalar> RR(n, n + 1);
+        RR << Xi_(Eigen::all, idxNot),      // columns to eliminate first
+            Xi_(Eigen::all, idx),         // columns we keep (marginal variables)
+            nu_;                          // augmented RHS
 
         // Q-less QR yields
         // [R1, R2, nu1;
         //   0, R3, nu2]
-        
-        // TODO: Merge from Lab 7
+        // TODO
+        Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);
 
         // p(x(idx)) = N^-0.5(x(idx); nu2, R3)
         GaussianInfo out(nI);
-        // TODO: Merge from Lab 7
-        // out.nu_ = ???;
-        // out.Xi_ = ???;
+        // TODO
+        out.nu_ = RR.block(nNotI, n,     nI, 1);                                          // nu2
+        out.Xi_ = RR.block(nNotI, nNotI, nI, nI).template triangularView<Eigen::Upper>(); // R3
         return out;
     }
 
@@ -489,20 +493,30 @@ public:
         const std::size_t & nB = idxB.size();
         const std::size_t n = nA + nB;
         assert(n == dim());
+        // assert(xB.size() == static_cast<Eigen::Index>(nB));
 
         // Form [Xi(:, idxA), Xi(:, idxB), nu]
-        // TODO: Merge from Lab 7
+        // TODO
+        Eigen::MatrixX<Scalar> RR(n, n + 1);
+        RR << Xi_(Eigen::all, idxA),     // columns for variables A (kept)
+            Xi_(Eigen::all, idxB),     // columns for variables B (conditioned on)
+            nu_;                       // augmented RHS
 
         // Q-less QR yields
         // [R1, R2, nu1;
         //   0, R3, nu2]
-        // TODO: Merge from Lab 7
+        // TODO
+        Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);
 
         // p(x(idxA) | x(idxB) = xB) = N^-0.5(x(idxA); nu1 - R2*xB, R1)
         GaussianInfo out(nA);
-        // TODO: Merge from Lab 7
-        // out.nu_ = ???;
-        // out.Xi_ = ???;
+        // TODO
+        const Eigen::MatrixX<Scalar> R1  = RR.topLeftCorner(nA, nA).template triangularView<Eigen::Upper>();
+        const Eigen::MatrixX<Scalar> R2  = RR.block(0, nA, nA, nB);
+        const Eigen::VectorX<Scalar> nu1 = RR.block(0, n,  nA, 1);
+
+        out.nu_ = nu1 - R2 * xB;
+        out.Xi_ = R1;
         return out;
     }
 
@@ -578,29 +592,137 @@ public:
         const std::size_t n = J.cols();
         assert(m == muy.size());
         assert(n == dim());
+        // assert(n == static_cast<Eigen::Index>(dim()));
 
-        // Linearise y = h(x) about x = mux
-        // y ~= h(mux) + J*(x - mux)
-        //    = J*x + h(mux) - J*mux
+        // Linearise y = h(x) about x = μx  →  y ≈ h(μx) + J (x − μx) = J x + b
+        const Eigen::VectorX<Scalar> b = muy - J * mux; // helper
 
-        // TODO: Merge from Lab 7
+        // MATLAB
+        // [U, s, V] = svd(J, "vector");    % J = U * diag(s) * V.'
+        // tol = max(m, n)*eps(max(s));
+        // r = nnz(s > tol);
+        // U1 = U(:,1:r); U2 = U(:,r+1:m);
+        // V1 = V(:,1:r); V2 = V(:,r+1:n);
+        // s1 = s(1:r);
 
-        // Solve Y*J = Xi for Y
-        // Y = Xi*inv(J) = (inv(J.')*Xi.').'
-        Eigen::MatrixX<Scalar> Y = J.transpose().lu().solve(Xi_.transpose()).transpose();
+        // --- SVD of J (FULL factors to allow U2/V2 even when rank-deficient) ---
+        Eigen::JacobiSVD<Eigen::MatrixX<Scalar>> svd(J, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        const Eigen::VectorX<Scalar> s = svd.singularValues();  // length = min(m,n)
+        const Eigen::MatrixX<Scalar> U = svd.matrixU();         // m x m
+        const Eigen::MatrixX<Scalar> V = svd.matrixV();         // n x n
 
-        // Form [Y, nu]
-        Eigen::MatrixX<Scalar> RR(n, n + 1);
-        RR << Y, nu_;
-        // Q-less QR yields
-        // [R, r]
-        Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);        // In-place QR decomposition
+        // call svd.rank TODO
 
-        // p(y) = N^-0.5(y; r + R*(h(mux) - J*mux), R)
+        // Numerical rank threshold: tol = max(m,n) * eps * max(s)
+        const Scalar tol = std::max(m, n) * Eigen::NumTraits<Scalar>::epsilon() * (s.size() ? s.maxCoeff() : Scalar(0));
+        const Eigen::Index r = (s.array() > tol).count();       // MATLAB: r = nnz(s > tol);
+
+        // Partitions matching MATLAB slices
+        const Eigen::MatrixX<Scalar> U1 = U.leftCols(r);
+        Eigen::MatrixX<Scalar> U2; U2.resize(m, m - r); if (m > r) U2 = U.rightCols(m - r);
+        const Eigen::MatrixX<Scalar> V1 = V.leftCols(r);
+        Eigen::MatrixX<Scalar> V2; V2.resize(n, n - r); if (n > r) V2 = V.rightCols(n - r);
+        const Eigen::VectorX<Scalar> s1 = s.head(r);
+
+        // MATLAB
+        // Jp = (V1./s1(:).')*U1.';   % J^+ = V1 * diag(1./s1) * U1.'
+
+        // Pseudoinverse on rank-r subspace: J⁺ = V1 * diag(1./s1) * U1ᵀ
+        Eigen::MatrixX<Scalar> Jp;
+        if (r > 0) {
+            Jp = V1 * s1.cwiseInverse().asDiagonal() * U1.transpose(); // n x m
+        } else {
+            Jp.resize(n, m);
+            Jp.setZero();
+        }
+
+        // MATLAB
+        // X = obj.Xi*V2;
+        // Y = obj.Xi*Jp;
+
+        // Build X = Xi*V2 (nullspace part) and Y = Xi*Jp (range part)
+        Eigen::MatrixX<Scalar> X; X.resize(n, n - r);
+        if (V2.cols() > 0) X = Xi_ * V2; else X.setZero();
+        Eigen::MatrixX<Scalar> Y = Xi_ * Jp; // n x m
+
+        // MATLAB
+        // sigma_max_ub = realsqrt(sum([X, Y].^2, 'all')); % Cheap upper bound for the largest singular value of [X, Y]
+        // kappa = 1e7*sigma_max_ub;   % Constraint information factor (kappa >> sigma_max_ub)
+
+        // Constraint scaling: kappa >> ||[X Y]|| (cheap upper bound via Frobenius norm)
+        const Scalar sigma_max_ub = std::sqrt((X.array().square().sum()) + (Y.array().square().sum()));
+        const Scalar kappa = std::max<Scalar>(Scalar(1e7) * sigma_max_ub, Scalar(1e-3)); // floor to keep constraints active same as MATLAB
+        // const Scalar kappa = (sigma_max_ub > Scalar(0)) ? Scalar(1e7) * sigma_max_ub : Scalar(1);
+
+        // MATLAB
+        // RR = qr([X, Y, obj.nu + Y*b; ...
+        //     zeros(m - r, n - r), kappa*U2.', kappa*U2.'*b]);
+        // % Q-less QR yields
+        // % [R1, R2, nu1;
+        // %   0, R3, nu2]
+
+        // C++: assemble the augmented matrix exactly the same way
+        const Eigen::Index rows = (n - r) + m;
+        const Eigen::Index cols = (n - r) + m + 1;
+        Eigen::MatrixX<Scalar> A(rows, cols);
+        A.setZero();
+
+        // Top block (n rows)
+        if (X.cols() > 0) A.block(0, 0,      n, n - r) = X;
+                        A.block(0, n - r,  n,     m) = Y;
+                        A.block(0, (n - r) + m, n, 1) = nu_ + Y * b;
+
+        // Bottom block ((m - r) rows) — only present if rank-deficient (m > r)
+        if (m > r) {
+            // Left block already zeroed
+            A.block(n, n - r,       m - r, m) = kappa * U2.transpose();
+            A.block(n, (n - r) + m, m - r, 1) = kappa * (U2.transpose() * b);
+        }
+
+        // Q-less QR (Eigen: obtain R from the packed QR and take its upper-triangular view)
+        Eigen::HouseholderQR<Eigen::MatrixX<Scalar>> qr(A);
+        Eigen::MatrixX<Scalar> R = qr.matrixQR()
+                                    .topLeftCorner(rows, cols)
+                                    .template triangularView<Eigen::Upper>();
+
+        // MATLAB
+        // R3 = RR(n-r+1:n-r+m, n-r+1:n-r+m);
+        // nu2 = RR(n-r+1:n-r+m, n-r+m+1);
+
+        // Read off the bottom-right (m x m) block and RHS following the Y-columns region.
+        const Eigen::Index row0 = (n - r);   // start row for the y-block
+        const Eigen::Index col0 = (n - r);   // first y-column in A (i.e., where Y starts)
+        Eigen::MatrixX<Scalar> R3 = R.block(row0, col0, m, m);
+        Eigen::VectorX<Scalar>  nu2 = R.block(row0, col0 + m, m, 1);
+
+        // Return p(y) = N^{-1/2}(y; nu2, R3)
         GaussianInfo out(m);
-        out.Xi_ = RR.leftCols(m).template triangularView<Eigen::Upper>();
-        out.nu_ = RR.col(m) + out.Xi_*(muy - J*mux);
-        return out;
+        out.Xi_ = R3;   // upper-triangular by construction
+        out.nu_ = nu2;
+        return out;                                        
+
+        // ------------------------------------- template -------------------------------------
+        // // Linearise y = h(x) about x = mux
+        // // y ~= h(mux) + J*(x - mux)
+        // //    = J*x + h(mux) - J*mux
+
+        // // Solve Y*J = Xi for Y
+        // // Y = Xi*inv(J) = (inv(J.')*Xi.').'
+        // Eigen::MatrixX<Scalar> Y = J.transpose().lu().solve(Xi_.transpose()).transpose();
+
+        // // Form [Y, nu]
+        // Eigen::MatrixX<Scalar> RR(n, n + 1);
+        // RR << Y, nu_;
+        // // Q-less QR yields
+        // // [R, r]
+        // Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);        // In-place QR decomposition
+
+        // // p(y) = N^-0.5(y; r + R*(h(mux) - J*mux), R)
+        // GaussianInfo out(m);
+        // out.Xi_ = RR.leftCols(m).template triangularView<Eigen::Upper>();
+        // out.nu_ = RR.col(m) + out.Xi_*(muy - J*mux);
+        // return out; 
+        // ------------------------------------- template -------------------------------------
     }
 
     /**
@@ -618,8 +740,19 @@ public:
         assert(x.size() == dim());
 
         static const Scalar halflog2pi = std::log(2*std::numbers::pi)/2.0;
-        // TODO: Merge from Lab 7
-        return 1.0;
+        // TODO
+        const Eigen::Index n = dim();
+        const Eigen::VectorX<Scalar> r = Xi_ * x - nu_; // r = Xi x - nu
+
+        // AI suggests may need to use ADL method above to work with Autodiff types but this passes tests
+        const Scalar logdetXi = Xi_.diagonal().array().abs().log().sum();
+
+        // const Scalar logdetXi = Xi_.diagonal()
+        //     .unaryExpr([](const Scalar& d){ using std::log; const Scalar a = d>=Scalar(0)?d:-d; return log(a); })
+        //     .sum();
+
+        // ℓ(x) = -n/2 log(2π) + log|Ξ| - 1/2 ||r||²
+        return -Scalar(n) * halflog2pi + logdetXi - Scalar(0.5) * r.squaredNorm();;
     }
 
     /**
@@ -636,7 +769,14 @@ public:
     Scalar log(const Eigen::VectorX<Scalar> & x, Eigen::VectorX<Scalar> & g) const
     {
         // Compute gradient g
-        // TODO: Merge from Lab 7
+        // TODO
+        // ∇ℓ(x) = −Ξᵀ(Ξx − ν)
+        const Eigen::VectorX<Scalar> r = Xi_ * x - nu_;
+
+        // Resize optional, eigen should auto size it
+        //g.resize(dim());
+
+        g = -Xi_.transpose() * r;
         return log(x);
     }
 
@@ -655,7 +795,13 @@ public:
     Scalar log(const Eigen::VectorX<Scalar> & x, Eigen::VectorX<Scalar> & g, Eigen::MatrixX<Scalar> & H) const
     {
         // Compute Hessian H
-        // TODO: Merge from Lab 7
+        // TODO
+        // ∇²ℓ(x) = −ΞᵀΞ (constant)
+
+        // Resize optional, eigen should auto size it
+        // H.resize(dim(), dim());
+
+        H = -Xi_.transpose() * Xi_;
         return log(x, g);
     }
 
@@ -730,8 +876,22 @@ public:
     virtual bool isWithinConfidenceRegion(const Eigen::VectorX<Scalar> & x, double nSigma = 3.0) const override
     {
         const Eigen::Index & n = dim();
-        // TODO: Merge from Lab 7
-        return false;
+        assert(x.size() == n);
+        // TODO
+        // Probability mass enclosed by ±nSigma in 1D, extended to nD via chi-square
+        // c = 2*Phi(nSigma) - 1  (same as Phi(nSigma) - Phi(-nSigma))
+        const double c  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+
+        // Squared radius in whitened coordinates (Mahalanobis^2 threshold)
+        const double r2 = chi2inv(c, static_cast<double>(n));
+
+        // Whitened residual w = Xi*x - nu (so that ||w||^2 = (x-mu)^T P^{-1} (x-mu))
+        const Eigen::VectorX<Scalar> w = Xi_ * x - nu_;
+
+        // Inside if the squared norm is below the chi-square threshold
+        return static_cast<double>(w.squaredNorm()) <= r2;
+
+        // return false;
     }
 
     /**
@@ -751,8 +911,29 @@ public:
         const Eigen::Index & n = dim();
         assert(n == 3);
         
+        // 1) Compute the chi-square radius^2 for the requested n-sigma mass
+        const double c  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
+        const double r2 = chi2inv(c, 3.0);  // DoF = 3
+
+        // 2) Information quantities
+        // Λ = Xiᵀ Xi  (information matrix = P^{-1}) (infoMat)
+        // η = Xiᵀ nu  (linear term in the expanded quadratic) (infoVec)
+        const Eigen::Matrix<Scalar, 3, 3> Lambda = (Xi_.transpose() * Xi_).template topLeftCorner<3,3>();
+        const Eigen::Matrix<Scalar, 3, 1> eta    = (Xi_.transpose() * nu_).template head<3>();
+
+        // 3) Constant term: nuᵀ nu − r²
+        const Scalar d = static_cast<Scalar>(nu_.squaredNorm() - r2);
+
+        // 4) Assemble homogeneous quadric:
+        // Q = [  Λ   −η ]
+        //     [ −ηᵀ  d  ]
+
         Eigen::Matrix4<Scalar> Q;
-        // TODO: Merge from Lab 7
+        // TODO
+        Q.template topLeftCorner<3,3>() = Lambda;
+        Q.template topRightCorner<3,1>() = -eta;
+        Q.template bottomLeftCorner<1,3>() = -eta.transpose();
+        Q(3,3) = d;
         return Q;
     }
 

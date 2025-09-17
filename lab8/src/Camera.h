@@ -83,6 +83,8 @@ struct Camera
 
     Pose<double> Tbc;                                       // Relative pose of camera in body coordinates (Rbc, rCBb)
 
+    std::vector<double> cosThetaLimit_;
+
 private:
     double hFOV = 0.0;                                      // Horizonal field of view
     double vFOV = 0.0;                                      // Vertical field of view
@@ -101,6 +103,53 @@ Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc
 
     Eigen::Vector2<Scalar> rQOi;
     // TODO: Lab 8 (optional)
+    // iii) Auto diff ONLY ----------------------------------------------------------------
+    // Normalised image coords
+    const Scalar X = rPCc(0), Y = rPCc(1), Z = rPCc(2);
+    const Scalar invZ = Scalar(1) / Z;
+    const Scalar x = X * invZ;
+    const Scalar y = Y * invZ;
+
+    const Scalar r2 = x*x + y*y;
+    const Scalar r4 = r2*r2;
+    const Scalar r6 = r4*r2;
+
+    // Intrinsics (double -> Scalar)
+    const Scalar fx = static_cast<Scalar>(cameraMatrix.at<double>(0,0));
+    const Scalar fy = static_cast<Scalar>(cameraMatrix.at<double>(1,1));
+    const Scalar cx = static_cast<Scalar>(cameraMatrix.at<double>(0,2));
+    const Scalar cy = static_cast<Scalar>(cameraMatrix.at<double>(1,2));
+
+    // Distortion coeff access
+    auto dc = [&](int i)->Scalar {
+        if (i < distCoeffs.rows * distCoeffs.cols) return static_cast<Scalar>(distCoeffs.at<double>(i,0));
+        return Scalar(0);
+    };
+    const Scalar k1 = dc(0),  k2 = dc(1),  p1 = dc(2),  p2 = dc(3),  k3 = dc(4);
+    const Scalar k4 = dc(5),  k5 = dc(6),  k6 = dc(7),  s1 = dc(8),  s2 = dc(9);
+    const Scalar s3 = dc(10), s4 = dc(11);
+    // If you later enable TILTED_MODEL with 14 coeffs, add tauX,tauY here.
+
+    // Rational radial
+    const Scalar num   = Scalar(1) + k1*r2 + k2*r4 + k3*r6;
+    const Scalar den   = Scalar(1) + k4*r2 + k5*r4 + k6*r6;
+    const Scalar cdist = num / den;
+
+    // Tangential
+    const Scalar x_tan = Scalar(2)*p1*x*y + p2*(r2 + Scalar(2)*x*x);
+    const Scalar y_tan = p1*(r2 + Scalar(2)*y*y) + Scalar(2)*p2*x*y;
+
+    // Thin-prism
+    const Scalar x_pr  = s1*r2 + s2*r4;
+    const Scalar y_pr  = s3*r2 + s4*r4;
+
+    // Distorted normalised
+    const Scalar xd = x*cdist + x_tan + x_pr;
+    const Scalar yd = y*cdist + y_tan + y_pr;
+
+    // Pixels
+    rQOi << fx*xd + cx, fy*yd + cy;
+    // iii) Auto diff ONLY ----------------------------------------------------------------
     return rQOi;
 }
 

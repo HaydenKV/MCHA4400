@@ -11,6 +11,10 @@
 #include "Measurement.h"
 #include "MeasurementSLAM.h"
 #include "MeasurementSLAMPointBundle.h"
+#include <autodiff/forward/dual.hpp>
+#include <autodiff/forward/dual/eigen.hpp>
+#include <iostream>
+
 
 MeasurementPointBundle::MeasurementPointBundle(double time, const Eigen::Matrix<double, 2, Eigen::Dynamic> & Y, const Camera & camera)
     : MeasurementSLAM(time, camera)
@@ -82,8 +86,35 @@ Eigen::Vector2d MeasurementPointBundle::predictFeature(const Eigen::VectorXd & x
 {
     // Set elements of J
     // TODO: Lab 8 (optional)
-    return predictFeature(x, system, idxLandmark);
+    //return predictFeature(x, system, idxLandmark);
     // Note: If you use autodiff, return the evaluated function value (cast with double scalar type) instead of calling predictFeature as above
+
+    // iii) Auto diff ONLY ----------------------------------------------------------------
+    using autodiff::dual;
+    using autodiff::jacobian;
+    using autodiff::wrt;
+    using autodiff::at;
+    using autodiff::val;
+
+    // Promote x to dual
+    Eigen::VectorX<dual> xdual = x.cast<dual>();
+
+    // h(x): vector-valued (2x1) functor
+    auto h = [&](const Eigen::VectorX<dual>& xad) -> Eigen::Vector2<dual>
+    {
+        return predictFeature<dual>(xad, system, idxLandmark);
+    };
+
+    // J = ∂h/∂x, y = h(x)
+    Eigen::Vector2<dual> ydual;
+    J = jacobian(h, wrt(xdual), at(xdual), ydual);    // (2 x nx)
+    // std::cerr << "dhj/dx =\n" << J << '\n';
+
+    // Return plain double
+    Eigen::Vector2d y;
+    y << val(ydual(0)), val(ydual(1));
+    return y;
+    // iii) Auto diff ONLY ----------------------------------------------------------------
 }
 
 // Density of image feature location for a given landmark
