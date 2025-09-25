@@ -33,7 +33,7 @@
 \DoxyCodeLine{00029\ \ \ \ \ ChessboardImage(\textcolor{keyword}{const}\ cv::Mat\ \&,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structChessboard}{Chessboard}}\ \&,\ \textcolor{keyword}{const}\ std::filesystem::path\ \&\ =\ \textcolor{stringliteral}{"{}"{}});}
 \DoxyCodeLine{00030\ \ \ \ \ cv::Mat\ image;}
 \DoxyCodeLine{00031\ \ \ \ \ std::filesystem::path\ filename;}
-\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{structPose}{Pose<double>}}\ Tnc;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Extrinsic\ camera\ parameters}}
+\DoxyCodeLine{00032\ \ \ \ \ Posed\ Tnc;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Extrinsic\ camera\ parameters}}
 \DoxyCodeLine{00033\ \ \ \ \ std::vector<cv::Point2f>\ corners;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Chessboard\ corners\ in\ image\ [rQOi]}}
 \DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordtype}{bool}\ isFound;}
 \DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordtype}{void}\ drawCorners(\textcolor{keyword}{const}\ \mbox{\hyperlink{structChessboard}{Chessboard}}\ \&);}
@@ -65,15 +65,15 @@
 \DoxyCodeLine{00061\ }
 \DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>\ \mbox{\hyperlink{structPose}{Pose<Scalar>}}\ cameraToBody(\textcolor{keyword}{const}\ \mbox{\hyperlink{structPose}{Pose<Scalar>}}\ \&\ Tnc)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ Tnc*Tbc.\mbox{\hyperlink{structPose_a4d5526e64f5903219a573725cbba1591}{inverse}}();\ \}\ \textcolor{comment}{//\ Tnb\ =\ Tnc*Tcb}}
 \DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>\ \mbox{\hyperlink{structPose}{Pose<Scalar>}}\ bodyToCamera(\textcolor{keyword}{const}\ \mbox{\hyperlink{structPose}{Pose<Scalar>}}\ \&\ Tnb)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ Tnb*Tbc;\ \}\ \textcolor{comment}{//\ Tnc\ =\ Tnb*Tbc}}
-\DoxyCodeLine{00064\ \ \ \ \ cv::Vec3d\ worldToVector(\textcolor{keyword}{const}\ cv::Vec3d\ \&\ rPNn,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structPose}{Pose<double>}}\ \&\ Tnb)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00065\ \ \ \ \ cv::Vec2d\ worldToPixel(\textcolor{keyword}{const}\ cv::Vec3d\ \&,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structPose}{Pose<double>}}\ \&)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00064\ \ \ \ \ cv::Vec3d\ worldToVector(\textcolor{keyword}{const}\ cv::Vec3d\ \&\ rPNn,\ \textcolor{keyword}{const}\ Posed\ \&\ Tnb)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00065\ \ \ \ \ cv::Vec2d\ worldToPixel(\textcolor{keyword}{const}\ cv::Vec3d\ \&,\ \textcolor{keyword}{const}\ Posed\ \&)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00066\ \ \ \ \ cv::Vec2d\ vectorToPixel(\textcolor{keyword}{const}\ cv::Vec3d\ \&)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>\ Eigen::Vector2<Scalar>\ vectorToPixel(\textcolor{keyword}{const}\ Eigen::Vector3<Scalar>\ \&)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00068\ \ \ \ \ Eigen::Vector2d\ vectorToPixel(\textcolor{keyword}{const}\ Eigen::Vector3d\ \&,\ Eigen::Matrix23d\ \&)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00069\ }
 \DoxyCodeLine{00070\ \ \ \ \ cv::Vec3d\ pixelToVector(\textcolor{keyword}{const}\ cv::Vec2d\ \&)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00071\ }
-\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{bool}\ isWorldWithinFOV(\textcolor{keyword}{const}\ cv::Vec3d\ \&\ rPNn,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structPose}{Pose<double>}}\ \&\ Tnb)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{bool}\ isWorldWithinFOV(\textcolor{keyword}{const}\ cv::Vec3d\ \&\ rPNn,\ \textcolor{keyword}{const}\ Posed\ \&\ Tnb)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordtype}{bool}\ isVectorWithinFOV(\textcolor{keyword}{const}\ cv::Vec3d\ \&\ rPCc)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00074\ }
 \DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordtype}{void}\ calcFieldOfView();}
@@ -85,7 +85,7 @@
 \DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordtype}{int}\ flags\ =\ 0;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Calibration\ flags}}
 \DoxyCodeLine{00082\ \ \ \ \ cv::Size\ imageSize;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Image\ size}}
 \DoxyCodeLine{00083\ }
-\DoxyCodeLine{00084\ \ \ \ \ \mbox{\hyperlink{structPose}{Pose<double>}}\ Tbc;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Relative\ pose\ of\ camera\ in\ body\ coordinates\ (Rbc,\ rCBb)}}
+\DoxyCodeLine{00084\ \ \ \ \ Posed\ Tbc;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Relative\ pose\ of\ camera\ in\ body\ coordinates\ (Rbc,\ rCBb)}}
 \DoxyCodeLine{00085\ }
 \DoxyCodeLine{00086\ \ \ \ \ std::vector<double>\ cosThetaLimit\_;}
 \DoxyCodeLine{00087\ }

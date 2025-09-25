@@ -58,7 +58,7 @@ int main(int argc, char* argv [])
     {
         std::cout << "Calibrating camera" << std::endl;
         std::cout << "Configuration file: " << inputPath.string() << std::endl;
-        calibrateCamera(inputPath);
+        calibrateCamera(inputPath, hasExport ? outputDirectory : std::filesystem::path{});
     }
     else
     {

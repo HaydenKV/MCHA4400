@@ -3,6 +3,7 @@
 
 #include <filesystem>
 
-void calibrateCamera(const std::filesystem::path & configPath);
+void calibrateCamera(const std::filesystem::path & configPath,
+                    const std::filesystem::path& outputDirectory = {});
 
 #endif

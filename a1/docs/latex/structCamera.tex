@@ -15,11 +15,11 @@ void {\bfseries print\+Calibration} () const
 \Hypertarget{structCamera_a1c20b227343ca26cb6ae154e371b7200}\label{structCamera_a1c20b227343ca26cb6ae154e371b7200} 
 {\footnotesize template$<$typename Scalar$>$ }\\\mbox{\hyperlink{structPose}{Pose}}$<$ Scalar $>$ {\bfseries body\+To\+Camera} (const \mbox{\hyperlink{structPose}{Pose}}$<$ Scalar $>$ \&Tnb) const
 \item 
-\Hypertarget{structCamera_a6a89c6e5d7bb8fdcf9cf80164ab64b43}\label{structCamera_a6a89c6e5d7bb8fdcf9cf80164ab64b43} 
-cv\+::\+Vec3d {\bfseries world\+To\+Vector} (const cv\+::\+Vec3d \&r\+PNn, const \mbox{\hyperlink{structPose}{Pose}}$<$ double $>$ \&Tnb) const
+\Hypertarget{structCamera_ae1db143326d79a72ed7840e1ade976a3}\label{structCamera_ae1db143326d79a72ed7840e1ade976a3} 
+cv\+::\+Vec3d {\bfseries world\+To\+Vector} (const cv\+::\+Vec3d \&r\+PNn, const \mbox{\hyperlink{structPose}{Posed}} \&Tnb) const
 \item 
-\Hypertarget{structCamera_ae0d9d8014ce692c57526cbf11916b344}\label{structCamera_ae0d9d8014ce692c57526cbf11916b344} 
-cv\+::\+Vec2d {\bfseries world\+To\+Pixel} (const cv\+::\+Vec3d \&, const \mbox{\hyperlink{structPose}{Pose}}$<$ double $>$ \&) const
+\Hypertarget{structCamera_aa32ae1c8754c4e56fb7df44257ec5419}\label{structCamera_aa32ae1c8754c4e56fb7df44257ec5419} 
+cv\+::\+Vec2d {\bfseries world\+To\+Pixel} (const cv\+::\+Vec3d \&, const \mbox{\hyperlink{structPose}{Posed}} \&) const
 \item 
 \Hypertarget{structCamera_ae7b3613156aa298d1830b01cebc3e308}\label{structCamera_ae7b3613156aa298d1830b01cebc3e308} 
 cv\+::\+Vec2d {\bfseries vector\+To\+Pixel} (const cv\+::\+Vec3d \&) const
@@ -33,8 +33,8 @@ Eigen\+::\+Vector2d {\bfseries vector\+To\+Pixel} (const Eigen\+::\+Vector3d \&,
 \Hypertarget{structCamera_a9f917c85311e596e02cf0cd7bd9d9d1d}\label{structCamera_a9f917c85311e596e02cf0cd7bd9d9d1d} 
 cv\+::\+Vec3d {\bfseries pixel\+To\+Vector} (const cv\+::\+Vec2d \&) const
 \item 
-\Hypertarget{structCamera_ae460c2ecc2419de325b37745fee24559}\label{structCamera_ae460c2ecc2419de325b37745fee24559} 
-bool {\bfseries is\+World\+Within\+FOV} (const cv\+::\+Vec3d \&r\+PNn, const \mbox{\hyperlink{structPose}{Pose}}$<$ double $>$ \&Tnb) const
+\Hypertarget{structCamera_a1dcfaa2d9ccdff42dd97ab5d812f2723}\label{structCamera_a1dcfaa2d9ccdff42dd97ab5d812f2723} 
+bool {\bfseries is\+World\+Within\+FOV} (const cv\+::\+Vec3d \&r\+PNn, const \mbox{\hyperlink{structPose}{Posed}} \&Tnb) const
 \item 
 \Hypertarget{structCamera_a58ea664e882adfc2d1b1ef25245b48b2}\label{structCamera_a58ea664e882adfc2d1b1ef25245b48b2} 
 bool {\bfseries is\+Vector\+Within\+FOV} (const cv\+::\+Vec3d \&r\+PCc) const
@@ -63,8 +63,8 @@ int {\bfseries flags} = 0
 \Hypertarget{structCamera_a219401d77f2e6211ad6c54f0c0d0b895}\label{structCamera_a219401d77f2e6211ad6c54f0c0d0b895} 
 cv\+::\+Size {\bfseries image\+Size}
 \item 
-\Hypertarget{structCamera_a02cae3b4ff7f863627819ebbbe9ef56e}\label{structCamera_a02cae3b4ff7f863627819ebbbe9ef56e} 
-\mbox{\hyperlink{structPose}{Pose}}$<$ double $>$ {\bfseries Tbc}
+\Hypertarget{structCamera_a9320e9641d493cc508dfd13f0d1408ab}\label{structCamera_a9320e9641d493cc508dfd13f0d1408ab} 
+\mbox{\hyperlink{structPose}{Posed}} {\bfseries Tbc}
 \item 
 \Hypertarget{structCamera_a9a2741787327ee677bc2f9a25af16cb3}\label{structCamera_a9a2741787327ee677bc2f9a25af16cb3} 
 std\+::vector$<$ double $>$ {\bfseries cos\+Theta\+Limit\+\_\+}

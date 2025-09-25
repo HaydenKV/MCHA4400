@@ -1,19 +1,20 @@
-#include <filesystem>
+#include "calibrate.h"
 #include "Camera.h"
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <iostream>
-#include "calibrate.h"
+#include <filesystem>
+#include <format>
 
-void calibrateCamera(const std::filesystem::path & configPath)
+void calibrateCamera(const std::filesystem::path & configPath, const std::filesystem::path& outputDirectory)
 {
-    // TODO
     // - Read XML at configPath
     // - Parse XML and extract relevant frames from source video containing the chessboard
     // - Perform camera calibration
     // - Write the camera matrix and lens distortion parameters to camera.xml file in same directory as configPath
     // - Visualise the camera calibration results
-    
+
     std::cout << "Loading calibration configuration from: " << configPath.string() << std::endl;
     
     // Check if configuration exists
@@ -60,15 +61,72 @@ void calibrateCamera(const std::filesystem::path & configPath)
     chessboardData.drawCorners();
     chessboardData.drawBoxes(camera);
     
-    std::cout << "Press any key in image window to continue through validation images..." << std::endl;
+
+    bool shouldExport = !outputDirectory.empty();
     
-    // Display first few images for validation
-    int maxDisplay = std::min(5, (int)chessboardData.chessboardImages.size());
-    for (int i = 0; i < maxDisplay; i++)
+    if (shouldExport)
     {
-        cv::imshow("Calibration Validation", chessboardData.chessboardImages[i].image);
-        cv::waitKey(0); // Wait for key press
+        std::cout << "Exporting validation images to: " << outputDirectory.string() << std::endl;
+        
+        // Export all calibration images with validation overlays
+        for (size_t i = 0; i < chessboardData.chessboardImages.size(); ++i)
+        {
+            const auto& img = chessboardData.chessboardImages[i];
+            
+            // Create filename for export
+            std::string exportName = std::format("calibration_validation_{:03d}.png", i);
+            std::filesystem::path exportPath = outputDirectory / exportName;
+            
+            // Save the image with overlays
+            cv::imwrite(exportPath.string(), img.image);
+            
+            if (i == 0) // Print confirmation for first image
+            {
+                std::cout << "  Saved: " << exportName << std::endl;
+            }
+        }
+        
+        std::cout << "  ... (exported " << chessboardData.chessboardImages.size() 
+                  << " validation images total)" << std::endl;
+    }
+    
+    // Interactive validation display
+    std::cout << "\nValidation Display:" << std::endl;
+    std::cout << "- Blue/Green dots: Detected chessboard corners" << std::endl;
+    std::cout << "- Blue base: Chessboard plane" << std::endl;
+    std::cout << "- Red edges: 3D box rising from board" << std::endl;
+    std::cout << "- Green lid: Top of 3D validation box" << std::endl;
+    
+    if (shouldExport)
+    {
+        std::cout << "\nValidation images exported. No interactive display when using --export flag." << std::endl;
+        std::cout << "(All images have been exported to " << outputDirectory.string() << ")" << std::endl;
+    }
+    else
+    {
+        std::cout << "\nPress any key in image window to browse through all validation images..." << std::endl;
+        
+        // Show all images when not exporting (same as exporting, just no file save)
+        for (size_t i = 0; i < chessboardData.chessboardImages.size(); ++i)
+        {
+            const auto& img = chessboardData.chessboardImages[i];
+            std::string windowTitle = std::format("Calibration Validation ({}/{}): {}", 
+                                                 i + 1, chessboardData.chessboardImages.size(),
+                                                 img.filename.string());
+            
+            cv::imshow(windowTitle, img.image);
+            int key = cv::waitKey(0);
+            
+            // Allow ESC to exit early
+            if (key == 27) // ESC key
+            {
+                std::cout << "Validation display interrupted by user" << std::endl;
+                break;
+            }
+        }
     }
     
     cv::destroyAllWindows();
+    
+    std::cout << "\nCalibration validation complete!" << std::endl;
 }
