@@ -26,96 +26,103 @@
 \DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <memory>}}
 \DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
 \DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}Camera.h"{}}}
-\DoxyCodeLine{00025\ }
-\DoxyCodeLine{00026\ \textcolor{comment}{//\ Forward\ declarations\ for\ remaining\ VTK\ classes}}
-\DoxyCodeLine{00027\ \textcolor{keyword}{class\ }vtkSphereSource;}
-\DoxyCodeLine{00028\ \textcolor{keyword}{class\ }vtkUnstructuredGrid;}
-\DoxyCodeLine{00029\ \textcolor{keyword}{class\ }vtkDataSetMapper;}
-\DoxyCodeLine{00030\ }
-\DoxyCodeLine{00035\ \textcolor{keyword}{class\ }ConfidenceEllipsoidPlot\ \{}
-\DoxyCodeLine{00036\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00037\ \ \ \ \ ConfidenceEllipsoidPlot()\ :\ isInitialized(\textcolor{keyword}{false})\ \{\}}
-\DoxyCodeLine{00038\ \ \ \ \ \string~ConfidenceEllipsoidPlot()\ =\ \textcolor{keywordflow}{default};}
-\DoxyCodeLine{00039\ \ \ \ \ }
-\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordtype}{void}\ updateEllipsoid(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ center,\ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ covariance,\ \textcolor{keywordtype}{double}\ sigma\ =\ 3.0);}
-\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keywordtype}{void}\ setColor(\textcolor{keywordtype}{double}\ r,\ \textcolor{keywordtype}{double}\ g,\ \textcolor{keywordtype}{double}\ b,\ \textcolor{keywordtype}{double}\ opacity\ =\ 0.7);}
-\DoxyCodeLine{00042\ \ \ \ \ vtkActor*\ getActor();}
-\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{bool}\ isValid()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ isInitialized;\ \}}
-\DoxyCodeLine{00044\ }
-\DoxyCodeLine{00045\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{void}\ initialize();}
-\DoxyCodeLine{00047\ \ \ \ \ }
-\DoxyCodeLine{00048\ \ \ \ \ vtkSmartPointer<vtkActor>\ actor;}
-\DoxyCodeLine{00049\ \ \ \ \ vtkSmartPointer<vtkPolyDataMapper>\ mapper;}
-\DoxyCodeLine{00050\ \ \ \ \ vtkSmartPointer<vtkQuadric>\ quadric;}
-\DoxyCodeLine{00051\ \ \ \ \ vtkSmartPointer<vtkSampleFunction>\ sample;}
-\DoxyCodeLine{00052\ \ \ \ \ vtkSmartPointer<vtkContourFilter>\ contour;}
-\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordtype}{bool}\ isInitialized;}
-\DoxyCodeLine{00054\ \};}
-\DoxyCodeLine{00055\ }
-\DoxyCodeLine{00060\ \textcolor{keyword}{class\ }CameraFrustumPlot\ \{}
-\DoxyCodeLine{00061\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{explicit}\ CameraFrustumPlot(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera)\ \{}
-\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ initializeFrustum(camera);}
-\DoxyCodeLine{00064\ \ \ \ \ \}}
-\DoxyCodeLine{00065\ \ \ \ \ \string~CameraFrustumPlot()\ =\ \textcolor{keywordflow}{default};}
-\DoxyCodeLine{00066\ \ \ \ \ }
-\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keywordtype}{void}\ updatePose(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ position,\ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ rotation);}
-\DoxyCodeLine{00068\ \ \ \ \ vtkActor*\ getActor()\ \{\ \textcolor{keywordflow}{return}\ actor;\ \}}
-\DoxyCodeLine{00069\ }
-\DoxyCodeLine{00070\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keywordtype}{void}\ initializeFrustum(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera);}
-\DoxyCodeLine{00072\ \ \ \ \ }
-\DoxyCodeLine{00073\ \ \ \ \ vtkSmartPointer<vtkActor>\ actor;}
-\DoxyCodeLine{00074\ \ \ \ \ vtkSmartPointer<vtkPolyDataMapper>\ mapper;}
-\DoxyCodeLine{00075\ \ \ \ \ vtkSmartPointer<vtkPolyData>\ polyData;}
-\DoxyCodeLine{00076\ \ \ \ \ vtkSmartPointer<vtkPoints>\ points;}
-\DoxyCodeLine{00077\ \ \ \ \ vtkSmartPointer<vtkCellArray>\ lines;}
-\DoxyCodeLine{00078\ \};}
-\DoxyCodeLine{00079\ }
-\DoxyCodeLine{00089\ \textcolor{keyword}{class\ }Plot\ \{}
-\DoxyCodeLine{00090\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{explicit}\ Plot(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera);}
-\DoxyCodeLine{00092\ \ \ \ \ \string~Plot()\ =\ \textcolor{keywordflow}{default};}
-\DoxyCodeLine{00093\ \ \ \ \ }
-\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a6418b3037cc8bca4340138a77a7b0f94}{updateImage}}(\textcolor{keyword}{const}\ cv::Mat\&\ image,\ }
-\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<cv::Point2f>\&\ features\ =\ \{\},}
-\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ featureStatus\ =\ \{\});}
-\DoxyCodeLine{00103\ \ \ \ \ }
-\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a64db03a04b8900e2e9112148b5963cb2}{updateScene}}(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ cameraPos\ =\ Eigen::Vector3d::Zero(),}
-\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ cameraRot\ =\ Eigen::Matrix3d::Identity(),}
-\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ cameraCov\ =\ 0.1\ *\ Eigen::Matrix3d::Identity(),}
-\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<Eigen::Vector3d>\&\ landmarkPositions\ =\ \{\},}
-\DoxyCodeLine{00117\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<Eigen::Matrix3d>\&\ landmarkCovariances\ =\ \{\},}
-\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ landmarkStatus\ =\ \{\});}
-\DoxyCodeLine{00119\ \ \ \ \ }
-\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a60d81e634274f29aeeb6f222a77f73c0}{render}}();}
-\DoxyCodeLine{00124\ \ \ \ \ }
-\DoxyCodeLine{00128\ \ \ \ \ cv::Mat\ \mbox{\hyperlink{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}{getFrame}}();}
-\DoxyCodeLine{00129\ \ \ \ \ }
-\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_ab4ff1d086a8e4d032346098b950648d0}{handleInteractivity}}(\textcolor{keywordtype}{int}\ interactive,\ \textcolor{keywordtype}{bool}\ isLastFrame\ =\ \textcolor{keyword}{false});}
-\DoxyCodeLine{00136\ }
-\DoxyCodeLine{00137\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordtype}{void}\ updateImageDisplay(\textcolor{keyword}{const}\ cv::Mat\&\ image);}
-\DoxyCodeLine{00139\ \ \ \ \ }
-\DoxyCodeLine{00140\ \ \ \ \ \textcolor{comment}{//\ Core\ camera\ reference}}
-\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera;}
-\DoxyCodeLine{00142\ \ \ \ \ }
-\DoxyCodeLine{00143\ \ \ \ \ \textcolor{comment}{//\ VTK\ rendering\ pipeline}}
-\DoxyCodeLine{00144\ \ \ \ \ vtkSmartPointer<vtkRenderWindow>\ renderWindow;}
-\DoxyCodeLine{00145\ \ \ \ \ vtkSmartPointer<vtkRenderer>\ leftRenderer;\ \ \ \textcolor{comment}{//\ Image\ view}}
-\DoxyCodeLine{00146\ \ \ \ \ vtkSmartPointer<vtkRenderer>\ rightRenderer;\ \ \textcolor{comment}{//\ 3D\ scene}}
-\DoxyCodeLine{00147\ \ \ \ \ vtkSmartPointer<vtkRenderWindowInteractor>\ interactor;}
-\DoxyCodeLine{00148\ \ \ \ \ }
-\DoxyCodeLine{00149\ \ \ \ \ \textcolor{comment}{//\ Image\ display}}
-\DoxyCodeLine{00150\ \ \ \ \ vtkSmartPointer<vtkImageActor>\ imageActor;}
-\DoxyCodeLine{00151\ \ \ \ \ }
-\DoxyCodeLine{00152\ \ \ \ \ \textcolor{comment}{//\ 3D\ scene\ components}}
-\DoxyCodeLine{00153\ \ \ \ \ \mbox{\hyperlink{classConfidenceEllipsoidPlot}{ConfidenceEllipsoidPlot}}\ cameraEllipsoid;}
-\DoxyCodeLine{00154\ \ \ \ \ std::unique\_ptr<CameraFrustumPlot>\ cameraFrustum;}
-\DoxyCodeLine{00155\ \ \ \ \ std::vector<ConfidenceEllipsoidPlot>\ landmarkEllipsoids;}
-\DoxyCodeLine{00156\ \};}
-\DoxyCodeLine{00157\ }
-\DoxyCodeLine{00158\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ PLOT\_H}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <vtkPolyDataMapper.h>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <vtkPolyData.h>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <vtkPoints.h>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <vtkCellArray.h>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <vtkQuadric.h>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <vtkSampleFunction.h>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <vtkContourFilter.h>}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Forward\ declarations\ for\ remaining\ VTK\ classes}}
+\DoxyCodeLine{00034\ \textcolor{keyword}{class\ }vtkSphereSource;}
+\DoxyCodeLine{00035\ \textcolor{keyword}{class\ }vtkUnstructuredGrid;}
+\DoxyCodeLine{00036\ \textcolor{keyword}{class\ }vtkDataSetMapper;}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00042\ \textcolor{keyword}{class\ }ConfidenceEllipsoidPlot\ \{}
+\DoxyCodeLine{00043\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00044\ \ \ \ \ ConfidenceEllipsoidPlot()\ :\ isInitialized(\textcolor{keyword}{false})\ \{\}}
+\DoxyCodeLine{00045\ \ \ \ \ \string~ConfidenceEllipsoidPlot()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00046\ \ \ \ \ }
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{void}\ updateEllipsoid(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ center,\ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ covariance,\ \textcolor{keywordtype}{double}\ sigma\ =\ 3.0);}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{void}\ setColor(\textcolor{keywordtype}{double}\ r,\ \textcolor{keywordtype}{double}\ g,\ \textcolor{keywordtype}{double}\ b,\ \textcolor{keywordtype}{double}\ opacity\ =\ 0.7);}
+\DoxyCodeLine{00049\ \ \ \ \ vtkActor*\ getActor();}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keywordtype}{bool}\ isValid()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ isInitialized;\ \}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordtype}{void}\ initialize();}
+\DoxyCodeLine{00054\ \ \ \ \ }
+\DoxyCodeLine{00055\ \ \ \ \ vtkSmartPointer<vtkActor>\ actor;}
+\DoxyCodeLine{00056\ \ \ \ \ vtkSmartPointer<vtkPolyDataMapper>\ mapper;}
+\DoxyCodeLine{00057\ \ \ \ \ vtkSmartPointer<vtkQuadric>\ quadric;}
+\DoxyCodeLine{00058\ \ \ \ \ vtkSmartPointer<vtkSampleFunction>\ sample;}
+\DoxyCodeLine{00059\ \ \ \ \ vtkSmartPointer<vtkContourFilter>\ contour;}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{bool}\ isInitialized;}
+\DoxyCodeLine{00061\ \};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00067\ \textcolor{keyword}{class\ }CameraFrustumPlot\ \{}
+\DoxyCodeLine{00068\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keyword}{explicit}\ CameraFrustumPlot(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera)\ \{}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ initializeFrustum(camera);}
+\DoxyCodeLine{00071\ \ \ \ \ \}}
+\DoxyCodeLine{00072\ \ \ \ \ \string~CameraFrustumPlot()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00073\ \ \ \ \ }
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordtype}{void}\ updatePose(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ position,\ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ rotation);}
+\DoxyCodeLine{00075\ \ \ \ \ vtkActor*\ getActor()\ \{\ \textcolor{keywordflow}{return}\ actor;\ \}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keywordtype}{void}\ initializeFrustum(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera);}
+\DoxyCodeLine{00079\ \ \ \ \ }
+\DoxyCodeLine{00080\ \ \ \ \ vtkSmartPointer<vtkActor>\ actor;}
+\DoxyCodeLine{00081\ \ \ \ \ vtkSmartPointer<vtkPolyDataMapper>\ mapper;}
+\DoxyCodeLine{00082\ \ \ \ \ vtkSmartPointer<vtkPolyData>\ polyData;}
+\DoxyCodeLine{00083\ \ \ \ \ vtkSmartPointer<vtkPoints>\ points;}
+\DoxyCodeLine{00084\ \ \ \ \ vtkSmartPointer<vtkCellArray>\ lines;}
+\DoxyCodeLine{00085\ \};}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00096\ \textcolor{keyword}{class\ }Plot\ \{}
+\DoxyCodeLine{00097\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{explicit}\ Plot(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera);}
+\DoxyCodeLine{00099\ \ \ \ \ \string~Plot()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00100\ \ \ \ \ }
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a6418b3037cc8bca4340138a77a7b0f94}{updateImage}}(\textcolor{keyword}{const}\ cv::Mat\&\ image,\ }
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<cv::Point2f>\&\ features\ =\ \{\},}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ featureStatus\ =\ \{\});}
+\DoxyCodeLine{00110\ \ \ \ \ }
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a64db03a04b8900e2e9112148b5963cb2}{updateScene}}(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ cameraPos\ =\ Eigen::Vector3d::Zero(),}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ cameraRot\ =\ Eigen::Matrix3d::Identity(),}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ cameraCov\ =\ 0.1\ *\ Eigen::Matrix3d::Identity(),}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<Eigen::Vector3d>\&\ landmarkPositions\ =\ \{\},}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<Eigen::Matrix3d>\&\ landmarkCovariances\ =\ \{\},}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ landmarkStatus\ =\ \{\});}
+\DoxyCodeLine{00126\ \ \ \ \ }
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_a60d81e634274f29aeeb6f222a77f73c0}{render}}();}
+\DoxyCodeLine{00131\ \ \ \ \ }
+\DoxyCodeLine{00135\ \ \ \ \ cv::Mat\ \mbox{\hyperlink{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}{getFrame}}();}
+\DoxyCodeLine{00136\ \ \ \ \ }
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classPlot_ab4ff1d086a8e4d032346098b950648d0}{handleInteractivity}}(\textcolor{keywordtype}{int}\ interactive,\ \textcolor{keywordtype}{bool}\ isLastFrame\ =\ \textcolor{keyword}{false});}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{void}\ updateImageDisplay(\textcolor{keyword}{const}\ cv::Mat\&\ image);}
+\DoxyCodeLine{00146\ \ \ \ \ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{comment}{//\ Core\ camera\ reference}}
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera;}
+\DoxyCodeLine{00149\ \ \ \ \ }
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{comment}{//\ VTK\ rendering\ pipeline}}
+\DoxyCodeLine{00151\ \ \ \ \ vtkSmartPointer<vtkRenderWindow>\ renderWindow;}
+\DoxyCodeLine{00152\ \ \ \ \ vtkSmartPointer<vtkRenderer>\ leftRenderer;\ \ \ \textcolor{comment}{//\ Image\ view}}
+\DoxyCodeLine{00153\ \ \ \ \ vtkSmartPointer<vtkRenderer>\ rightRenderer;\ \ \textcolor{comment}{//\ 3D\ scene}}
+\DoxyCodeLine{00154\ \ \ \ \ vtkSmartPointer<vtkRenderWindowInteractor>\ interactor;}
+\DoxyCodeLine{00155\ \ \ \ \ }
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{comment}{//\ Image\ display}}
+\DoxyCodeLine{00157\ \ \ \ \ vtkSmartPointer<vtkImageActor>\ imageActor;}
+\DoxyCodeLine{00158\ \ \ \ \ }
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{comment}{//\ 3D\ scene\ components}}
+\DoxyCodeLine{00160\ \ \ \ \ \mbox{\hyperlink{classConfidenceEllipsoidPlot}{ConfidenceEllipsoidPlot}}\ cameraEllipsoid;}
+\DoxyCodeLine{00161\ \ \ \ \ std::unique\_ptr<CameraFrustumPlot>\ cameraFrustum;}
+\DoxyCodeLine{00162\ \ \ \ \ std::vector<ConfidenceEllipsoidPlot>\ landmarkEllipsoids;}
+\DoxyCodeLine{00163\ \};}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ PLOT\_H}}
 
 \end{DoxyCode}

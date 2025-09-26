@@ -22,7 +22,23 @@
 #include <vtkWindowToImageFilter.h>
 #include <vtkPNGWriter.h>
 #include <vtkCamera.h>  // ADDED: Fix for vtkCamera incomplete type
+
 #include <iostream>
+#include <vtkCamera.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkLine.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkActor.h>
+#include <vtkProperty.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkImageActor.h>
+#include <vtkImageData.h>
+#include <vtkImageImport.h>
+#include <vtkWindowToImageFilter.h>
 
 // CRITICAL FIX: Add proper Eigen includes for eigenvalue decomposition
 #include <Eigen/Dense>           // For Matrix operations

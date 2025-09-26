@@ -22,6 +22,13 @@
 #include <memory>
 #include <Eigen/Core>
 #include "Camera.h"
+#include <vtkPolyDataMapper.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkQuadric.h>
+#include <vtkSampleFunction.h>
+#include <vtkContourFilter.h>
 
 // Forward declarations for remaining VTK classes
 class vtkSphereSource;
