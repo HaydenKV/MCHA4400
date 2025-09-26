@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['plot_0',['Plot',['../classPlot.html',1,'']]],
-  ['pose_1',['Pose',['../structPose.html',1,'']]],
-  ['pose_3c_20double_20_3e_2',['Pose&lt; double &gt;',['../structPose.html',1,'']]],
-  ['pose_3c_20float_20_3e_3',['Pose&lt; float &gt;',['../structPose.html',1,'']]]
+  ['camera_0',['Camera',['../structCamera.html',1,'']]],
+  ['chessboard_1',['Chessboard',['../structChessboard.html',1,'']]],
+  ['chessboarddata_2',['ChessboardData',['../structChessboardData.html',1,'']]],
+  ['chessboardimage_3',['ChessboardImage',['../structChessboardImage.html',1,'']]]
 ];

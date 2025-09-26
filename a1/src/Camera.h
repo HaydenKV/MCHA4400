@@ -60,7 +60,9 @@ struct Camera
     void calibrate(ChessboardData &);                       // Calibrate camera from chessboard data
     void printCalibration() const;
 
-    // ADDED: Load camera calibration from file
+
+
+    // ADDED: Load camera calibration from file ------------------------------------------------
     bool load(const std::filesystem::path& filepath) {
         try {
             cv::FileStorage fs(filepath.string(), cv::FileStorage::READ);
@@ -69,8 +71,8 @@ struct Camera
                 return false;
             }
             
-            // Use existing read method
-            read(fs.root());
+            // Use existing read method in serialisation.hpp
+            fs["camera"] >> *this;
             fs.release();
             
             // Validate that we got valid data
@@ -90,7 +92,7 @@ struct Camera
             return false;
         }
     }
-
+    // ADDED: Load camera calibration from file ------------------------------------------------
 
 
 

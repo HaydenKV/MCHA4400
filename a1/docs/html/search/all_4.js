@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['inverse_0',['inverse',['../structPose.html#a4d5526e64f5903219a573725cbba1591',1,'Pose']]]
+  ['imageplot_0',['ImagePlot',['../structImagePlot.html',1,'']]],
+  ['inverse_1',['inverse',['../structPose.html#a4d5526e64f5903219a573725cbba1591',1,'Pose']]]
 ];

@@ -1,4 +1,7 @@
 var searchData=
 [
-  ['getframe_0',['getFrame',['../classPlot.html#a2510cb2ee00b235c9628d7e2dabdc88f',1,'Plot']]]
+  ['camera_0',['Camera',['../structCamera.html',1,'']]],
+  ['chessboard_1',['Chessboard',['../structChessboard.html',1,'']]],
+  ['chessboarddata_2',['ChessboardData',['../structChessboardData.html',1,'']]],
+  ['chessboardimage_3',['ChessboardImage',['../structChessboardImage.html',1,'']]]
 ];

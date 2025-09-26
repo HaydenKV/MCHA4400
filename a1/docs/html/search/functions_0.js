@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['getframe_0',['getFrame',['../classPlot.html#a2510cb2ee00b235c9628d7e2dabdc88f',1,'Plot']]]
+  ['inverse_0',['inverse',['../structPose.html#a4d5526e64f5903219a573725cbba1591',1,'Pose']]]
 ];

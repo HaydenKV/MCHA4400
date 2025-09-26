@@ -64,7 +64,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
 
     // Initialisation
     SLAMProcessor slamProcessor(scenario, camera);
-    Plot plot(camera);
+    //Plot plot(camera);
     
     int frameCount = 0;
     std::cout << "Starting SLAM processing..." << std::endl;
@@ -94,18 +94,18 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
         auto landmarkStatus = slamProcessor.getLandmarkStatus();
 
         // Update plot
-        plot.updateImage(imgin, detectedFeatures, featureStatus);
-        plot.updateScene(cameraPos, cameraRot, cameraCov, landmarkPos, landmarkCov, landmarkStatus);
-        plot.render();
+        //plot.updateImage(imgin, detectedFeatures, featureStatus);
+        //plot.updateScene(cameraPos, cameraRot, cameraCov, landmarkPos, landmarkCov, landmarkStatus);
+        //plot.render();
 
         // Handle interactivity based on assignment specs
         bool isLastFrame = (frameCount >= nFrames);
         if (interactive == 2) {
             // Interactive on all frames
-            plot.handleInteractivity(interactive, false);
+            //plot.handleInteractivity(interactive, false);
         } else if (interactive == 1 && isLastFrame) {
             // Interactive only on last frame
-            plot.handleInteractivity(interactive, true);
+            //plot.handleInteractivity(interactive, true);
         }
 
         // Progress feedback
@@ -118,10 +118,10 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
         // Write output frame 
         if (doExport)
         {
-            cv::Mat imgout = plot.getFrame(); // Get the dual-pane visualization frame
-            if (!imgout.empty()) {
-                bufferedVideoWriter.write(imgout);
-            }
+            // cv::Mat imgout = plot.getFrame(); // Get the dual-pane visualization frame
+            // if (!imgout.empty()) {
+            //     bufferedVideoWriter.write(imgout);
+            // }
         }
     }
 

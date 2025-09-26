@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['updateimage_0',['updateImage',['../classPlot.html#a6418b3037cc8bca4340138a77a7b0f94',1,'Plot']]],
-  ['updatescene_1',['updateScene',['../classPlot.html#a64db03a04b8900e2e9112148b5963cb2',1,'Plot']]]
+  ['translationvector_0',['translationVector',['../structPose.html#a82049e6f7167af41a80c29631ae9a9d3',1,'Pose']]],
+  ['translationvectorcv_1',['translationVectorCV',['../structPose.html#a0d105e277a947dac223e74f6962b1f8b',1,'Pose']]]
 ];

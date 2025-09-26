@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['slamprocessor_0',['SLAMProcessor',['../classSLAMProcessor.html',1,'']]]
+  ['frustumplot_0',['FrustumPlot',['../structFrustumPlot.html',1,'']]]
 ];
