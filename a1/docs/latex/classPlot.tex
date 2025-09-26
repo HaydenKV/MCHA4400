@@ -22,7 +22,8 @@ void \mbox{\hyperlink{classPlot_a64db03a04b8900e2e9112148b5963cb2}{update\+Scene
 \Hypertarget{classPlot_a60d81e634274f29aeeb6f222a77f73c0}\label{classPlot_a60d81e634274f29aeeb6f222a77f73c0} 
 void {\bfseries render} ()
 \begin{DoxyCompactList}\small\item\em Render the visualization. \end{DoxyCompactList}\item 
-cv\+::\+Mat \mbox{\hyperlink{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}{get\+Frame}} ()
+\Hypertarget{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}\label{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f} 
+cv\+::\+Mat {\bfseries get\+Frame} ()
 \begin{DoxyCompactList}\small\item\em Get current visualization frame for video export. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classPlot_ab4ff1d086a8e4d032346098b950648d0}{handle\+Interactivity}} (int interactive, bool is\+Last\+Frame=false)
 \begin{DoxyCompactList}\small\item\em Handle interactive modes per assignment spec. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -33,26 +34,16 @@ Main SLAM visualization class implementing assignment requirements.
 
 Provides dual-\/pane visualization\+:
 \begin{DoxyItemize}
-\item Left pane\+: \doxylink{structCamera}{Camera} image with features and confidence ellipses
-\item Right pane\+: 3D scene with camera frustum and landmark ellipsoids 
+\item Left pane\+: \doxylink{structCamera}{Camera} image + detected features + confidence ellipses ~\newline
+
+\item Right pane\+: 3D world view + camera + landmarks + confidence ellipsoids
 \end{DoxyItemize}
+
+Based on Lab 8 VTK visualization foundations 
 
 \label{doc-func-members}
 \Hypertarget{classPlot_doc-func-members}
 \doxysubsection{Member Function Documentation}
-\Hypertarget{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}\index{Plot@{Plot}!getFrame@{getFrame}}
-\index{getFrame@{getFrame}!Plot@{Plot}}
-\doxysubsubsection{\texorpdfstring{getFrame()}{getFrame()}}
-{\footnotesize\ttfamily \label{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f} 
-cv\+::\+Mat Plot\+::get\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
-
-
-
-Get current visualization frame for video export. 
-
-\begin{DoxyReturn}{Returns}
-Dual-\/pane image (left\+: camera view, right\+: 3D scene) 
-\end{DoxyReturn}
 \Hypertarget{classPlot_ab4ff1d086a8e4d032346098b950648d0}\index{Plot@{Plot}!handleInteractivity@{handleInteractivity}}
 \index{handleInteractivity@{handleInteractivity}!Plot@{Plot}}
 \doxysubsubsection{\texorpdfstring{handleInteractivity()}{handleInteractivity()}}
@@ -65,10 +56,9 @@ Handle interactive modes per assignment spec.
 
 
 \begin{DoxyParams}{Parameters}
-{\em interactive} & 0=none, 1=last\+\_\+frame, 2=every\+\_\+frame ~\newline
- \\
+{\em interactive} & 0=none, 1=last frame, 2=all frames \\
 \hline
-{\em is\+Last\+Frame} & Whether this is the final video frame \\
+{\em is\+Last\+Frame} & Whether this is the last frame of video \\
 \hline
 \end{DoxyParams}
 \Hypertarget{classPlot_a6418b3037cc8bca4340138a77a7b0f94}\index{Plot@{Plot}!updateImage@{updateImage}}
@@ -83,11 +73,11 @@ Update the camera image with detected features.
 
 
 \begin{DoxyParams}{Parameters}
-{\em image} & Input camera frame \\
+{\em image} & \doxylink{structCamera}{Camera} frame \\
 \hline
-{\em features} & Detected feature points for overlay \\
+{\em features} & Detected feature locations \\
 \hline
-{\em feature\+Status} & Status of each feature (0=tracked, 1=visible\+\_\+undetected) \\
+{\em feature\+Status} & Status codes (0=tracked, 1=visible\+\_\+undetected) \\
 \hline
 \end{DoxyParams}
 \Hypertarget{classPlot_a64db03a04b8900e2e9112148b5963cb2}\index{Plot@{Plot}!updateScene@{updateScene}}
@@ -102,18 +92,17 @@ Update 3D scene with SLAM state.
 
 
 \begin{DoxyParams}{Parameters}
-{\em camera\+Pos} & \doxylink{structCamera}{Camera} position in world coordinates ~\newline
- \\
+{\em camera\+Pos} & \doxylink{structCamera}{Camera} position in world frame \\
 \hline
-{\em camera\+Rot} & \doxylink{structCamera}{Camera} rotation matrix \\
+{\em camera\+Rot} & \doxylink{structCamera}{Camera} orientation matrix \\
 \hline
-{\em camera\+Cov} & \doxylink{structCamera}{Camera} position covariance (3x3) \\
+{\em camera\+Cov} & \doxylink{structCamera}{Camera} position covariance \\
 \hline
 {\em landmark\+Positions} & 3D landmark positions \\
 \hline
 {\em landmark\+Covariances} & Landmark covariances \\
 \hline
-{\em landmark\+Status} & Status\+: 0=tracked, 1=visible\+\_\+undetected, 2=not\+\_\+visible \\
+{\em landmark\+Status} & Landmark status codes (0=tracked, 1=visible\+\_\+undetected, 2=not\+\_\+visible) \\
 \hline
 \end{DoxyParams}
 

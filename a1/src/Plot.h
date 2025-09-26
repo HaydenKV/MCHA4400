@@ -11,20 +11,22 @@
 #include <vtkImageImport.h>
 #include <vtkWindowToImageFilter.h>
 #include <vtkActor.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkQuadric.h>
+#include <vtkSampleFunction.h>
+#include <vtkContourFilter.h>
 #include <vector>
+#include <memory>
 #include <Eigen/Core>
 #include "Camera.h"
 
-// Forward declarations for VTK classes
-class vtkPolyDataMapper;
+// Forward declarations for remaining VTK classes
 class vtkSphereSource;
-class vtkQuadric;
-class vtkSampleFunction;
-class vtkContourFilter;
 class vtkUnstructuredGrid;
 class vtkDataSetMapper;
-class vtkPoints;
-class vtkCellArray;
 
 /**
  * @brief Renders 3D confidence ellipsoids for SLAM visualization
@@ -32,8 +34,8 @@ class vtkCellArray;
  */
 class ConfidenceEllipsoidPlot {
 public:
-    ConfidenceEllipsoidPlot();
-    ~ConfidenceEllipsoidPlot();
+    ConfidenceEllipsoidPlot() : isInitialized(false) {}
+    ~ConfidenceEllipsoidPlot() = default;
     
     void updateEllipsoid(const Eigen::Vector3d& center, const Eigen::Matrix3d& covariance, double sigma = 3.0);
     void setColor(double r, double g, double b, double opacity = 0.7);
@@ -57,40 +59,43 @@ private:
  */
 class CameraFrustumPlot {
 public:
-    explicit CameraFrustumPlot(const Camera& camera);
-    ~CameraFrustumPlot();
+    explicit CameraFrustumPlot(const Camera& camera) {
+        initializeFrustum(camera);
+    }
+    ~CameraFrustumPlot() = default;
     
     void updatePose(const Eigen::Vector3d& position, const Eigen::Matrix3d& rotation);
-    vtkActor* getActor();
+    vtkActor* getActor() { return actor; }
 
 private:
     void initializeFrustum(const Camera& camera);
     
     vtkSmartPointer<vtkActor> actor;
-    vtkSmartPointer<vtkDataSetMapper> mapper;
+    vtkSmartPointer<vtkPolyDataMapper> mapper;
+    vtkSmartPointer<vtkPolyData> polyData;
     vtkSmartPointer<vtkPoints> points;
-    vtkSmartPointer<vtkUnstructuredGrid> grid;
-    vtkSmartPointer<vtkCellArray> cells;
-    Camera camera;
+    vtkSmartPointer<vtkCellArray> lines;
 };
 
 /**
  * @brief Main SLAM visualization class implementing assignment requirements
  * 
  * Provides dual-pane visualization:
- * - Left pane: Camera image with features and confidence ellipses
- * - Right pane: 3D scene with camera frustum and landmark ellipsoids
+ * - Left pane: Camera image + detected features + confidence ellipses  
+ * - Right pane: 3D world view + camera + landmarks + confidence ellipsoids
+ * 
+ * Based on Lab 8 VTK visualization foundations
  */
 class Plot {
 public:
     explicit Plot(const Camera& camera);
-    ~Plot();
+    ~Plot() = default;
     
     /**
      * @brief Update the camera image with detected features
-     * @param image Input camera frame
-     * @param features Detected feature points for overlay
-     * @param featureStatus Status of each feature (0=tracked, 1=visible_undetected)
+     * @param image Camera frame
+     * @param features Detected feature locations
+     * @param featureStatus Status codes (0=tracked, 1=visible_undetected)
      */
     void updateImage(const cv::Mat& image, 
                     const std::vector<cv::Point2f>& features = {},
@@ -98,12 +103,12 @@ public:
     
     /**
      * @brief Update 3D scene with SLAM state
-     * @param cameraPos Camera position in world coordinates  
-     * @param cameraRot Camera rotation matrix
-     * @param cameraCov Camera position covariance (3x3)
+     * @param cameraPos Camera position in world frame
+     * @param cameraRot Camera orientation matrix
+     * @param cameraCov Camera position covariance
      * @param landmarkPositions 3D landmark positions
      * @param landmarkCovariances Landmark covariances
-     * @param landmarkStatus Status: 0=tracked, 1=visible_undetected, 2=not_visible
+     * @param landmarkStatus Landmark status codes (0=tracked, 1=visible_undetected, 2=not_visible)
      */
     void updateScene(const Eigen::Vector3d& cameraPos = Eigen::Vector3d::Zero(),
                     const Eigen::Matrix3d& cameraRot = Eigen::Matrix3d::Identity(),
@@ -119,49 +124,35 @@ public:
     
     /**
      * @brief Get current visualization frame for video export
-     * @return Dual-pane image (left: camera view, right: 3D scene)
      */
     cv::Mat getFrame();
     
     /**
      * @brief Handle interactive modes per assignment spec
-     * @param interactive 0=none, 1=last_frame, 2=every_frame  
-     * @param isLastFrame Whether this is the final video frame
+     * @param interactive 0=none, 1=last frame, 2=all frames
+     * @param isLastFrame Whether this is the last frame of video
      */
     void handleInteractivity(int interactive, bool isLastFrame = false);
 
 private:
-    void setupWindow();
-    void setupImagePane();
-    void setupScenePane();
-    void drawConfidenceEllipses(cv::Mat& image, const std::vector<cv::Point2f>& features, 
-                               const std::vector<int>& status);
-    void updateLandmarkEllipsoids(const std::vector<Eigen::Vector3d>& positions,
-                                 const std::vector<Eigen::Matrix3d>& covariances,
-                                 const std::vector<int>& status);
+    void updateImageDisplay(const cv::Mat& image);
     
-    Camera camera;
+    // Core camera reference
+    const Camera& camera;
     
-    // VTK rendering components
+    // VTK rendering pipeline
     vtkSmartPointer<vtkRenderWindow> renderWindow;
-    vtkSmartPointer<vtkRenderer> imageRenderer;      // Left pane
-    vtkSmartPointer<vtkRenderer> sceneRenderer;      // Right pane
+    vtkSmartPointer<vtkRenderer> leftRenderer;   // Image view
+    vtkSmartPointer<vtkRenderer> rightRenderer;  // 3D scene
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
     
     // Image display
     vtkSmartPointer<vtkImageActor> imageActor;
-    vtkSmartPointer<vtkImageImport> imageImporter;
     
-    // 3D scene elements
-    CameraFrustumPlot* cameraFrustum;
-    ConfidenceEllipsoidPlot* cameraEllipsoid;
-    std::vector<ConfidenceEllipsoidPlot*> landmarkEllipsoids;
-    
-    // Frame capture for video export
-    vtkSmartPointer<vtkWindowToImageFilter> windowFilter;
-    
-    // Current state
-    cv::Mat currentImageWithOverlays;
+    // 3D scene components
+    ConfidenceEllipsoidPlot cameraEllipsoid;
+    std::unique_ptr<CameraFrustumPlot> cameraFrustum;
+    std::vector<ConfidenceEllipsoidPlot> landmarkEllipsoids;
 };
 
 #endif // PLOT_H

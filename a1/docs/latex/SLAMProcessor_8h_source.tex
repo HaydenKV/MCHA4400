@@ -62,11 +62,10 @@
 \DoxyCodeLine{00068\ \ \ \ \ std::vector<Eigen::Matrix3d>\ landmarkCovariances;}
 \DoxyCodeLine{00069\ \ \ \ \ std::vector<int>\ landmarkStatus;\ \textcolor{comment}{//\ 0=tracked,\ 1=visible\_undetected,\ 2=not\_visible}}
 \DoxyCodeLine{00070\ \ \ \ \ }
-\DoxyCodeLine{00071\ \ \ \ \ \textcolor{comment}{//\ Detector\ instances\ (Lab\ foundations)}}
-\DoxyCodeLine{00072\ \ \ \ \ cv::Ptr<cv::aruco::Dictionary>\ arucoDict;}
-\DoxyCodeLine{00073\ \ \ \ \ cv::Ptr<cv::aruco::DetectorParameters>\ arucoParams;}
-\DoxyCodeLine{00074\ \};}
-\DoxyCodeLine{00075\ }
-\DoxyCodeLine{00076\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ SLAMPROCESSOR\_H}}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{comment}{//\ Detector\ instances\ (Lab\ foundations)\ -\/\ Fixed\ for\ OpenCV\ 4.7+\ API}}
+\DoxyCodeLine{00072\ \ \ \ \ cv::Ptr<cv::aruco::ArucoDetector>\ arucoDetector;\ \ \textcolor{comment}{//\ New\ ArUco\ detector\ API}}
+\DoxyCodeLine{00073\ \};}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ SLAMPROCESSOR\_H}}
 
 \end{DoxyCode}

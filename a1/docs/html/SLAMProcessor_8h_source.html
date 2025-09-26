@@ -173,15 +173,14 @@ $(function() {
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    std::vector&lt;Eigen::Matrix3d&gt; landmarkCovariances;</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    std::vector&lt;int&gt; landmarkStatus; <span class="comment">// 0=tracked, 1=visible_undetected, 2=not_visible</span></div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    </div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <span class="comment">// Detector instances (Lab foundations)</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    cv::Ptr&lt;cv::aruco::Dictionary&gt; arucoDict;</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>    cv::Ptr&lt;cv::aruco::DetectorParameters&gt; arucoParams;</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>};</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <span class="comment">// Detector instances (Lab foundations) - Fixed for OpenCV 4.7+ API</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    cv::Ptr&lt;cv::aruco::ArucoDetector&gt; arucoDetector;  <span class="comment">// New ArUco detector API</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>};</div>
 </div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span> </div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="preprocessor">#endif </span><span class="comment">// SLAMPROCESSOR_H</span></div>
-<div class="ttc" id="aclassSLAMProcessor_html_a07419f8de67d60bf49866921d6c8c55d"><div class="ttname"><a href="classSLAMProcessor.html#a07419f8de67d60bf49866921d6c8c55d">SLAMProcessor::processFrame</a></div><div class="ttdeci">void processFrame(const cv::Mat &amp;frame)</div><div class="ttdoc">Process a single video frame.</div><div class="ttdef"><b>Definition</b> SLAMProcessor.cpp:50</div></div>
-<div class="ttc" id="astructCamera_html"><div class="ttname"><a href="structCamera.html">Camera</a></div><div class="ttdef"><b>Definition</b> Camera.h:58</div></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#endif </span><span class="comment">// SLAMPROCESSOR_H</span></div>
+<div class="ttc" id="aclassSLAMProcessor_html_a07419f8de67d60bf49866921d6c8c55d"><div class="ttname"><a href="classSLAMProcessor.html#a07419f8de67d60bf49866921d6c8c55d">SLAMProcessor::processFrame</a></div><div class="ttdeci">void processFrame(const cv::Mat &amp;frame)</div><div class="ttdoc">Process a single video frame.</div><div class="ttdef"><b>Definition</b> SLAMProcessor.cpp:51</div></div>
+<div class="ttc" id="astructCamera_html"><div class="ttname"><a href="structCamera.html">Camera</a></div><div class="ttdef"><b>Definition</b> Camera.h:59</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->

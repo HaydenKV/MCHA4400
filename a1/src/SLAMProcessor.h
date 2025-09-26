@@ -68,9 +68,8 @@ private:
     std::vector<Eigen::Matrix3d> landmarkCovariances;
     std::vector<int> landmarkStatus; // 0=tracked, 1=visible_undetected, 2=not_visible
     
-    // Detector instances (Lab foundations)
-    cv::Ptr<cv::aruco::Dictionary> arucoDict;
-    cv::Ptr<cv::aruco::DetectorParameters> arucoParams;
+    // Detector instances (Lab foundations) - Fixed for OpenCV 4.7+ API
+    cv::Ptr<cv::aruco::ArucoDetector> arucoDetector;  // New ArUco detector API
 };
 
 #endif // SLAMPROCESSOR_H

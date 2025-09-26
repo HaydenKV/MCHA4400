@@ -129,38 +129,21 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a60d81e634274f29aeeb6f222a77f73c0" id="r_a60d81e634274f29aeeb6f222a77f73c0"><td class="memItemLeft" align="right" valign="top"><a id="a60d81e634274f29aeeb6f222a77f73c0" name="a60d81e634274f29aeeb6f222a77f73c0"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>render</b> ()</td></tr>
 <tr class="memdesc:a60d81e634274f29aeeb6f222a77f73c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Render the visualization. <br /></td></tr>
-<tr class="memitem:a2510cb2ee00b235c9628d7e2dabdc88f" id="r_a2510cb2ee00b235c9628d7e2dabdc88f"><td class="memItemLeft" align="right" valign="top">cv::Mat&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2510cb2ee00b235c9628d7e2dabdc88f">getFrame</a> ()</td></tr>
-<tr class="memdesc:a2510cb2ee00b235c9628d7e2dabdc88f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get current visualization frame for video export.  <br /></td></tr>
+<tr class="memitem:a2510cb2ee00b235c9628d7e2dabdc88f" id="r_a2510cb2ee00b235c9628d7e2dabdc88f"><td class="memItemLeft" align="right" valign="top"><a id="a2510cb2ee00b235c9628d7e2dabdc88f" name="a2510cb2ee00b235c9628d7e2dabdc88f"></a>
+cv::Mat&#160;</td><td class="memItemRight" valign="bottom"><b>getFrame</b> ()</td></tr>
+<tr class="memdesc:a2510cb2ee00b235c9628d7e2dabdc88f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get current visualization frame for video export. <br /></td></tr>
 <tr class="memitem:ab4ff1d086a8e4d032346098b950648d0" id="r_ab4ff1d086a8e4d032346098b950648d0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab4ff1d086a8e4d032346098b950648d0">handleInteractivity</a> (int interactive, bool isLastFrame=false)</td></tr>
 <tr class="memdesc:ab4ff1d086a8e4d032346098b950648d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle interactive modes per assignment spec.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Main SLAM visualization class implementing assignment requirements. </p>
 <p>Provides dual-pane visualization:</p><ul>
-<li>Left pane: <a class="el" href="structCamera.html">Camera</a> image with features and confidence ellipses</li>
-<li>Right pane: 3D scene with camera frustum and landmark ellipsoids </li>
+<li>Left pane: <a class="el" href="structCamera.html">Camera</a> image + detected features + confidence ellipses <br  />
+</li>
+<li>Right pane: 3D world view + camera + landmarks + confidence ellipsoids</li>
 </ul>
+<p>Based on Lab 8 VTK visualization foundations </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="a2510cb2ee00b235c9628d7e2dabdc88f" name="a2510cb2ee00b235c9628d7e2dabdc88f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2510cb2ee00b235c9628d7e2dabdc88f">&#9670;&#160;</a></span>getFrame()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">cv::Mat Plot::getFrame </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get current visualization frame for video export. </p>
-<dl class="section return"><dt>Returns</dt><dd>Dual-pane image (left: camera view, right: 3D scene) </dd></dl>
-
-</div>
-</div>
 <a id="ab4ff1d086a8e4d032346098b950648d0" name="ab4ff1d086a8e4d032346098b950648d0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab4ff1d086a8e4d032346098b950648d0">&#9670;&#160;</a></span>handleInteractivity()</h2>
 
@@ -183,9 +166,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>render</b> ()</td></t
 <p>Handle interactive modes per assignment spec. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">interactive</td><td>0=none, 1=last_frame, 2=every_frame <br  />
- </td></tr>
-    <tr><td class="paramname">isLastFrame</td><td>Whether this is the final video frame </td></tr>
+    <tr><td class="paramname">interactive</td><td>0=none, 1=last frame, 2=all frames </td></tr>
+    <tr><td class="paramname">isLastFrame</td><td>Whether this is the last frame of video </td></tr>
   </table>
   </dd>
 </dl>
@@ -219,9 +201,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>render</b> ()</td></t
 <p>Update the camera image with detected features. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">image</td><td>Input camera frame </td></tr>
-    <tr><td class="paramname">features</td><td>Detected feature points for overlay </td></tr>
-    <tr><td class="paramname">featureStatus</td><td>Status of each feature (0=tracked, 1=visible_undetected) </td></tr>
+    <tr><td class="paramname">image</td><td><a class="el" href="structCamera.html">Camera</a> frame </td></tr>
+    <tr><td class="paramname">features</td><td>Detected feature locations </td></tr>
+    <tr><td class="paramname">featureStatus</td><td>Status codes (0=tracked, 1=visible_undetected) </td></tr>
   </table>
   </dd>
 </dl>
@@ -270,13 +252,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>render</b> ()</td></t
 <p>Update 3D scene with SLAM state. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cameraPos</td><td><a class="el" href="structCamera.html">Camera</a> position in world coordinates <br  />
- </td></tr>
-    <tr><td class="paramname">cameraRot</td><td><a class="el" href="structCamera.html">Camera</a> rotation matrix </td></tr>
-    <tr><td class="paramname">cameraCov</td><td><a class="el" href="structCamera.html">Camera</a> position covariance (3x3) </td></tr>
+    <tr><td class="paramname">cameraPos</td><td><a class="el" href="structCamera.html">Camera</a> position in world frame </td></tr>
+    <tr><td class="paramname">cameraRot</td><td><a class="el" href="structCamera.html">Camera</a> orientation matrix </td></tr>
+    <tr><td class="paramname">cameraCov</td><td><a class="el" href="structCamera.html">Camera</a> position covariance </td></tr>
     <tr><td class="paramname">landmarkPositions</td><td>3D landmark positions </td></tr>
     <tr><td class="paramname">landmarkCovariances</td><td>Landmark covariances </td></tr>
-    <tr><td class="paramname">landmarkStatus</td><td>Status: 0=tracked, 1=visible_undetected, 2=not_visible </td></tr>
+    <tr><td class="paramname">landmarkStatus</td><td>Landmark status codes (0=tracked, 1=visible_undetected, 2=not_visible) </td></tr>
   </table>
   </dd>
 </dl>
