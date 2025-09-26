@@ -1,0 +1,124 @@
+\doxysection{Plot Class Reference}
+\hypertarget{classPlot}{}\label{classPlot}\index{Plot@{Plot}}
+
+
+Main SLAM visualization class implementing assignment requirements.  
+
+
+
+
+{\ttfamily \#include $<$Plot.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classPlot_a50c85ef8e2b84327fcf7ed9e0be49e8f}\label{classPlot_a50c85ef8e2b84327fcf7ed9e0be49e8f} 
+{\bfseries Plot} (const \mbox{\hyperlink{structCamera}{Camera}} \&camera)
+\item 
+void \mbox{\hyperlink{classPlot_a6418b3037cc8bca4340138a77a7b0f94}{update\+Image}} (const cv\+::\+Mat \&image, const std\+::vector$<$ cv\+::\+Point2f $>$ \&features=\{\}, const std\+::vector$<$ int $>$ \&feature\+Status=\{\})
+\begin{DoxyCompactList}\small\item\em Update the camera image with detected features. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classPlot_a64db03a04b8900e2e9112148b5963cb2}{update\+Scene}} (const Eigen\+::\+Vector3d \&camera\+Pos=Eigen\+::\+Vector3d\+::\+Zero(), const Eigen\+::\+Matrix3d \&camera\+Rot=Eigen\+::\+Matrix3d\+::\+Identity(), const Eigen\+::\+Matrix3d \&camera\+Cov=0.\+1 \texorpdfstring{$\ast$}{*}Eigen\+::\+Matrix3d\+::\+Identity(), const std\+::vector$<$ Eigen\+::\+Vector3d $>$ \&landmark\+Positions=\{\}, const std\+::vector$<$ Eigen\+::\+Matrix3d $>$ \&landmark\+Covariances=\{\}, const std\+::vector$<$ int $>$ \&landmark\+Status=\{\})
+\begin{DoxyCompactList}\small\item\em Update 3D scene with SLAM state. \end{DoxyCompactList}\item 
+\Hypertarget{classPlot_a60d81e634274f29aeeb6f222a77f73c0}\label{classPlot_a60d81e634274f29aeeb6f222a77f73c0} 
+void {\bfseries render} ()
+\begin{DoxyCompactList}\small\item\em Render the visualization. \end{DoxyCompactList}\item 
+cv\+::\+Mat \mbox{\hyperlink{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}{get\+Frame}} ()
+\begin{DoxyCompactList}\small\item\em Get current visualization frame for video export. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classPlot_ab4ff1d086a8e4d032346098b950648d0}{handle\+Interactivity}} (int interactive, bool is\+Last\+Frame=false)
+\begin{DoxyCompactList}\small\item\em Handle interactive modes per assignment spec. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Main SLAM visualization class implementing assignment requirements. 
+
+Provides dual-\/pane visualization\+:
+\begin{DoxyItemize}
+\item Left pane\+: \doxylink{structCamera}{Camera} image with features and confidence ellipses
+\item Right pane\+: 3D scene with camera frustum and landmark ellipsoids 
+\end{DoxyItemize}
+
+\label{doc-func-members}
+\Hypertarget{classPlot_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f}\index{Plot@{Plot}!getFrame@{getFrame}}
+\index{getFrame@{getFrame}!Plot@{Plot}}
+\doxysubsubsection{\texorpdfstring{getFrame()}{getFrame()}}
+{\footnotesize\ttfamily \label{classPlot_a2510cb2ee00b235c9628d7e2dabdc88f} 
+cv\+::\+Mat Plot\+::get\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Get current visualization frame for video export. 
+
+\begin{DoxyReturn}{Returns}
+Dual-\/pane image (left\+: camera view, right\+: 3D scene) 
+\end{DoxyReturn}
+\Hypertarget{classPlot_ab4ff1d086a8e4d032346098b950648d0}\index{Plot@{Plot}!handleInteractivity@{handleInteractivity}}
+\index{handleInteractivity@{handleInteractivity}!Plot@{Plot}}
+\doxysubsubsection{\texorpdfstring{handleInteractivity()}{handleInteractivity()}}
+{\footnotesize\ttfamily \label{classPlot_ab4ff1d086a8e4d032346098b950648d0} 
+void Plot\+::handle\+Interactivity (\begin{DoxyParamCaption}\item[{int}]{interactive}{, }\item[{bool}]{is\+Last\+Frame}{ = {\ttfamily false}}\end{DoxyParamCaption})}
+
+
+
+Handle interactive modes per assignment spec. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em interactive} & 0=none, 1=last\+\_\+frame, 2=every\+\_\+frame ~\newline
+ \\
+\hline
+{\em is\+Last\+Frame} & Whether this is the final video frame \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classPlot_a6418b3037cc8bca4340138a77a7b0f94}\index{Plot@{Plot}!updateImage@{updateImage}}
+\index{updateImage@{updateImage}!Plot@{Plot}}
+\doxysubsubsection{\texorpdfstring{updateImage()}{updateImage()}}
+{\footnotesize\ttfamily \label{classPlot_a6418b3037cc8bca4340138a77a7b0f94} 
+void Plot\+::update\+Image (\begin{DoxyParamCaption}\item[{const cv\+::\+Mat \&}]{image}{, }\item[{const std\+::vector$<$ cv\+::\+Point2f $>$ \&}]{features}{ = {\ttfamily \{\}}, }\item[{const std\+::vector$<$ int $>$ \&}]{feature\+Status}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Update the camera image with detected features. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em image} & Input camera frame \\
+\hline
+{\em features} & Detected feature points for overlay \\
+\hline
+{\em feature\+Status} & Status of each feature (0=tracked, 1=visible\+\_\+undetected) \\
+\hline
+\end{DoxyParams}
+\Hypertarget{classPlot_a64db03a04b8900e2e9112148b5963cb2}\index{Plot@{Plot}!updateScene@{updateScene}}
+\index{updateScene@{updateScene}!Plot@{Plot}}
+\doxysubsubsection{\texorpdfstring{updateScene()}{updateScene()}}
+{\footnotesize\ttfamily \label{classPlot_a64db03a04b8900e2e9112148b5963cb2} 
+void Plot\+::update\+Scene (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{camera\+Pos}{ = {\ttfamily Eigen\+:\+:Vector3d\+:\+:Zero()}, }\item[{const Eigen\+::\+Matrix3d \&}]{camera\+Rot}{ = {\ttfamily Eigen\+:\+:Matrix3d\+:\+:Identity()}, }\item[{const Eigen\+::\+Matrix3d \&}]{camera\+Cov}{ = {\ttfamily 0.1~\texorpdfstring{$\ast$}{*}~Eigen\+:\+:Matrix3d\+:\+:Identity()}, }\item[{const std\+::vector$<$ Eigen\+::\+Vector3d $>$ \&}]{landmark\+Positions}{ = {\ttfamily \{\}}, }\item[{const std\+::vector$<$ Eigen\+::\+Matrix3d $>$ \&}]{landmark\+Covariances}{ = {\ttfamily \{\}}, }\item[{const std\+::vector$<$ int $>$ \&}]{landmark\+Status}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Update 3D scene with SLAM state. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em camera\+Pos} & \doxylink{structCamera}{Camera} position in world coordinates ~\newline
+ \\
+\hline
+{\em camera\+Rot} & \doxylink{structCamera}{Camera} rotation matrix \\
+\hline
+{\em camera\+Cov} & \doxylink{structCamera}{Camera} position covariance (3x3) \\
+\hline
+{\em landmark\+Positions} & 3D landmark positions \\
+\hline
+{\em landmark\+Covariances} & Landmark covariances \\
+\hline
+{\em landmark\+Status} & Status\+: 0=tracked, 1=visible\+\_\+undetected, 2=not\+\_\+visible \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/Plot.\+h\item 
+src/Plot.\+cpp\end{DoxyCompactItemize}

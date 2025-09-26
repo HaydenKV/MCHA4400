@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>a1: Class List</title>
+<title>a1: Member List</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript">var page_layout=1;</script>
 <script type="text/javascript" src="jquery.js"></script>
@@ -76,7 +76,7 @@ $(function() { codefold.init(); });
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('annotated.html','',''); });
+$(function(){initNavTree('classPlot.html','',''); });
 </script>
 <script type="text/javascript" src="menudata.js"></script>
 <script type="text/javascript" src="menu.js"></script>
@@ -109,25 +109,20 @@ $(function() {
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">Class List</div></div>
+  <div class="headertitle"><div class="title">Plot Member List</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock">Here are the classes, structs, unions and interfaces with brief descriptions:</div><div class="directory">
+
+<p>This is the complete list of members for <a class="el" href="classPlot.html">Plot</a>, including all inherited members.</p>
 <table class="directory">
-<tr id="row_0_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classBufferedVideoReader.html" target="_self">BufferedVideoReader</a></td><td class="desc"></td></tr>
-<tr id="row_1_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classBufferedVideoWriter.html" target="_self">BufferedVideoWriter</a></td><td class="desc"></td></tr>
-<tr id="row_2_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structCamera.html" target="_self">Camera</a></td><td class="desc"></td></tr>
-<tr id="row_3_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classCameraFrustumPlot.html" target="_self">CameraFrustumPlot</a></td><td class="desc">Renders camera frustum for 3D visualization Based on Lab 8 frustum implementation </td></tr>
-<tr id="row_4_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboard.html" target="_self">Chessboard</a></td><td class="desc"></td></tr>
-<tr id="row_5_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboardData.html" target="_self">ChessboardData</a></td><td class="desc"></td></tr>
-<tr id="row_6_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboardImage.html" target="_self">ChessboardImage</a></td><td class="desc"></td></tr>
-<tr id="row_7_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classConfidenceEllipsoidPlot.html" target="_self">ConfidenceEllipsoidPlot</a></td><td class="desc">Renders 3D confidence ellipsoids for SLAM visualization Based on Lab 8 quadric surface implementation </td></tr>
-<tr id="row_8_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classPlot.html" target="_self">Plot</a></td><td class="desc">Main SLAM visualization class implementing assignment requirements </td></tr>
-<tr id="row_9_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structPose.html" target="_self">Pose</a></td><td class="desc">Helper class for working with elements of \(\mathsf{SE}(3)\) </td></tr>
-<tr id="row_10_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classSLAMProcessor.html" target="_self">SLAMProcessor</a></td><td class="desc">SLAM processor for all three assignment scenarios </td></tr>
-</table>
-</div><!-- directory -->
-</div><!-- contents -->
+  <tr class="even"><td class="entry"><a class="el" href="classPlot.html#a2510cb2ee00b235c9628d7e2dabdc88f">getFrame</a>()</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classPlot.html#ab4ff1d086a8e4d032346098b950648d0">handleInteractivity</a>(int interactive, bool isLastFrame=false)</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+  <tr bgcolor="#f0f0f0" class="even"><td class="entry"><b>Plot</b>(const Camera &amp;camera) (defined in <a class="el" href="classPlot.html">Plot</a>)</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"><span class="mlabel">explicit</span></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classPlot.html#a60d81e634274f29aeeb6f222a77f73c0">render</a>()</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classPlot.html#a6418b3037cc8bca4340138a77a7b0f94">updateImage</a>(const cv::Mat &amp;image, const std::vector&lt; cv::Point2f &gt; &amp;features={}, const std::vector&lt; int &gt; &amp;featureStatus={})</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+  <tr class="odd"><td class="entry"><a class="el" href="classPlot.html#a64db03a04b8900e2e9112148b5963cb2">updateScene</a>(const Eigen::Vector3d &amp;cameraPos=Eigen::Vector3d::Zero(), const Eigen::Matrix3d &amp;cameraRot=Eigen::Matrix3d::Identity(), const Eigen::Matrix3d &amp;cameraCov=0.1 *Eigen::Matrix3d::Identity(), const std::vector&lt; Eigen::Vector3d &gt; &amp;landmarkPositions={}, const std::vector&lt; Eigen::Matrix3d &gt; &amp;landmarkCovariances={}, const std::vector&lt; int &gt; &amp;landmarkStatus={})</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+  <tr bgcolor="#f0f0f0" class="even"><td class="entry"><b>~Plot</b>() (defined in <a class="el" href="classPlot.html">Plot</a>)</td><td class="entry"><a class="el" href="classPlot.html">Plot</a></td><td class="entry"></td></tr>
+</table></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->
 <!-- start footer part -->

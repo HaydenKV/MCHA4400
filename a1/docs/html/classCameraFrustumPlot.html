@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.14.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>a1: Class List</title>
+<title>a1: CameraFrustumPlot Class Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript">var page_layout=1;</script>
 <script type="text/javascript" src="jquery.js"></script>
@@ -76,7 +76,7 @@ $(function() { codefold.init(); });
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('annotated.html','',''); });
+$(function(){initNavTree('classCameraFrustumPlot.html','','classCameraFrustumPlot-members'); });
 </script>
 <script type="text/javascript" src="menudata.js"></script>
 <script type="text/javascript" src="menu.js"></script>
@@ -109,30 +109,44 @@ $(function() {
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">Class List</div></div>
+  <div class="headertitle"><div class="title">CameraFrustumPlot Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock">Here are the classes, structs, unions and interfaces with brief descriptions:</div><div class="directory">
-<table class="directory">
-<tr id="row_0_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classBufferedVideoReader.html" target="_self">BufferedVideoReader</a></td><td class="desc"></td></tr>
-<tr id="row_1_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classBufferedVideoWriter.html" target="_self">BufferedVideoWriter</a></td><td class="desc"></td></tr>
-<tr id="row_2_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structCamera.html" target="_self">Camera</a></td><td class="desc"></td></tr>
-<tr id="row_3_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classCameraFrustumPlot.html" target="_self">CameraFrustumPlot</a></td><td class="desc">Renders camera frustum for 3D visualization Based on Lab 8 frustum implementation </td></tr>
-<tr id="row_4_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboard.html" target="_self">Chessboard</a></td><td class="desc"></td></tr>
-<tr id="row_5_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboardData.html" target="_self">ChessboardData</a></td><td class="desc"></td></tr>
-<tr id="row_6_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structChessboardImage.html" target="_self">ChessboardImage</a></td><td class="desc"></td></tr>
-<tr id="row_7_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classConfidenceEllipsoidPlot.html" target="_self">ConfidenceEllipsoidPlot</a></td><td class="desc">Renders 3D confidence ellipsoids for SLAM visualization Based on Lab 8 quadric surface implementation </td></tr>
-<tr id="row_8_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classPlot.html" target="_self">Plot</a></td><td class="desc">Main SLAM visualization class implementing assignment requirements </td></tr>
-<tr id="row_9_" class="odd"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="structPose.html" target="_self">Pose</a></td><td class="desc">Helper class for working with elements of \(\mathsf{SE}(3)\) </td></tr>
-<tr id="row_10_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classSLAMProcessor.html" target="_self">SLAMProcessor</a></td><td class="desc">SLAM processor for all three assignment scenarios </td></tr>
+
+<p>Renders camera frustum for 3D visualization Based on Lab 8 frustum implementation.  
+ <a href="#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="Plot_8h_source.html">Plot.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a843c0f9586ef3e43775fc0b9c2fe1597" id="r_a843c0f9586ef3e43775fc0b9c2fe1597"><td class="memItemLeft" align="right" valign="top"><a id="a843c0f9586ef3e43775fc0b9c2fe1597" name="a843c0f9586ef3e43775fc0b9c2fe1597"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>CameraFrustumPlot</b> (const <a class="el" href="structCamera.html">Camera</a> &amp;camera)</td></tr>
+<tr class="memitem:a77cf7f947c59d48af767e6014a65b56a" id="r_a77cf7f947c59d48af767e6014a65b56a"><td class="memItemLeft" align="right" valign="top"><a id="a77cf7f947c59d48af767e6014a65b56a" name="a77cf7f947c59d48af767e6014a65b56a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>updatePose</b> (const Eigen::Vector3d &amp;position, const Eigen::Matrix3d &amp;rotation)</td></tr>
+<tr class="memitem:ae0afb3967fc065f13996547facf5bad2" id="r_ae0afb3967fc065f13996547facf5bad2"><td class="memItemLeft" align="right" valign="top"><a id="ae0afb3967fc065f13996547facf5bad2" name="ae0afb3967fc065f13996547facf5bad2"></a>
+vtkActor *&#160;</td><td class="memItemRight" valign="bottom"><b>getActor</b> ()</td></tr>
 </table>
-</div><!-- directory -->
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Renders camera frustum for 3D visualization Based on Lab 8 frustum implementation. </p>
+</div><hr/>The documentation for this class was generated from the following files:<ul>
+<li>src/<a class="el" href="Plot_8h_source.html">Plot.h</a></li>
+<li>src/<b>Plot.cpp</b></li>
+</ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
+<div id="page-nav" class="page-nav-panel">
+<div id="page-nav-resize-handle"></div>
+<div id="page-nav-tree">
+<div id="page-nav-contents">
+</div><!-- page-nav-contents -->
+</div><!-- page-nav-tree -->
+</div><!-- page-nav -->
 </div><!-- container -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
+    <li class="navelem"><a href="classCameraFrustumPlot.html">CameraFrustumPlot</a></li>
     <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.14.0 </li>
   </ul>
 </div>
