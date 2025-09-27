@@ -2,7 +2,6 @@
 #define PLOT_H
 
 #include <string>
-#include <vector>
 #include <Eigen/Core>
 #include <opencv2/core.hpp>
 
@@ -24,7 +23,6 @@
 #include <vtkQuadric.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
 #include <vtkSampleFunction.h>
 #include <vtkSmartPointer.h>
 #include <vtkTransform.h>
@@ -32,18 +30,20 @@
 #include <vtkUnstructuredGrid.h>
 
 #include "Camera.h"
+#include "GaussianInfo.hpp"
+#include "SystemSLAM.h"
+#include "MeasurementSLAM.h"
+
 
 // -------------------------------------------------------
-// Bounds (from Lab 8)
+// Bounds
 // -------------------------------------------------------
 struct Bounds
 {
     Bounds();
     void getVTKBounds(double * bounds) const;
     void setExtremity(Bounds & extremity) const;
-    void calculateMaxMinSigmaPoints(const Eigen::Matrix3d & covariance, 
-                                   const Eigen::Vector3d & center, 
-                                   const double sigma);
+    void calculateMaxMinSigmaPoints(const GaussianInfo<double> & positionDensity, const double sigma);
 
     double xmin, xmax;
     double ymin, ymax;
@@ -51,56 +51,62 @@ struct Bounds
 };
 
 // -------------------------------------------------------
-// QuadricPlot (from Lab 8, adapted for assignment)
+// QuadricPlot
 // -------------------------------------------------------
 struct QuadricPlot
 {
     QuadricPlot();
-    void update(const Eigen::Vector3d & center, const Eigen::Matrix3d & covariance, double sigma = 3.0);
+    void update(const GaussianInfo<double> & positionDensity);
     vtkActor * getActor() const;
-    void setColor(double r, double g, double b, double opacity = 0.7);
-    
     Bounds bounds;
-    vtkSmartPointer<vtkActor> actor;
-    vtkSmartPointer<vtkPolyDataMapper> mapper;
-    vtkSmartPointer<vtkContourFilter> contour;
-    vtkSmartPointer<vtkSampleFunction> sample;
-    vtkSmartPointer<vtkQuadric> quadric;
-};
-
-// -------------------------------------------------------
-// FrustumPlot (from Lab 8)
-// -------------------------------------------------------
-struct FrustumPlot
-{
-    explicit FrustumPlot(const Camera & camera);
-    void update(const Eigen::Vector3d & position, const Eigen::Matrix3d & rotation);
-    vtkActor * getActor() const;
-
-    vtkSmartPointer<vtkActor> actor;
-    vtkSmartPointer<vtkPolyDataMapper> mapper;
-    vtkSmartPointer<vtkPolyData> polyData;
-    vtkSmartPointer<vtkPoints> points;
-    vtkSmartPointer<vtkCellArray> lines;
-};
-
-// -------------------------------------------------------
-// AxisPlot (from Lab 8)
-// -------------------------------------------------------
-struct AxisPlot
-{
-    AxisPlot();
-    void init(vtkCamera * camera);
-    void update(const Eigen::Vector3d & rCNn, const Eigen::Vector3d & Thetanc);
-    vtkProp3D * getActor() const;
-
-    vtkSmartPointer<vtkAxesActor> axesActor;
-    vtkSmartPointer<vtkTransform> transform;
+    vtkSmartPointer<vtkActor>            contourActor;
+    vtkSmartPointer<vtkContourFilter>    contours;
+    vtkSmartPointer<vtkPolyDataMapper>   contourMapper;
+    vtkSmartPointer<vtkQuadric>          quadric;
+    vtkSmartPointer<vtkSampleFunction>   sample;
+    const double value;
     bool isInit;
 };
 
 // -------------------------------------------------------
-// BasisPlot (from Lab 8)
+// FrustumPlot
+// -------------------------------------------------------
+struct FrustumPlot
+{
+    explicit FrustumPlot(const Camera & camera);
+    void update(const Eigen::Vector3d & rCNn, const Eigen::Vector3d & Thetanc);
+    vtkActor * getActor() const;
+
+    vtkSmartPointer<vtkActor> pyramidActor;
+    vtkSmartPointer<vtkCellArray> cells;
+    vtkSmartPointer<vtkDataSetMapper> mapper;
+    vtkSmartPointer<vtkPoints> pyramidPts;
+    vtkSmartPointer<vtkPyramid> pyramid;
+    vtkSmartPointer<vtkUnstructuredGrid> ug;
+    Eigen::MatrixXd rPCc;
+    Eigen::MatrixXd rPNn;
+    bool isInit;
+};
+
+// -------------------------------------------------------
+// AxisPlot
+// -------------------------------------------------------
+struct AxisPlot
+{
+    AxisPlot();
+    void init(vtkCamera *cam);
+    void update(const Bounds & bounds);
+    vtkActor * getActor() const;
+
+    vtkColor3d axis1Color;
+    vtkColor3d axis2Color;
+    vtkColor3d axis3Color;
+    vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor;
+    bool isInit;
+};
+
+// -------------------------------------------------------
+// BasisPlot
 // -------------------------------------------------------
 struct BasisPlot
 {
@@ -108,13 +114,13 @@ struct BasisPlot
     void update(const Eigen::Vector3d & rCNn, const Eigen::Vector3d & Thetanc);
     vtkProp3D * getActor() const;
 
-    vtkSmartPointer<vtkAxesActor> axesActor;
-    vtkSmartPointer<vtkTransform> transform;
-    bool isInit;
+    vtkSmartPointer<vtkAxesActor>       axesActor;
+    vtkSmartPointer<vtkTransform>       transform;
+    bool                                isInit;
 };
 
 // -------------------------------------------------------
-// ImagePlot (from Lab 8, adapted)
+// ImagePlot
 // -------------------------------------------------------
 struct ImagePlot
 {
@@ -132,41 +138,27 @@ struct ImagePlot
 };
 
 // -------------------------------------------------------
-// Plot (adapted from Lab 8 for Assignment 1)
+// Plot
 // -------------------------------------------------------
 struct Plot
 {
 public:
     explicit Plot(const Camera & camera);
-    
-    // Assignment 1 interface
-    void updateImage(const cv::Mat& image, 
-                    const std::vector<cv::Point2f>& features = {},
-                    const std::vector<int>& featureStatus = {});
-    
-    void updateScene(const Eigen::Vector3d& cameraPos = Eigen::Vector3d::Zero(),
-                    const Eigen::Matrix3d& cameraRot = Eigen::Matrix3d::Identity(),
-                    const Eigen::Matrix3d& cameraCov = 0.1 * Eigen::Matrix3d::Identity(),
-                    const std::vector<Eigen::Vector3d>& landmarkPositions = {},
-                    const std::vector<Eigen::Matrix3d>& landmarkCovariances = {},
-                    const std::vector<int>& landmarkStatus = {});
-    
     void render();
-    void handleInteractivity(int interactive, bool isLastFrame = false);
+    void start() const;
+    void setData(const SystemSLAM & system, const MeasurementSLAM & measurement);
     cv::Mat getFrame() const;
+    cv::Size renderSize() const;  // ask Plot for its current (width,height)
+
 
 private:
-    void drawFeaturesOnImage(cv::Mat& image, 
-                           const std::vector<cv::Point2f>& features,
-                           const std::vector<int>& featureStatus);
-
+    std::unique_ptr<SystemSLAM> pSystem;
+    std::unique_ptr<MeasurementSLAM> pMeasurement;
     const Camera & camera;
     vtkSmartPointer<vtkRenderWindow> renderWindow;
-    vtkSmartPointer<vtkRenderer> threeDimRenderer;
-    vtkSmartPointer<vtkRenderer> imageRenderer;
+    vtkSmartPointer<vtkRenderer>     threeDimRenderer;
+    vtkSmartPointer<vtkRenderer>     imageRenderer;
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
-    
-    // Lab 8 components adapted for assignment
     QuadricPlot qpCamera;
     std::vector<QuadricPlot> qpLandmarks;
     FrustumPlot fp;

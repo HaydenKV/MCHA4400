@@ -1,11 +1,36 @@
 #include <filesystem>
 #include <string>
 #include <iostream>
+#include <cassert>
 #include <opencv2/core/mat.hpp>
+#include <opencv2/videoio.hpp>
+
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
-#include "SLAMProcessor.h"
+
+// === Assignment code you already have ===
+#include "Camera.h"
+#include "Pose.hpp"
+
+// === Lab 8 visualisation scaffold ===
 #include "Plot.h"
+#include "SystemSLAMPointLandmarks.h"
+#include "MeasurementSLAMPointBundle.h"
+#include "GaussianInfo.hpp"
+
+static SystemSLAMPointLandmarks makeInitialSystem()
+{
+    // State: [vBNb(3); omegaBNb(3); rBNn(3); Thetanb(3); landmarks(3*4)]
+    Eigen::VectorXd mu(24);
+    mu.setZero();
+    mu.segment<3>(12) << 0.0, 0.0, 0.0;   // L1
+    mu.segment<3>(15) << 1.0, 0.0, 0.0;   // L2
+    mu.segment<3>(18) << 1.0, 1.0, 0.0;   // L3
+    mu.segment<3>(21) << 0.0, 1.0, 0.0;   // L4
+    Eigen::MatrixXd S = Eigen::MatrixXd::Identity(24,24) * 1e-3;
+    auto p0 = GaussianInfo<double>::fromSqrtMoment(mu, S);
+    return SystemSLAMPointLandmarks(p0);
+}
 
 void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const std::filesystem::path & cameraPath, int scenario, int interactive, const std::filesystem::path & outputDirectory)
 {
@@ -24,50 +49,64 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
 
     // Load camera calibration
     Camera camera;
-    if (!camera.load(cameraPath)) {
-        std::cout << "Error: Failed to load camera calibration from " << cameraPath << std::endl;
-        return;
+    {
+        cv::FileStorage fs(cameraPath.string(), cv::FileStorage::READ);
+        if (!fs.isOpened())
+        {
+            std::cerr << "File: " << cameraPath << " does not exist or cannot be opened\n";
+            std::exit(EXIT_FAILURE);
+        }
+        fs["camera"] >> camera;
+        fs.release();
     }
 
     // Display loaded calibration data
-    std::cout << "Camera calibration loaded from: " << cameraPath << std::endl;
-    camera.printCalibration(); // This method should exist from Lab 4
+    camera.printCalibration();
 
     // Open input video
     cv::VideoCapture cap(videoPath.string());
     assert(cap.isOpened());
-    int nFrames = cap.get(cv::CAP_PROP_FRAME_COUNT);
+    int nFrames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
     assert(nFrames > 0);
     double fps = cap.get(cv::CAP_PROP_FPS);
 
-    std::cout << "Processing video: " << videoPath.filename() << std::endl;
-    std::cout << "Scenario " << scenario << " | Interactive " << interactive << " | Frames: " << nFrames << std::endl;
-
     BufferedVideoReader bufferedVideoReader(5);
     bufferedVideoReader.start(cap);
+
+    // Ensure camera.imageSize is set (Plot uses it for aspect)
+    {
+        int w = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+        int h = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+        if (camera.imageSize.width <= 0 || camera.imageSize.height <= 0)
+            camera.imageSize = cv::Size(w, h);
+    }
+
+    // Create Plot now so we can query its 540-based render size
+    Plot plot(camera);
+    cv::Size plotSize = plot.renderSize();
 
     cv::VideoWriter videoOut;
     BufferedVideoWriter bufferedVideoWriter(3);
     if (doExport)
     {
-        cv::Size frameSize;
-        frameSize.width     = 2*cap.get(cv::CAP_PROP_FRAME_WIDTH);  // Dual-pane layout
-        frameSize.height    = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+        cv::Size frameSize = plotSize;
         double outputFps    = fps;
         int codec = cv::VideoWriter::fourcc('m', 'p', '4', 'v'); // manually specify output video codec
         videoOut.open(outputPath.string(), codec, outputFps, frameSize);
         bufferedVideoWriter.start(videoOut);
-        std::cout << "Exporting visualization to: " << outputPath << std::endl;
     }
 
     // Visual navigation
 
     // Initialisation
-    SLAMProcessor slamProcessor(scenario, camera);
-    //Plot plot(camera);
-    
-    int frameCount = 0;
-    std::cout << "Starting SLAM processing..." << std::endl;
+
+    // SLAM system + empty measurement (you will fill features per frame later)
+    SystemSLAMPointLandmarks system = makeInitialSystem();
+    Eigen::Matrix<double,2,Eigen::Dynamic> Y(2,0);
+    MeasurementPointBundle measurement(0.0, Y, camera);
+
+    // Plot initial state
+    plot.setData(system, measurement);
 
     while (true)
     {
@@ -78,63 +117,34 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
             break;
         }
 
-        frameCount++;
-
         // Process frame
-        slamProcessor.processFrame(imgin);
+        // TODO: detect features for 'scenario' and fill Y as a 2xM matrix
+        // Y = <detector output>;
+        // measurement = MeasurementPointBundle(/*time*/, Y, camera);
 
-        // Update state - Get SLAM estimates
-        auto detectedFeatures = slamProcessor.getDetectedFeatures();
-        auto featureStatus = slamProcessor.getFeatureStatus();
-        auto cameraPos = slamProcessor.getCameraPosition();
-        auto cameraRot = slamProcessor.getCameraRotation();
-        auto cameraCov = slamProcessor.getCameraCovariance();
-        auto landmarkPos = slamProcessor.getLandmarkPositions();
-        auto landmarkCov = slamProcessor.getLandmarkCovariances();
-        auto landmarkStatus = slamProcessor.getLandmarkStatus();
+        // Update state
+        // TODO: when ready, call measurement.update(system) to apply measurement update
+        system.view() = imgin;
 
         // Update plot
-        //plot.updateImage(imgin, detectedFeatures, featureStatus);
-        //plot.updateScene(cameraPos, cameraRot, cameraCov, landmarkPos, landmarkCov, landmarkStatus);
-        //plot.render();
-
-        // Handle interactivity based on assignment specs
-        bool isLastFrame = (frameCount >= nFrames);
-        if (interactive == 2) {
-            // Interactive on all frames
-            //plot.handleInteractivity(interactive, false);
-        } else if (interactive == 1 && isLastFrame) {
-            // Interactive only on last frame
-            //plot.handleInteractivity(interactive, true);
-        }
-
-        // Progress feedback
-        if (frameCount % 30 == 0 || isLastFrame) {
-            std::cout << "Frame " << frameCount << "/" << nFrames 
-                      << " | Features: " << detectedFeatures.size() 
-                      << " | Camera pos: [" << cameraPos.transpose() << "]" << std::endl;
-        }
+        plot.setData(system, measurement);
+        plot.render();
 
         // Write output frame 
         if (doExport)
         {
-            // cv::Mat imgout = plot.getFrame(); // Get the dual-pane visualization frame
-            // if (!imgout.empty()) {
-            //     bufferedVideoWriter.write(imgout);
-            // }
+            cv::Mat imgout = plot.getFrame(); // TODO: Uncomment this to get the frame image
+            bufferedVideoWriter.write(imgout);
         }
-    }
 
-    // Final cleanup and statistics
-    std::cout << "SLAM processing complete:" << std::endl;
-    std::cout << "  Total frames processed: " << frameCount << std::endl;
-    std::cout << "  Final camera position: " << slamProcessor.getCameraPosition().transpose() << std::endl;
-    std::cout << "  Total landmarks tracked: " << slamProcessor.getLandmarkPositions().size() << std::endl;
+        // Optional interactivity behaviour (kept outside the template blocks to avoid edits)
+        if (interactive == 2 || (interactive == 1 && (--nFrames == 0)))
+            plot.start();
+    }
 
     if (doExport)
     {
          bufferedVideoWriter.stop();
-         std::cout << "Video export completed: " << outputPath << std::endl;
     }
     bufferedVideoReader.stop();
 }

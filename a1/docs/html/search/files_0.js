@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pose_2ehpp_0',['Pose.hpp',['../Pose_8hpp.html',1,'']]]
+  ['densitybase_2ehpp_0',['DensityBase.hpp',['../DensityBase_8hpp.html',1,'']]]
 ];

@@ -1,5 +1,9 @@
 var searchData=
 [
-  ['pose_0',['Pose',['../structPose.html#a60f2e141b0e2e38ae58e631106509b68',1,'Pose::Pose()'],['../structPose.html#a3f42bbb39b1756a7db61219a5c251243',1,'Pose::Pose(const Matrix3 &amp;R, const Vector3 &amp;t)'],['../structPose.html#a358c564e80cc7f481c8ecda4facdab98',1,'Pose::Pose(const cv::Matx33d &amp;R, const cv::Vec3d &amp;t)'],['../structPose.html#a7f37674fde11e0d6a6b08d6a4b6dc169',1,'Pose::Pose(const cv::Mat &amp;rvec, const cv::Mat &amp;tvec)'],['../structPose.html#aec9445a6e2c8ac2347a87f5e7b2f4684',1,'Pose::Pose(const Pose&lt; OtherScalar &gt; &amp;T)']]],
-  ['processframe_1',['processFrame',['../classSLAMProcessor.html#a07419f8de67d60bf49866921d6c8c55d',1,'SLAMProcessor']]]
+  ['cast_0',['cast',['../classGaussianInfo.html#aacf57ce3b2cd74d994e94e1283832a1e',1,'GaussianInfo']]],
+  ['chi2inv_1',['chi2inv',['../classGaussianBase.html#ad7a08a532a4a4bfef50960e1ceae45c6',1,'GaussianBase']]],
+  ['conditional_2',['conditional',['../classGaussianInfo.html#a66981b90484d489f04e2b78e636cd31c',1,'GaussianInfo::conditional(const IndexTypeA &amp;idxA, const IndexTypeB &amp;idxB, const Eigen::VectorX&lt; Scalar &gt; &amp;xB) const'],['../classGaussianInfo.html#a55334dff4a7328e2e38b995edf4a741e',1,'GaussianInfo::conditional(const IndexTypeA &amp;idxA, const IndexTypeB &amp;idxB, const GaussianInfo &amp;pxB_y) const']]],
+  ['confidenceellipse_3',['confidenceEllipse',['../classGaussianBase.html#a8ae8a883329fc03d4b2fcc30163dd552',1,'GaussianBase']]],
+  ['costjointdensity_4',['costJointDensity',['../classMeasurement.html#a3e2ef4fbb8d8eeb71940f5ffd6848ea6',1,'Measurement::costJointDensity(const Eigen::VectorXd &amp;x, const SystemEstimator &amp;system) const'],['../classMeasurement.html#aaea34bb7e795a1c29a28f37b7e252ecf',1,'Measurement::costJointDensity(const Eigen::VectorXd &amp;x, const SystemEstimator &amp;system, Eigen::VectorXd &amp;g) const'],['../classMeasurement.html#aeae3ef416c7110a2041fdfb320a57559',1,'Measurement::costJointDensity(const Eigen::VectorXd &amp;x, const SystemEstimator &amp;system, Eigen::VectorXd &amp;g, Eigen::MatrixXd &amp;H) const']]],
+  ['cov_5',['cov',['../classGaussianBase.html#a93d9a75118e38b3a0bbbd3c8704593d0',1,'GaussianBase::cov()'],['../classGaussianInfo.html#ae9e3f8be04be322e1fec36986774af22',1,'GaussianInfo::cov()']]]
 ];

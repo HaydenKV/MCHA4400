@@ -9,7 +9,6 @@
 #include <opencv2/core/persistence.hpp>
 #include "serialisation.hpp"
 #include "Pose.hpp"
-#include <iostream>
 
 struct Chessboard
 {
@@ -59,42 +58,6 @@ struct Camera
 {
     void calibrate(ChessboardData &);                       // Calibrate camera from chessboard data
     void printCalibration() const;
-
-
-
-    // ADDED: Load camera calibration from file ------------------------------------------------
-    bool load(const std::filesystem::path& filepath) {
-        try {
-            cv::FileStorage fs(filepath.string(), cv::FileStorage::READ);
-            if (!fs.isOpened()) {
-                std::cout << "Error: Cannot open camera calibration file: " << filepath << std::endl;
-                return false;
-            }
-            
-            // Use existing read method in serialisation.hpp
-            fs["camera"] >> *this;
-            fs.release();
-            
-            // Validate that we got valid data
-            if (cameraMatrix.empty() || distCoeffs.empty()) {
-                std::cout << "Error: Invalid calibration data in " << filepath << std::endl;
-                return false;
-            }
-            
-            std::cout << "Loaded camera calibration from " << filepath << std::endl;
-            return true;
-            
-        } catch (const cv::Exception& e) {
-            std::cout << "OpenCV error loading camera calibration: " << e.what() << std::endl;
-            return false;
-        } catch (const std::exception& e) {
-            std::cout << "Error loading camera calibration: " << e.what() << std::endl;
-            return false;
-        }
-    }
-    // ADDED: Load camera calibration from file ------------------------------------------------
-
-
 
     template <typename Scalar> Pose<Scalar> cameraToBody(const Pose<Scalar> & Tnc) const { return Tnc*Tbc.inverse(); } // Tnb = Tnc*Tcb
     template <typename Scalar> Pose<Scalar> bodyToCamera(const Pose<Scalar> & Tnb) const { return Tnb*Tbc; } // Tnc = Tnb*Tbc

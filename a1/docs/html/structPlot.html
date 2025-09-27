@@ -117,16 +117,16 @@ $(function() {
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a50c85ef8e2b84327fcf7ed9e0be49e8f" id="r_a50c85ef8e2b84327fcf7ed9e0be49e8f"><td class="memItemLeft" align="right" valign="top"><a id="a50c85ef8e2b84327fcf7ed9e0be49e8f" name="a50c85ef8e2b84327fcf7ed9e0be49e8f"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>Plot</b> (const <a class="el" href="structCamera.html">Camera</a> &amp;camera)</td></tr>
-<tr class="memitem:a6418b3037cc8bca4340138a77a7b0f94" id="r_a6418b3037cc8bca4340138a77a7b0f94"><td class="memItemLeft" align="right" valign="top"><a id="a6418b3037cc8bca4340138a77a7b0f94" name="a6418b3037cc8bca4340138a77a7b0f94"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>updateImage</b> (const cv::Mat &amp;image, const std::vector&lt; cv::Point2f &gt; &amp;features={}, const std::vector&lt; int &gt; &amp;featureStatus={})</td></tr>
-<tr class="memitem:a64db03a04b8900e2e9112148b5963cb2" id="r_a64db03a04b8900e2e9112148b5963cb2"><td class="memItemLeft" align="right" valign="top"><a id="a64db03a04b8900e2e9112148b5963cb2" name="a64db03a04b8900e2e9112148b5963cb2"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>updateScene</b> (const Eigen::Vector3d &amp;cameraPos=Eigen::Vector3d::Zero(), const Eigen::Matrix3d &amp;cameraRot=Eigen::Matrix3d::Identity(), const Eigen::Matrix3d &amp;cameraCov=0.1 *Eigen::Matrix3d::Identity(), const std::vector&lt; Eigen::Vector3d &gt; &amp;landmarkPositions={}, const std::vector&lt; Eigen::Matrix3d &gt; &amp;landmarkCovariances={}, const std::vector&lt; int &gt; &amp;landmarkStatus={})</td></tr>
 <tr class="memitem:a60d81e634274f29aeeb6f222a77f73c0" id="r_a60d81e634274f29aeeb6f222a77f73c0"><td class="memItemLeft" align="right" valign="top"><a id="a60d81e634274f29aeeb6f222a77f73c0" name="a60d81e634274f29aeeb6f222a77f73c0"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>render</b> ()</td></tr>
-<tr class="memitem:ab4ff1d086a8e4d032346098b950648d0" id="r_ab4ff1d086a8e4d032346098b950648d0"><td class="memItemLeft" align="right" valign="top"><a id="ab4ff1d086a8e4d032346098b950648d0" name="ab4ff1d086a8e4d032346098b950648d0"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>handleInteractivity</b> (int interactive, bool isLastFrame=false)</td></tr>
+<tr class="memitem:a4a60509c5ecac8483da4e9afb81f7fb7" id="r_a4a60509c5ecac8483da4e9afb81f7fb7"><td class="memItemLeft" align="right" valign="top"><a id="a4a60509c5ecac8483da4e9afb81f7fb7" name="a4a60509c5ecac8483da4e9afb81f7fb7"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>start</b> () const</td></tr>
+<tr class="memitem:afb5d08a49be527837f077f17857e39da" id="r_afb5d08a49be527837f077f17857e39da"><td class="memItemLeft" align="right" valign="top"><a id="afb5d08a49be527837f077f17857e39da" name="afb5d08a49be527837f077f17857e39da"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setData</b> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const <a class="el" href="classMeasurementSLAM.html">MeasurementSLAM</a> &amp;measurement)</td></tr>
 <tr class="memitem:a832c6a2b64f30d588b15977059a02403" id="r_a832c6a2b64f30d588b15977059a02403"><td class="memItemLeft" align="right" valign="top"><a id="a832c6a2b64f30d588b15977059a02403" name="a832c6a2b64f30d588b15977059a02403"></a>
 cv::Mat&#160;</td><td class="memItemRight" valign="bottom"><b>getFrame</b> () const</td></tr>
+<tr class="memitem:ace3dcb179d7f78b9f727598966068af9" id="r_ace3dcb179d7f78b9f727598966068af9"><td class="memItemLeft" align="right" valign="top"><a id="ace3dcb179d7f78b9f727598966068af9" name="ace3dcb179d7f78b9f727598966068af9"></a>
+cv::Size&#160;</td><td class="memItemRight" valign="bottom"><b>renderSize</b> () const</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following files:<ul>
 <li>src/<a class="el" href="Plot_8h_source.html">Plot.h</a></li>
