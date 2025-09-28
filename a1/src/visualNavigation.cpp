@@ -2,8 +2,12 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include <unordered_map>
+#include <array>
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/aruco.hpp>
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -17,6 +21,8 @@
 #include "SystemSLAMPointLandmarks.h"
 #include "MeasurementSLAMPointBundle.h"
 #include "GaussianInfo.hpp"
+
+#include "imagefeatures.h"
 
 static SystemSLAMPointLandmarks makeInitialSystem()
 {
@@ -99,15 +105,20 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
     // Visual navigation
 
     // Initialisation
-
-    // SLAM system + empty measurement (you will fill features per frame later)
     SystemSLAMPointLandmarks system = makeInitialSystem();
-    Eigen::Matrix<double,2,Eigen::Dynamic> Y(2,0);
-    MeasurementPointBundle measurement(0.0, Y, camera);
 
-    // Plot initial state
-    plot.setData(system, measurement);
+    {
+        // Start with an empty measurement; we’ll rebuild per frame
+        Eigen::Matrix<double,2,Eigen::Dynamic> Y0(2,0);
+        MeasurementPointBundle m0(0.0, Y0, camera);
+        // Plot initial state
+        plot.setData(system, m0);
+    }
 
+    // Scenario 1 bookkeeping: tagID -> 4 landmark indices (corner order TL,TR,BR,BL)
+    std::unordered_map<int, std::array<int,4>> tagIdToLmks;
+
+    int frameIdx = 0;
     while (true)
     {
         // Get next input frame
@@ -117,17 +128,35 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
             break;
         }
 
+        // Choose what to show on the left pane
+        cv::Mat viewImg = imgin;
+
+        double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
+
         // Process frame
         // TODO: detect features for 'scenario' and fill Y as a 2xM matrix
         // Y = <detector output>;
         // measurement = MeasurementPointBundle(/*time*/, Y, camera);
+        // Scenario switch
+        if (scenario == 1) {
+            // Use Lab-2 detector exactly as-is (draws boxes + IDs on the image)
+            viewImg = detectAndDrawArUco(imgin, /*maxNumFeatures ignored*/ 0);
+        }
+
 
         // Update state
         // TODO: when ready, call measurement.update(system) to apply measurement update
         system.view() = imgin;
 
-        // Update plot
-        plot.setData(system, measurement);
+        // Build the measurement for THIS frame (temporary object)
+        Eigen::Matrix<double,2,Eigen::Dynamic> Ynow(2,0);
+        // TODO: when wiring tags, fill Ynow with the detected corner pixels (2 x M)
+
+        MeasurementPointBundle meas(t, Ynow, camera);
+        // TODO (later): meas.update(system);  // when we enable fusion
+
+        // Update plot using this frame's measurement
+        plot.setData(system, meas);
         plot.render();
 
         // Write output frame 
@@ -140,11 +169,10 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath, const
         // Optional interactivity behaviour (kept outside the template blocks to avoid edits)
         if (interactive == 2 || (interactive == 1 && (--nFrames == 0)))
             plot.start();
+
+        ++frameIdx;
     }
 
-    if (doExport)
-    {
-         bufferedVideoWriter.stop();
-    }
+    if (doExport) bufferedVideoWriter.stop();
     bufferedVideoReader.stop();
 }

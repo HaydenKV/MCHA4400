@@ -9,6 +9,7 @@ var dir_68267d1309a1af8e8297ef4c3efbcdba =
     [ "funcmin.hpp", "funcmin_8hpp.html", "funcmin_8hpp" ],
     [ "GaussianBase.hpp", "GaussianBase_8hpp.html", "GaussianBase_8hpp" ],
     [ "GaussianInfo.hpp", "GaussianInfo_8hpp.html", "GaussianInfo_8hpp" ],
+    [ "imagefeatures.h", "imagefeatures_8h_source.html", null ],
     [ "Measurement.h", "Measurement_8h.html", "Measurement_8h" ],
     [ "MeasurementSLAM.h", "MeasurementSLAM_8h_source.html", null ],
     [ "MeasurementSLAMPointBundle.h", "MeasurementSLAMPointBundle_8h_source.html", null ],
