@@ -5,5 +5,6 @@ var searchData=
   ['measurement_2',['Measurement',['../classMeasurement.html',1,'Measurement'],['../classMeasurement.html#af524d8e57d33c6b748c27a5059cbcf63',1,'Measurement::Measurement(double time)'],['../classMeasurement.html#a9165a85599c8e49e4d0ee6f614cc6772',1,'Measurement::Measurement(double time, int verbosity)']]],
   ['measurement_2eh_3',['Measurement.h',['../Measurement_8h.html',1,'']]],
   ['measurementpointbundle_4',['MeasurementPointBundle',['../classMeasurementPointBundle.html',1,'']]],
-  ['measurementslam_5',['MeasurementSLAM',['../classMeasurementSLAM.html',1,'']]]
+  ['measurementslam_5',['MeasurementSLAM',['../classMeasurementSLAM.html',1,'']]],
+  ['measurementslamuniquetagbundle_6',['MeasurementSLAMUniqueTagBundle',['../classMeasurementSLAMUniqueTagBundle.html',1,'']]]
 ];

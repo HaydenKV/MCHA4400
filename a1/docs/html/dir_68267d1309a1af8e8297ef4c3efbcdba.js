@@ -13,6 +13,7 @@ var dir_68267d1309a1af8e8297ef4c3efbcdba =
     [ "Measurement.h", "Measurement_8h.html", "Measurement_8h" ],
     [ "MeasurementSLAM.h", "MeasurementSLAM_8h_source.html", null ],
     [ "MeasurementSLAMPointBundle.h", "MeasurementSLAMPointBundle_8h_source.html", null ],
+    [ "MeasurementSLAMUniqueTagBundle.h", "MeasurementSLAMUniqueTagBundle_8h_source.html", null ],
     [ "Plot.h", "Plot_8h_source.html", null ],
     [ "Pose.hpp", "Pose_8hpp.html", "Pose_8hpp" ],
     [ "rotation.hpp", "rotation_8hpp_source.html", null ],
@@ -21,6 +22,7 @@ var dir_68267d1309a1af8e8297ef4c3efbcdba =
     [ "SystemEstimator.h", "SystemEstimator_8h.html", "SystemEstimator_8h" ],
     [ "SystemSLAM.h", "SystemSLAM_8h_source.html", null ],
     [ "SystemSLAMPointLandmarks.h", "SystemSLAMPointLandmarks_8h_source.html", null ],
+    [ "SystemSLAMPoseLandmarks.h", "SystemSLAMPoseLandmarks_8h_source.html", null ],
     [ "to_string.hpp", "to__string_8hpp_source.html", null ],
     [ "visualNavigation.h", "visualNavigation_8h_source.html", null ]
 ];

@@ -1,5 +1,6 @@
 var hierarchy =
 [
+    [ "ArucoDetections", "structArucoDetections.html", null ],
     [ "AxisPlot", "structAxisPlot.html", null ],
     [ "BasisPlot", "structBasisPlot.html", null ],
     [ "Bounds", "structBounds.html", null ],
@@ -20,7 +21,8 @@ var hierarchy =
     [ "Event", "classEvent.html", [
       [ "Measurement", "classMeasurement.html", [
         [ "MeasurementSLAM", "classMeasurementSLAM.html", [
-          [ "MeasurementPointBundle", "classMeasurementPointBundle.html", null ]
+          [ "MeasurementPointBundle", "classMeasurementPointBundle.html", null ],
+          [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ]
         ] ]
       ] ]
     ] ],
@@ -32,8 +34,10 @@ var hierarchy =
     [ "SystemBase", "classSystemBase.html", [
       [ "SystemEstimator", "classSystemEstimator.html", [
         [ "SystemSLAM", "classSystemSLAM.html", [
-          [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ]
+          [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ],
+          [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", null ]
         ] ]
       ] ]
-    ] ]
+    ] ],
+    [ "TagDetection", "structTagDetection.html", null ]
 ];

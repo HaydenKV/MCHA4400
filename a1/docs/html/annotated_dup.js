@@ -1,5 +1,6 @@
 var annotated_dup =
 [
+    [ "ArucoDetections", "structArucoDetections.html", null ],
     [ "AxisPlot", "structAxisPlot.html", null ],
     [ "BasisPlot", "structBasisPlot.html", null ],
     [ "Bounds", "structBounds.html", null ],
@@ -18,11 +19,14 @@ var annotated_dup =
     [ "Measurement", "classMeasurement.html", "classMeasurement" ],
     [ "MeasurementPointBundle", "classMeasurementPointBundle.html", "classMeasurementPointBundle" ],
     [ "MeasurementSLAM", "classMeasurementSLAM.html", null ],
+    [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", "classMeasurementSLAMUniqueTagBundle" ],
     [ "Plot", "structPlot.html", null ],
     [ "Pose", "structPose.html", "structPose" ],
     [ "QuadricPlot", "structQuadricPlot.html", null ],
     [ "SystemBase", "classSystemBase.html", "classSystemBase" ],
     [ "SystemEstimator", "classSystemEstimator.html", "classSystemEstimator" ],
     [ "SystemSLAM", "classSystemSLAM.html", "classSystemSLAM" ],
-    [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ]
+    [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ],
+    [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", null ],
+    [ "TagDetection", "structTagDetection.html", null ]
 ];

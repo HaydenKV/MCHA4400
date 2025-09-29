@@ -3,6 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/aruco.hpp>
+#include <Eigen/Core>
 #include "imagefeatures.h"
 
 cv::Mat detectAndDrawHarris(const cv::Mat & img, int maxNumFeatures)
@@ -266,3 +267,67 @@ cv::Mat detectAndDrawArUco(const cv::Mat & img, int maxNumFeatures)
     return imgout;
 }
 
+
+ArucoDetections detectArucoLab2(const cv::Mat & imgBGR,
+                                int dictionary,
+                                bool doCornerRefine)
+{
+    CV_Assert(!imgBGR.empty());
+    ArucoDetections out;
+    out.annotated = imgBGR.clone();
+
+    // --- OpenCV 4.11 ArUco (new API) ---
+    cv::aruco::Dictionary dict = cv::aruco::getPredefinedDictionary(dictionary);
+    cv::aruco::DetectorParameters params;
+    // Good Lab-2 style defaults (tune if needed)
+    params.cornerRefinementMethod = doCornerRefine
+        ? cv::aruco::CornerRefineMethod::CORNER_REFINE_SUBPIX
+        : cv::aruco::CornerRefineMethod::CORNER_REFINE_NONE;
+    params.aprilTagMinClusterPixels = 0; // not using AprilTag
+    params.minMarkerPerimeterRate = 0.03;   // more permissive for small tags
+    params.maxMarkerPerimeterRate = 4.0;
+    params.adaptiveThreshWinSizeMin = 5;
+    params.adaptiveThreshWinSizeMax = 23;
+    params.adaptiveThreshWinSizeStep = 4;
+
+    cv::aruco::ArucoDetector detector(dict, params);
+
+    // Detect
+    std::vector<int> ids;
+    std::vector<std::vector<cv::Point2f>> rawCorners;
+    detector.detectMarkers(imgBGR, rawCorners, ids);
+
+    if (!ids.empty())
+    {
+        // Draw on output
+        cv::aruco::drawDetectedMarkers(out.annotated, rawCorners, ids);
+
+        // Pack to fixed-size arrays (TL,TR,BR,BL)
+        out.ids = ids;
+        out.corners.reserve(ids.size());
+        for (const auto & cvec : rawCorners)
+        {
+            std::array<cv::Point2f,4> c{};
+            for (int i = 0; i < 4; ++i) c[i] = cvec[i];
+            out.corners.push_back(c);
+        }
+    }
+    return out;
+}
+
+Eigen::Matrix<double,2,Eigen::Dynamic>
+buildYFromAruco(const std::vector<std::array<cv::Point2f,4>> & corners)
+{
+    const int n = static_cast<int>(corners.size());
+    Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*n);
+    for (int k = 0; k < n; ++k)
+    {
+        // Column order: TL, TR, BR, BL (OpenCV standard)
+        for (int c = 0; c < 4; ++c)
+        {
+            Y(0, 4*k + c) = corners[k][c].x;  // u
+            Y(1, 4*k + c) = corners[k][c].y;  // v
+        }
+    }
+    return Y;
+}

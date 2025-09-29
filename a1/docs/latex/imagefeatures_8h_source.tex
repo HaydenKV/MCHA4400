@@ -12,6 +12,26 @@
 \DoxyCodeLine{00008\ cv::Mat\ detectAndDrawFAST(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
 \DoxyCodeLine{00009\ cv::Mat\ detectAndDrawArUco(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
 \DoxyCodeLine{00010\ }
-\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structArucoDetections}{ArucoDetections}}}
+\DoxyCodeLine{00015\ \{}
+\DoxyCodeLine{00016\ \ \ \ \ std::vector<int>\ ids;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ tag\ IDs}}
+\DoxyCodeLine{00017\ \ \ \ \ std::vector<std::array<cv::Point2f,4>>\ corners;\ \ \ \ \ \ \textcolor{comment}{//\ TL,TR,BR,BL\ per\ tag}}
+\DoxyCodeLine{00018\ \ \ \ \ cv::Mat\ annotated;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ input\ image\ with\ markers\ drawn}}
+\DoxyCodeLine{00019\ \};}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Choose\ a\ dictionary\ that\ matches\ your\ printed\ tags\ (Lab-\/2\ typically\ used\ one\ of\ these):}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ cv::aruco::DICT\_6X6\_250\ \ \ or\ \ \ cv::aruco::DICT\_4X4\_50}}
+\DoxyCodeLine{00023\ \mbox{\hyperlink{structArucoDetections}{ArucoDetections}}\ detectArucoLab2(\textcolor{keyword}{const}\ cv::Mat\ \&\ imgBGR,}
+\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dictionary\ =\ cv::aruco::DICT\_6X6\_250,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ doCornerRefine\ =\ \textcolor{keyword}{true});}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Helpful\ utility:\ build\ the\ 2x(4*N)\ measurement\ matrix\ from\ corners}}
+\DoxyCodeLine{00028\ Eigen::Matrix<double,2,Eigen::Dynamic>}
+\DoxyCodeLine{00029\ buildYFromAruco(\textcolor{keyword}{const}\ std::vector<std::array<cv::Point2f,4>>\ \&\ corners);}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

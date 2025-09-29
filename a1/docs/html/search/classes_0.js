@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['axisplot_0',['AxisPlot',['../structAxisPlot.html',1,'']]]
+  ['arucodetections_0',['ArucoDetections',['../structArucoDetections.html',1,'']]],
+  ['axisplot_1',['AxisPlot',['../structAxisPlot.html',1,'']]]
 ];
