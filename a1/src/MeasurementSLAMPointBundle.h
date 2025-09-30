@@ -27,6 +27,10 @@ public:
     virtual GaussianInfo<double> predictFeatureBundleDensity(const SystemSLAM & system, const std::vector<std::size_t> & idxLandmarks) const override;
 
     virtual const std::vector<int> & associate(const SystemSLAM & system, const std::vector<std::size_t> & idxLandmarks) override;
+
+    // Read-only view of per-landmark association indices for THIS frame.
+    // Value >= 0 means "associated/detected this frame", -1 means "not associated".
+    inline const std::vector<int>& associationsThisFrame() const { return idxFeatures_; }
 protected:
     virtual void update(SystemBase & system) override;
     Eigen::Matrix<double, 2, Eigen::Dynamic> Y_;    // Feature bundle

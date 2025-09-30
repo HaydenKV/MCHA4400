@@ -287,8 +287,8 @@ ArucoDetections detectArucoLab2(const cv::Mat & imgBGR,
     params.minMarkerPerimeterRate = 0.03;   // more permissive for small tags
     params.maxMarkerPerimeterRate = 4.0;
     params.adaptiveThreshWinSizeMin = 5;
-    params.adaptiveThreshWinSizeMax = 23;
-    params.adaptiveThreshWinSizeStep = 4;
+    params.adaptiveThreshWinSizeMax = 35;
+    params.adaptiveThreshWinSizeStep = 5;
 
     cv::aruco::ArucoDetector detector(dict, params);
 

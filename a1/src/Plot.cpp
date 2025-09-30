@@ -83,6 +83,7 @@
 #include "rotation.hpp"
 #include "SystemSLAM.h"
 #include "MeasurementSLAM.h"
+#include "MeasurementSLAMPointBundle.h"
 #include "Plot.h"
 
 // Forward declarations
@@ -551,20 +552,76 @@ Plot::Plot(const Camera & camera)
     threeDimRenderer->AddActor(qpCamera.getActor());
     imageRenderer->AddActor2D(ip.getActor());
 
+    // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
     threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    threeDimRenderer->GetActiveCamera()->Elevation(165);
+    threeDimRenderer->GetActiveCamera()->Elevation(200);
     // rFNn
-    threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,0);
+    threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
     // rCNn
-    double sc = 2;
-    threeDimRenderer->GetActiveCamera()->SetPosition(-0.75*sc,-0.75*sc,-0.5*sc);
-    threeDimRenderer->GetActiveCamera()->SetViewUp(0,0,-1);
+    double sc = 10; // Scale factor - increase to intially zoom out (was originally on 2)
+    threeDimRenderer->GetActiveCamera()->SetPosition(0.15*sc,-0.15*sc,-0.6*sc);
+    threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
 
     vtkNew<vtkInteractorStyleTrackballCamera> interactorStyle;
     interactor->SetInteractorStyle(interactorStyle);
     interactor->SetRenderWindow(renderWindow);
     interactor->Initialize();
 }
+
+// void Plot::render()
+// {
+//     double r,g,b;   
+//     hsv2rgb(330, 1., 1., r, g, b);
+//     qpCamera.update(pSystem->cameraPositionDensity(camera));
+//     qpCamera.getActor()->GetProperty()->SetOpacity(0.1);
+//     qpCamera.getActor()->GetProperty()->SetColor(r,g,b);
+
+//     Bounds globalBounds;
+//     qpCamera.bounds.setExtremity(globalBounds); 
+
+//     // Grow landmark quadric plots to match number of landmarks
+//     while (qpLandmarks.size() < pSystem->numberLandmarks())
+//     {
+//         QuadricPlot qp;
+//         qpLandmarks.push_back(qp);
+//         threeDimRenderer->AddActor(qpLandmarks.back().getActor());
+//     }
+
+//     // Shrink landmark quadric plots to match number of landmarks
+//     while (qpLandmarks.size() > pSystem->numberLandmarks())
+//     {
+//         threeDimRenderer->RemoveActor(qpLandmarks.back().getActor());
+//         qpLandmarks.pop_back();
+//     }    
+
+//     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
+//     {
+//         // Add components to render
+//         hsv2rgb(300*(i)/(pSystem->numberLandmarks()), 1., 1., r, g, b);
+//         Eigen::Vector3d rgb;
+//         rgb(0) = r*255;
+//         rgb(1) = g*255;
+//         rgb(2) = b*255;
+
+//         GaussianInfo prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+//         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb);
+
+//         QuadricPlot & qp = qpLandmarks[i];
+//         qp.update(pSystem->landmarkPositionDensity(i));
+//         qp.getActor()->GetProperty()->SetOpacity(0.5);
+//         qp.getActor()->GetProperty()->SetColor(r, g, b);
+//         qp.bounds.setExtremity(globalBounds); 
+//     }
+
+//     ap.update(globalBounds);
+//     Eigen::Vector3d rCNn = pSystem->cameraPositionDensity(camera).mean();
+//     Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
+//     bp.update(rCNn, Thetanc);
+//     fp.update(rCNn, Thetanc);
+//     ip.update(pSystem->view());
+
+//     renderWindow->Render();
+// }
 
 void Plot::render()
 {
@@ -592,34 +649,92 @@ void Plot::render()
         qpLandmarks.pop_back();
     }    
 
+    // --- camera pose (means) for this frame ---
+    Eigen::Vector3d rCNn   = pSystem->cameraPositionDensity(camera).mean();
+    Eigen::Vector3d Thetanc= pSystem->cameraOrientationEulerDensity(camera).mean();
+    Eigen::Matrix3d Rnc    = rpy2rot(Thetanc);
+
+    // Build Tnc and convert to Tnb via your helper
+    Posed Tnc;
+    Tnc.rotationMatrix    = Rnc;
+    Tnc.translationVector = rCNn;
+    Posed Tnb = camera.cameraToBody(Tnc); // Tnb = Tnc * Tcb^{-1}
+
+    // Per-frame associations from the active measurement (UniqueTagBundle derives from PointBundle)
+    const auto* pBundle = dynamic_cast<const MeasurementPointBundle*>(pMeasurement.get());
+    const std::vector<int>* assocPtr = nullptr;
+    if (pBundle) assocPtr = &pBundle->associationsThisFrame();
+
+    // Strict visibility check helper (front-facing + in-bounds pixel)
+    auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool
+    {
+        // project world → camera ray (unit)
+        const cv::Vec3d uPCc = camera.worldToVector(cv::Vec3d(rPNn.x(), rPNn.y(), rPNn.z()), Tnb);
+        if (!std::isfinite(uPCc[0]) || !std::isfinite(uPCc[1]) || !std::isfinite(uPCc[2])) return false;
+        if (uPCc[2] <= 1e-9) return false; // behind camera
+
+        // pixel check (distorted) — use your own model
+        const cv::Vec2d pix = camera.vectorToPixel(uPCc);
+        if (!std::isfinite(pix[0]) || !std::isfinite(pix[1])) return false;
+
+        const bool inBounds = (pix[0] >= 0.0 && pix[0] < camera.imageSize.width &&
+                               pix[1] >= 0.0 && pix[1] < camera.imageSize.height);
+        return inBounds;
+    };
+
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
-        // Add components to render
-        hsv2rgb(300*(i)/(pSystem->numberLandmarks()), 1., 1., r, g, b);
-        Eigen::Vector3d rgb;
-        rgb(0) = r*255;
-        rgb(1) = g*255;
-        rgb(2) = b*255;
+        // predicted pixel covariance (left pane ellipse)
+        Eigen::Vector3d rgb2d;
+        double cr, cg, cb;
 
-        GaussianInfo prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb);
+        // Landmark position mean (tag centre for Scenario 1)
+        const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
+        const Eigen::Vector3d rPNn_mean   = posDen.mean();
 
+        // VISIBILITY (strict, pixel-in-bounds)
+        const bool visible = isVisibleStrict(rPNn_mean);
+
+        // ASSOCIATED this frame (>=0 means detected & matched)
+        bool associated = false;
+        if (assocPtr && i < assocPtr->size())
+            associated = ((*assocPtr)[i] >= 0);
+
+        // Colour semantics:
+        // Blue   = visible + associated
+        // Red    = visible + !associated
+        // Yellow = !visible
+        if (!visible)        { cr = 1.0; cg = 1.0; cb = 0.0; }     // Yellow
+        else if (associated) { cr = 0.0; cg = 0.5; cb = 1.0; }     // Blue-ish
+        else                 { cr = 1.0; cg = 0.25; cb = 0.25; }   // Red-ish
+
+        // 2D ellipse colour
+        rgb2d(0) = cr*255.0;
+        rgb2d(1) = cg*255.0;
+        rgb2d(2) = cb*255.0;
+
+        GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
+
+        // 3D quadric colour
         QuadricPlot & qp = qpLandmarks[i];
-        qp.update(pSystem->landmarkPositionDensity(i));
+        qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
-        qp.getActor()->GetProperty()->SetColor(r, g, b);
+        qp.getActor()->GetProperty()->SetColor(cr, cg, cb);
         qp.bounds.setExtremity(globalBounds); 
     }
 
+    // Axes / frustum / image panes (unchanged)
     ap.update(globalBounds);
-    Eigen::Vector3d rCNn = pSystem->cameraPositionDensity(camera).mean();
-    Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);
     ip.update(pSystem->view());
 
     renderWindow->Render();
 }
+
+
+
 
 void Plot::start() const
 {

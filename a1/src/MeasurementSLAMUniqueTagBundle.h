@@ -16,7 +16,7 @@ public:
     , id_by_landmark_()
     {
         // scenario 1: pixel noise ~ 2 px is reasonable
-        this->sigma_ = 2.0;
+        this->sigma_ = 1.0;
     }
 
     // Set persistent mapping (landmark index -> tag ID)
