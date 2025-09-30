@@ -19,7 +19,7 @@ var annotated_dup =
     [ "Measurement", "classMeasurement.html", "classMeasurement" ],
     [ "MeasurementPointBundle", "classMeasurementPointBundle.html", "classMeasurementPointBundle" ],
     [ "MeasurementSLAM", "classMeasurementSLAM.html", null ],
-    [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", "classMeasurementSLAMUniqueTagBundle" ],
+    [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ],
     [ "Plot", "structPlot.html", null ],
     [ "Pose", "structPose.html", "structPose" ],
     [ "QuadricPlot", "structQuadricPlot.html", null ],
@@ -27,6 +27,5 @@ var annotated_dup =
     [ "SystemEstimator", "classSystemEstimator.html", "classSystemEstimator" ],
     [ "SystemSLAM", "classSystemSLAM.html", "classSystemSLAM" ],
     [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ],
-    [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", null ],
-    [ "TagDetection", "structTagDetection.html", null ]
+    [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", "classSystemSLAMPoseLandmarks" ]
 ];

@@ -26,6 +26,13 @@ public:
     SystemSLAM * clone() const override;
     virtual std::size_t numberLandmarks() const override;
     virtual std::size_t landmarkPositionIndex(std::size_t idxLandmark) const override;
+
+    /// Append a pose-landmark (position r_n^j and Euler angles Theta_nj) with
+    /// an initial square-root covariance Sj (6x6, upper-triangular).
+    /// Returns the landmark index j just added.
+    std::size_t appendLandmark(const Eigen::Vector3d& r_nL,
+                               const Eigen::Vector3d& Theta_nL,
+                               const Eigen::Matrix<double,6,6>& Sj);
 };
 
 #endif

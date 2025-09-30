@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tagdetection_0',['TagDetection',['../structTagDetection.html',1,'']]]
+  ['tagcorners_0',['TagCorners',['../structMeasurementSLAMUniqueTagBundle_1_1TagCorners.html',1,'MeasurementSLAMUniqueTagBundle']]]
 ];

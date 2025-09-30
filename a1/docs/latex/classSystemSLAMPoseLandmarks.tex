@@ -17,6 +17,8 @@ Inheritance diagram for System\+SLAMPose\+Landmarks\+:\begin{figure}[H]
 virtual std\+::size\+\_\+t \mbox{\hyperlink{classSystemSLAMPoseLandmarks_a88a4084ab6052d16a77ccba1b46d4595}{number\+Landmarks}} () const override
 \item 
 virtual std\+::size\+\_\+t \mbox{\hyperlink{classSystemSLAMPoseLandmarks_aa8783b4695bc1393e2994ad955ad5b37}{landmark\+Position\+Index}} (std\+::size\+\_\+t idx\+Landmark) const override
+\item 
+std\+::size\+\_\+t \mbox{\hyperlink{classSystemSLAMPoseLandmarks_af753d8a8f7963cc5b295af8c79872b60}{append\+Landmark}} (const Eigen\+::\+Vector3d \&r\+\_\+nL, const Eigen\+::\+Vector3d \&Theta\+\_\+nL, const Eigen\+::\+Matrix$<$ double, 6, 6 $>$ \&Sj)
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}}}
 \begin{DoxyCompactItemize}
@@ -117,7 +119,13 @@ double {\bfseries time\+\_\+}
 \label{doc-func-members}
 \Hypertarget{classSystemSLAMPoseLandmarks_doc-func-members}
 \doxysubsection{Member Function Documentation}
-\Hypertarget{classSystemSLAMPoseLandmarks_a38ff8e9cca8701f46573a767b28af9ae}\index{SystemSLAMPoseLandmarks@{SystemSLAMPoseLandmarks}!clone@{clone}}
+\Hypertarget{classSystemSLAMPoseLandmarks_af753d8a8f7963cc5b295af8c79872b60}\index{SystemSLAMPoseLandmarks@{SystemSLAMPoseLandmarks}!appendLandmark@{appendLandmark}}
+\index{appendLandmark@{appendLandmark}!SystemSLAMPoseLandmarks@{SystemSLAMPoseLandmarks}}
+\doxysubsubsection{\texorpdfstring{appendLandmark()}{appendLandmark()}}
+{\footnotesize\ttfamily \label{classSystemSLAMPoseLandmarks_af753d8a8f7963cc5b295af8c79872b60} 
+std\+::size\+\_\+t System\+SLAMPose\+Landmarks\+::append\+Landmark (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{r\+\_\+nL}{, }\item[{const Eigen\+::\+Vector3d \&}]{Theta\+\_\+nL}{, }\item[{const Eigen\+::\+Matrix$<$ double, 6, 6 $>$ \&}]{Sj}{}\end{DoxyParamCaption})}
+
+Append a pose-\/landmark (position r\+\_\+n\texorpdfstring{$^\wedge$}{\string^}j and Euler angles Theta\+\_\+nj) with an initial square-\/root covariance Sj (6x6, upper-\/triangular). Returns the landmark index j just added. \Hypertarget{classSystemSLAMPoseLandmarks_a38ff8e9cca8701f46573a767b28af9ae}\index{SystemSLAMPoseLandmarks@{SystemSLAMPoseLandmarks}!clone@{clone}}
 \index{clone@{clone}!SystemSLAMPoseLandmarks@{SystemSLAMPoseLandmarks}}
 \doxysubsubsection{\texorpdfstring{clone()}{clone()}}
 {\footnotesize\ttfamily \label{classSystemSLAMPoseLandmarks_a38ff8e9cca8701f46573a767b28af9ae} 

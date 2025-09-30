@@ -2,14 +2,14 @@
 #define IMAGEFEATURES_H 
 
 #include <opencv2/core.hpp>
+#include <array>
+#include <Eigen/Core>
 
 cv::Mat detectAndDrawHarris(const cv::Mat & img, int maxNumFeatures);
 cv::Mat detectAndDrawShiAndTomasi(const cv::Mat & img, int maxNumFeatures);
 cv::Mat detectAndDrawFAST(const cv::Mat & img, int maxNumFeatures);
 cv::Mat detectAndDrawArUco(const cv::Mat & img, int maxNumFeatures);
 
-#include <array>
-#include <Eigen/Core>
 
 struct ArucoDetections
 {

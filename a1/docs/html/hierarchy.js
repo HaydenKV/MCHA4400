@@ -21,8 +21,9 @@ var hierarchy =
     [ "Event", "classEvent.html", [
       [ "Measurement", "classMeasurement.html", [
         [ "MeasurementSLAM", "classMeasurementSLAM.html", [
-          [ "MeasurementPointBundle", "classMeasurementPointBundle.html", null ],
-          [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ]
+          [ "MeasurementPointBundle", "classMeasurementPointBundle.html", [
+            [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ]
+          ] ]
         ] ]
       ] ]
     ] ],
@@ -38,6 +39,5 @@ var hierarchy =
           [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", null ]
         ] ]
       ] ]
-    ] ],
-    [ "TagDetection", "structTagDetection.html", null ]
+    ] ]
 ];

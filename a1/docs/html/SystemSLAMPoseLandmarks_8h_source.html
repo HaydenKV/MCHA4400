@@ -141,13 +141,18 @@ $(function() {
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    SystemSLAM * clone() <span class="keyword">const override</span>;</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">virtual</span> std::size_t numberLandmarks() <span class="keyword">const override</span>;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">virtual</span> std::size_t landmarkPositionIndex(std::size_t idxLandmark) <span class="keyword">const override</span>;</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>};</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    std::size_t <a class="code hl_function" href="classSystemSLAMPoseLandmarks.html#af753d8a8f7963cc5b295af8c79872b60">appendLandmark</a>(<span class="keyword">const</span> Eigen::Vector3d&amp; r_nL,</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>                               <span class="keyword">const</span> Eigen::Vector3d&amp; Theta_nL,</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>                               <span class="keyword">const</span> Eigen::Matrix&lt;double,6,6&gt;&amp; Sj);</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>};</div>
 </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aGaussianInfo_8hpp_html"><div class="ttname"><a href="GaussianInfo_8hpp.html">GaussianInfo.hpp</a></div><div class="ttdoc">Defines the GaussianInfo class for representing Gaussian distributions using square-root information ...</div></div>
 <div class="ttc" id="aclassGaussianInfo_html"><div class="ttname"><a href="classGaussianInfo.html">GaussianInfo</a></div><div class="ttdoc">Represents a Gaussian distribution using the information form.</div><div class="ttdef"><b>Definition</b> GaussianInfo.hpp:36</div></div>
 <div class="ttc" id="aclassSystemEstimator_html_a3459a820d965e53e8984ffdf800ef790"><div class="ttname"><a href="classSystemEstimator.html#a3459a820d965e53e8984ffdf800ef790">SystemEstimator::density</a></div><div class="ttdeci">GaussianInfo&lt; double &gt; density</div><div class="ttdoc">The current state density estimate.</div><div class="ttdef"><b>Definition</b> SystemEstimator.h:40</div></div>
+<div class="ttc" id="aclassSystemSLAMPoseLandmarks_html_af753d8a8f7963cc5b295af8c79872b60"><div class="ttname"><a href="classSystemSLAMPoseLandmarks.html#af753d8a8f7963cc5b295af8c79872b60">SystemSLAMPoseLandmarks::appendLandmark</a></div><div class="ttdeci">std::size_t appendLandmark(const Eigen::Vector3d &amp;r_nL, const Eigen::Vector3d &amp;Theta_nL, const Eigen::Matrix&lt; double, 6, 6 &gt; &amp;Sj)</div><div class="ttdef"><b>Definition</b> SystemSLAMPoseLandmarks.cpp:30</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->

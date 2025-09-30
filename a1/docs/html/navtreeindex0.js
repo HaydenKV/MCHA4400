@@ -118,11 +118,6 @@ var NAVTREEINDEX0 =
 "classMeasurementPointBundle.html#ae2b8fad7d79ec97b0afd7cf1d216d2bd":[2,0,17,2],
 "classMeasurementSLAM.html":[2,0,18],
 "classMeasurementSLAMUniqueTagBundle.html":[2,0,19],
-"classMeasurementSLAMUniqueTagBundle.html#a0b739a11c73f4dd3f15bb56df770adf5":[2,0,19,1],
-"classMeasurementSLAMUniqueTagBundle.html#a78197c8e25dc7f4624ea5b0efc550f86":[2,0,19,4],
-"classMeasurementSLAMUniqueTagBundle.html#a853fd3bb24b986c8d918c3c48bb1e575":[2,0,19,3],
-"classMeasurementSLAMUniqueTagBundle.html#ab1e228bf6421d3cd253044d138f34013":[2,0,19,0],
-"classMeasurementSLAMUniqueTagBundle.html#ae9105df00cf1c9a233721082f429c94b":[2,0,19,2],
 "classSystemBase.html":[2,0,23],
 "classSystemBase.html#a1d07dc3316390544ac3999dd8ac03bfe":[2,0,23,2],
 "classSystemBase.html#a4959bd9849715e69f0387214e3a7f356":[2,0,23,1],
@@ -151,6 +146,7 @@ var NAVTREEINDEX0 =
 "classSystemSLAM.html#a6b136850c61320b77cd5fdbea09f2af4":[2,0,25,2],
 "classSystemSLAMPointLandmarks.html":[2,0,26],
 "classSystemSLAMPoseLandmarks.html":[2,0,27],
+"classSystemSLAMPoseLandmarks.html#af753d8a8f7963cc5b295af8c79872b60":[2,0,27,0],
 "classes.html":[2,1],
 "conceptStreamInsertable.html":[1,0],
 "concepts.html":[1],
@@ -229,7 +225,6 @@ var NAVTREEINDEX0 =
 "structPose.html#ad36d4140fd51dfcf4152810ce4ca0293":[2,0,21,9],
 "structPose.html#aec9445a6e2c8ac2347a87f5e7b2f4684":[2,0,21,4],
 "structQuadricPlot.html":[2,0,22],
-"structTagDetection.html":[2,0,28],
 "to__string_8hpp_source.html":[3,0,0,23],
 "visualNavigation_8h_source.html":[3,0,0,24]
 };

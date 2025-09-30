@@ -15,6 +15,44 @@
 #include <autodiff/forward/dual/eigen.hpp>
 #include <iostream>
 
+namespace {
+    // Thread-local scratch for the current evaluation chain
+    thread_local bool tl_assoc_ready = false;
+    thread_local std::vector<std::size_t> tl_idxUseLandmarks;
+    thread_local std::vector<int>         tl_idxUseFeatures;
+
+    inline void ensureAssociatedOnce(const SystemSLAM& sys,
+                                     const Eigen::Matrix<double,2,Eigen::Dynamic>& Y,
+                                     const std::vector<int>& idxFeatures)
+    {
+        if (tl_assoc_ready) return; // already built for this chain
+
+        tl_idxUseLandmarks.clear();
+        tl_idxUseFeatures.clear();
+        tl_idxUseLandmarks.reserve(sys.numberLandmarks());
+        tl_idxUseFeatures.reserve(sys.numberLandmarks());
+
+        const std::size_t nL = sys.numberLandmarks();
+        for (std::size_t j = 0; j < nL; ++j)
+        {
+            if (j < idxFeatures.size()) {
+                const int fi = idxFeatures[j];
+                if (fi >= 0 && fi < Y.cols()) {
+                    tl_idxUseLandmarks.push_back(j);
+                    tl_idxUseFeatures.push_back(fi);
+                }
+            }
+        }
+        tl_assoc_ready = true;
+    }
+
+    inline void clearAssociationScratch() {
+        tl_assoc_ready = false;
+        tl_idxUseLandmarks.clear();
+        tl_idxUseFeatures.clear();
+    }
+}
+
 
 MeasurementPointBundle::MeasurementPointBundle(double time, const Eigen::Matrix<double, 2, Eigen::Dynamic> & Y, const Camera & camera)
     : MeasurementSLAM(time, camera)
@@ -39,32 +77,107 @@ Eigen::VectorXd MeasurementPointBundle::simulate(const Eigen::VectorXd & x, cons
     return y;
 }
 
-double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x, const SystemEstimator & system) const
+double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x,
+                                             const SystemEstimator & system) const
 {
-    const SystemSLAM & systemSLAM = dynamic_cast<const SystemSLAM &>(system);
+    const SystemSLAM & sys = dynamic_cast<const SystemSLAM &>(system);
 
-    // Select visible landmarks
-    std::vector<std::size_t> idxLandmarks(systemSLAM.numberLandmarks());
-    std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0); // FIXME: This just selects all landmarks
-    // TODO: Assignment(s)
-    return 0.0;
+    // Build selection once per evaluation chain
+    ensureAssociatedOnce(sys, Y_, idxFeatures_);
+
+    if (tl_idxUseLandmarks.empty()) {
+        clearAssociationScratch();
+        return 0.0;
+    }
+
+    const std::size_t k = tl_idxUseLandmarks.size();
+
+    // Stack used measurements y = [u1 v1 u2 v2 ...]^T
+    Eigen::VectorXd y(2 * k);
+    for (std::size_t i = 0; i < k; ++i)
+        y.segment<2>(2 * i) = Y_.col(tl_idxUseFeatures[i]);
+
+    // Predict bundle (no Jacobian needed here)
+    Eigen::MatrixXd Jdummy;
+    Eigen::VectorXd h = predictFeatureBundle(x, Jdummy, sys, tl_idxUseLandmarks);
+
+    const double invR = 1.0 / (sigma_ * sigma_);
+    const Eigen::VectorXd r = y - h;
+
+    const double val = -0.5 * invR * r.squaredNorm(); // constants dropped
+
+    // End of the chain: clear scratch so the next evaluation recomputes as needed
+    clearAssociationScratch();
+    return val;
 }
 
-double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x, const SystemEstimator & system, Eigen::VectorXd & g) const
+double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x,
+                                             const SystemEstimator & system,
+                                             Eigen::VectorXd & g) const
 {
-    // Evaluate gradient for Newton and quasi-Newton methods
+    const SystemSLAM & sys = dynamic_cast<const SystemSLAM &>(system);
+
+    // Build selection once per evaluation chain (no-op if already done)
+    ensureAssociatedOnce(sys, Y_, idxFeatures_);
+
     g.resize(x.size());
     g.setZero();
-    // TODO: Assignment(s)
+
+    if (!tl_idxUseLandmarks.empty())
+    {
+        const std::size_t k = tl_idxUseLandmarks.size();
+
+        Eigen::VectorXd y(2 * k);
+        for (std::size_t i = 0; i < k; ++i)
+            y.segment<2>(2 * i) = Y_.col(tl_idxUseFeatures[i]);
+
+        Eigen::MatrixXd J;                         // (2k x nx)
+        Eigen::VectorXd h = predictFeatureBundle(x, J, sys, tl_idxUseLandmarks);
+
+        const double invR = 1.0 / (sigma_ * sigma_);
+        const Eigen::VectorXd r = y - h;
+
+        // ∇ logL = invR * J^T r
+        g.noalias() = invR * (J.transpose() * r);
+    }
+
+    // Build-on style: return via scalar-only overload (will reuse selection and clear it)
     return logLikelihood(x, system);
 }
 
-double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x, const SystemEstimator & system, Eigen::VectorXd & g, Eigen::MatrixXd & H) const
+double MeasurementPointBundle::logLikelihood(const Eigen::VectorXd & x,
+                                             const SystemEstimator & system,
+                                             Eigen::VectorXd & g,
+                                             Eigen::MatrixXd & H) const
 {
-    // Evaluate Hessian for Newton method
-    H.resize(x.size(), x.size());
-    H.setZero();
-    // TODO: Assignment(s)
+    const SystemSLAM & sys = dynamic_cast<const SystemSLAM &>(system);
+
+    // Build selection once per evaluation chain (no-op if already done)
+    ensureAssociatedOnce(sys, Y_, idxFeatures_);
+
+    g.resize(x.size());               g.setZero();
+    H.resize(x.size(), x.size());     H.setZero();
+
+    if (!tl_idxUseLandmarks.empty())
+    {
+        const std::size_t k = tl_idxUseLandmarks.size();
+
+        Eigen::VectorXd y(2 * k);
+        for (std::size_t i = 0; i < k; ++i)
+            y.segment<2>(2 * i) = Y_.col(tl_idxUseFeatures[i]);
+
+        Eigen::MatrixXd J;                         // (2k x nx)
+        Eigen::VectorXd h = predictFeatureBundle(x, J, sys, tl_idxUseLandmarks);
+
+        const double invR = 1.0 / (sigma_ * sigma_);
+        const Eigen::VectorXd r = y - h;
+
+        // ∇ logL and (Gauss–Newton) Hessian of log-likelihood
+        g.noalias() = invR * (J.transpose() * r);
+        H.noalias() = -invR * (J.transpose() * J);
+    }
+
+    // Build-on style: return via the (value,grad) overload (selection stays cached)
     return logLikelihood(x, system, g);
 }
 
@@ -77,6 +190,19 @@ void MeasurementPointBundle::update(SystemBase & system)
     // Remove failed landmarks from map (consecutive failures to match)
     // Identify surplus features that do not correspond to landmarks in the map
     // Initialise up to Nmax – N new landmarks from best surplus features
+
+    // Select all current landmarks (your Plot and bundle maths expect a fixed ordering)
+    std::vector<std::size_t> idxLandmarks(systemSLAM.numberLandmarks());
+    std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+
+    // Fill idxFeatures_ by data association:
+    //  - By default this calls SNN/compatibility (MeasurementPointBundle::associate)
+    //  - For Scenario 1 we constructed MeasurementSLAMUniqueTagBundle, which overrides
+    //    associate(...) to do ID-based matching.
+    associate(systemSLAM, idxLandmarks); // populates idxFeatures_
+
+    // Optional: here is where you could drop consistently-unmatched landmarks or spawn new ones
+    // from surplus features. For Scenario 1 we keep it minimal.
     
     Measurement::update(system);    // Do the actual measurement update
 }

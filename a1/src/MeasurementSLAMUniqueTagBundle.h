@@ -1,80 +1,35 @@
-#ifndef MEASUREMENTSLAMUNIQUETAGBUNDLE_H
-#define MEASUREMENTSLAMUNIQUETAGBUNDLE_H
-
+#pragma once
 #include <vector>
-#include <array>
-#include <Eigen/Core>
-#include "MeasurementSLAM.h"
-#include "SystemSLAMPoseLandmarks.h"
-#include "rotation.hpp"
+#include <unordered_map>
+#include "MeasurementSLAMPointBundle.h"
 
-struct TagDetection
-{
-    int id = -1;
-    // 4 corners in image pixels, ordered TL, TR, BR, BL (OpenCV ArUco order)
-    // corners[i] = {u, v}
-    std::array<Eigen::Vector2d, 4> corners{};
-};
-
-class MeasurementSLAMUniqueTagBundle : public MeasurementSLAM
+class MeasurementSLAMUniqueTagBundle : public MeasurementPointBundle
 {
 public:
-    // Y is 2x(4*Ntags): [TL,TR,BR,BL | TL,TR,BR,BL | ...] column-stacked
+    // Yc is 2xN (centroid per detected tag), ids is length N (OpenCV order)
     MeasurementSLAMUniqueTagBundle(double time,
-                                   const Eigen::Matrix<double,2,Eigen::Dynamic>& Y,
+                                   const Eigen::Matrix<double,2,Eigen::Dynamic>& Yc,
                                    const Camera& camera,
-                                   const std::vector<TagDetection>& detections,
-                                   double tagSizeMeters = 0.16);
+                                   const std::vector<int>& ids)
+    : MeasurementPointBundle(time, Yc, camera)
+    , ids_(ids)
+    , id_by_landmark_()
+    {
+        // scenario 1: pixel noise ~ 2 px is reasonable
+        this->sigma_ = 2.0;
+    }
 
-    MeasurementSLAM * clone() const override { return new MeasurementSLAMUniqueTagBundle(*this); }
+    // Set persistent mapping (landmark index -> tag ID)
+    void setIdByLandmark(const std::vector<int>& m) { id_by_landmark_ = m; }
 
-    // Predict a single "feature" for Plot purposes: we use the tag CENTER (2D)
-    GaussianInfo<double> predictFeatureDensity(const SystemSLAM& system, std::size_t idxLandmark) const override;
+    // Accessor (optional)
+    const std::vector<int>& idByLandmark() const { return id_by_landmark_; }
 
-    // Predict stacked centers for an arbitrary set (mostly unused by Plot, provided for completeness)
-    GaussianInfo<double> predictFeatureBundleDensity(const SystemSLAM& system,
-                                                     const std::vector<std::size_t>& idxLandmarks) const override;
-
-    // Association is trivial by ID at the tag level; here we return a no-op vector
-    // (We’ll do true ID→landmark management inside update(...) in Stage-2)
+    // Override: associate landmarks to current frame features by ID
     const std::vector<int>& associate(const SystemSLAM& system,
                                       const std::vector<std::size_t>& idxLandmarks) override;
 
-    // --- Stage-1 stubs so the class is concrete ---
-    Eigen::VectorXd simulate(const Eigen::VectorXd& x,
-                             const SystemEstimator& system) const override;
-    double logLikelihood(const Eigen::VectorXd& x,
-                         const SystemEstimator& system) const override;
-    double logLikelihood(const Eigen::VectorXd& x,
-                         const SystemEstimator& system,
-                         Eigen::VectorXd& g) const override;
-    double logLikelihood(const Eigen::VectorXd& x,
-                         const SystemEstimator& system,
-                         Eigen::VectorXd& g,
-                         Eigen::MatrixXd& H) const override;
-
-protected:
-    // Stage-1: Map management disabled; just call base update when you enable fusion
-    void update(SystemBase& system) override;
-
 private:
-    // Returns tag center pixel projection for the given POSE-landmark index
-    template <typename Scalar>
-    Eigen::Vector2<Scalar> predictTagCenter(const Eigen::VectorX<Scalar>& x,
-                                            const SystemSLAM& system,
-                                            std::size_t idxPoseLandmark) const;
-
-    // Returns the 4 world corners of a tag given its pose (center rLNn + orientation Rln)
-    template <typename Scalar>
-    std::array<Eigen::Vector3<Scalar>, 4> tagCornersWorld(const Eigen::Vector3<Scalar>& rLNn,
-                                                          const Eigen::Matrix3<Scalar>& Rln) const;
-
-private:
-    Eigen::Matrix<double,2,Eigen::Dynamic> Y_;   // 2 x (4*Ntags) pixel columns
-    std::vector<TagDetection> detections_;       // one per tag this frame
-    double sigma_ = 1.0;                         // pixel stdev for visualisation
-    double tagSize_ = 0.16;                      // meters, edge length
-    mutable std::vector<int> idxFeatures_;       // required by interface
+    std::vector<int> ids_;            // current frame tag IDs (aligned with columns of Y_)
+    std::vector<int> id_by_landmark_; // persistent mapping: landmark j -> tag ID
 };
-
-#endif
