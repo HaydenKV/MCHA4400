@@ -1,5 +1,14 @@
 \doxysection{Measurement\+SLAMUnique\+Tag\+Bundle Class Reference}
 \hypertarget{classMeasurementSLAMUniqueTagBundle}{}\label{classMeasurementSLAMUniqueTagBundle}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+
+
+\doxylink{classMeasurement}{Measurement} class for Ar\+Uco tag SLAM with unique IDs.  
+
+
+
+
+{\ttfamily \#include $<$Measurement\+SLAMUnique\+Tag\+Bundle.\+h$>$}
+
 Inheritance diagram for Measurement\+SLAMUnique\+Tag\+Bundle\+:\begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -9,8 +18,7 @@ Inheritance diagram for Measurement\+SLAMUnique\+Tag\+Bundle\+:\begin{figure}[H]
 \doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\Hypertarget{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}\label{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49} 
-{\bfseries Measurement\+SLAMUnique\+Tag\+Bundle} (double time, const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&Y, const \mbox{\hyperlink{structCamera}{Camera}} \&camera, const std\+::vector$<$ int $>$ \&ids)
+\mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{Measurement\+SLAMUnique\+Tag\+Bundle}} (double time, const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&Y, const \mbox{\hyperlink{structCamera}{Camera}} \&camera, const std\+::vector$<$ int $>$ \&ids)
 \item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00}\label{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00} 
 void {\bfseries set\+Id\+By\+Landmark} (const std\+::vector$<$ int $>$ \&m)
@@ -19,9 +27,18 @@ void {\bfseries set\+Id\+By\+Landmark} (const std\+::vector$<$ int $>$ \&m)
 const std\+::vector$<$ int $>$ \& {\bfseries id\+By\+Landmark} () const
 \item 
 virtual const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
-\item 
+\begin{DoxyCompactList}\small\item\em ID-\/based data association. \end{DoxyCompactList}\item 
 virtual void \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
-\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\item 
+virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const override
+\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood of a measurement. \end{DoxyCompactList}\item 
+virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a0b739a11c73f4dd3f15bb56df770adf5}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const override
+\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood and its gradient. \end{DoxyCompactList}\item 
+virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ae9105df00cf1c9a233721082f429c94b}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const override
+\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood, its gradient, and Hessian. \end{DoxyCompactList}\item 
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a0487f2139c9757cfe34e12e83bf52020}\label{classMeasurementSLAMUniqueTagBundle_a0487f2139c9757cfe34e12e83bf52020} 
+const std\+::vector$<$ int $>$ \& {\bfseries idx\+Features} () const
+\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}}
 \begin{DoxyCompactItemize}
 \item 
@@ -31,12 +48,6 @@ virtual void \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7
 \item 
 virtual Eigen\+::\+Vector\+Xd \mbox{\hyperlink{classMeasurementPointBundle_ac368052d6c6700daba2676c8c7f767c1}{simulate}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const override
 \begin{DoxyCompactList}\small\item\em Simulate a measurement given a state and system. \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementPointBundle_abc7d69eed60bab5f63982e25888ca1c5}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const override
-\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood of a measurement. \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementPointBundle_ab7bda57787c76493a60b52f02e9c254f}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const override
-\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood and its gradient. \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementPointBundle_ae2b8fad7d79ec97b0afd7cf1d216d2bd}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const override
-\begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood, its gradient, and Hessian. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Vector2$<$ Scalar $>$ {\bfseries predict\+Feature} (const Eigen\+::\+VectorX$<$ Scalar $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
 \item 
 Eigen\+::\+Vector2d {\bfseries predict\+Feature} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
@@ -79,12 +90,11 @@ void \mbox{\hyperlink{classEvent_a0a4e814f472c519ace0a22f1a23acb0a}{process}} (\
 \doxysubsubsection*{Protected Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\Hypertarget{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}\label{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546} 
-Eigen\+::\+Matrix$<$ double, 8, 1 $>$ {\bfseries predict\+Tag\+Corners} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\item 
+Eigen\+::\+Matrix$<$ double, 8, 1 $>$ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}{predict\+Tag\+Corners}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\begin{DoxyCompactList}\small\item\em Predict 4 corner pixel locations for a single tag landmark. \end{DoxyCompactList}\item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_ae1680c7f86af60ebeb2b8a6f172b9083}\label{classMeasurementSLAMUniqueTagBundle_ae1680c7f86af60ebeb2b8a6f172b9083} 
 {\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 8, 1 $>$ {\bfseries predict\+Tag\+CornersT} (const Eigen\+::\+VectorX$<$ Scalar $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Templated version for autodiff. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
 \item 
@@ -143,6 +153,40 @@ int {\bfseries verbosity\+\_\+}
 \begin{DoxyCompactList}\small\item\em Verbosity level. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
+\doxysubsection{Detailed Description}
+\doxylink{classMeasurement}{Measurement} class for Ar\+Uco tag SLAM with unique IDs. 
+
+This class handles\+:
+\begin{DoxyEnumerate}
+\item ID-\/based data association (trivial since tags have unique IDs)
+\item 4-\/corner measurement model per tag
+\item Log-\/likelihood with penalty term for unassociated landmarks
+\end{DoxyEnumerate}
+
+State\+: Each landmark is 6-\/DOF pose \mbox{[}r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+j/N; Θ\texorpdfstring{$^\wedge$}{\string^}n\+\_\+j\mbox{]} \doxylink{classMeasurement}{Measurement}\+: 4 corners per tag \mbox{[}u1,v1,u2,v2,u3,v3,u4,v4\mbox{]}\texorpdfstring{$^\wedge$}{\string^}T 
+
+\label{doc-constructors}
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_doc-constructors}
+\doxysubsection{Constructor \& Destructor Documentation}
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{MeasurementSLAMUniqueTagBundle()}{MeasurementSLAMUniqueTagBundle()}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49} 
+Measurement\+SLAMUnique\+Tag\+Bundle\+::\+Measurement\+SLAMUnique\+Tag\+Bundle (\begin{DoxyParamCaption}\item[{double}]{time}{, }\item[{const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&}]{Y}{, }\item[{const \mbox{\hyperlink{structCamera}{Camera}} \&}]{camera}{, }\item[{const std\+::vector$<$ int $>$ \&}]{ids}{}\end{DoxyParamCaption})}
+
+
+\begin{DoxyParams}{Parameters}
+{\em time} & \doxylink{classMeasurement}{Measurement} timestamp \\
+\hline
+{\em Y} & \doxylink{classMeasurement}{Measurement} matrix (2 × 4N) -\/ all corners of all tags \\
+\hline
+{\em camera} & \doxylink{structCamera}{Camera} calibration \\
+\hline
+{\em ids} & Tag IDs corresponding to measurements \\
+\hline
+\end{DoxyParams}
+
+
 \label{doc-func-members}
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_doc-func-members}
 \doxysubsection{Member Function Documentation}
@@ -154,8 +198,105 @@ const std\+::vector$<$ int $>$ \& Measurement\+SLAMUnique\+Tag\+Bundle\+::associ
 
 
 
+ID-\/based data association. 
+
+For each landmark, find the detected tag with matching ID. Returns idx\+Features\+\_\+\mbox{[}j\mbox{]} = feature index for landmark j (-\/1 if unassociated) 
+
 Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}.
 
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!logLikelihood@{logLikelihood}}
+\index{logLikelihood@{logLikelihood}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{logLikelihood()}{logLikelihood()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013} 
+double Measurement\+SLAMUnique\+Tag\+Bundle\+::log\+Likelihood (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{x}{, }\item[{const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&}]{system}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Calculate the log-\/likelihood of a measurement. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & The state vector. \\
+\hline
+{\em system} & The system estimator. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The log-\/likelihood value. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_abc7d69eed60bab5f63982e25888ca1c5}{Measurement\+Point\+Bundle}}.
+
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a0b739a11c73f4dd3f15bb56df770adf5}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!logLikelihood@{logLikelihood}}
+\index{logLikelihood@{logLikelihood}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{logLikelihood()}{logLikelihood()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a0b739a11c73f4dd3f15bb56df770adf5} 
+double Measurement\+SLAMUnique\+Tag\+Bundle\+::log\+Likelihood (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{x}{, }\item[{const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&}]{system}{, }\item[{Eigen\+::\+Vector\+Xd \&}]{g}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Calculate the log-\/likelihood and its gradient. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & The state vector. \\
+\hline
+{\em system} & The system estimator. \\
+\hline
+{\em g} & Output parameter for the gradient. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The log-\/likelihood value. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_ab7bda57787c76493a60b52f02e9c254f}{Measurement\+Point\+Bundle}}.
+
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_ae9105df00cf1c9a233721082f429c94b}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!logLikelihood@{logLikelihood}}
+\index{logLikelihood@{logLikelihood}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{logLikelihood()}{logLikelihood()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_ae9105df00cf1c9a233721082f429c94b} 
+double Measurement\+SLAMUnique\+Tag\+Bundle\+::log\+Likelihood (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{x}{, }\item[{const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&}]{system}{, }\item[{Eigen\+::\+Vector\+Xd \&}]{g}{, }\item[{Eigen\+::\+Matrix\+Xd \&}]{H}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Calculate the log-\/likelihood, its gradient, and Hessian. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & The state vector. \\
+\hline
+{\em system} & The system estimator. \\
+\hline
+{\em g} & Output parameter for the gradient. \\
+\hline
+{\em H} & Output parameter for the Hessian. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The log-\/likelihood value. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_ae2b8fad7d79ec97b0afd7cf1d216d2bd}{Measurement\+Point\+Bundle}}.
+
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!predictTagCorners@{predictTagCorners}}
+\index{predictTagCorners@{predictTagCorners}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{predictTagCorners()}{predictTagCorners()}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546} 
+Eigen\+::\+Matrix$<$ double, 8, 1 $>$ Measurement\+SLAMUnique\+Tag\+Bundle\+::predict\+Tag\+Corners (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{x}{, }\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{std\+::size\+\_\+t}]{idx\+Landmark}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [protected]}}
+
+
+
+Predict 4 corner pixel locations for a single tag landmark. 
+
+Given state x containing landmark \mbox{[}r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+j/N; Θ\texorpdfstring{$^\wedge$}{\string^}n\+\_\+j\mbox{]}, predicts where the 4 corners of the tag should appear in the image.
+
+\begin{DoxyReturn}{Returns}
+8×1 vector \mbox{[}u1,v1,u2,v2,u3,v3,u4,v4\mbox{]}\texorpdfstring{$^\wedge$}{\string^}T 
+\end{DoxyReturn}
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!update@{update}}
 \index{update@{update}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
 \doxysubsubsection{\texorpdfstring{update()}{update()}}

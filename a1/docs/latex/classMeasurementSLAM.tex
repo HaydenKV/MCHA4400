@@ -21,8 +21,7 @@ virtual \mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ {\bfs
 \Hypertarget{classMeasurementSLAM_a36ee97478d759796de3898398f1c8944}\label{classMeasurementSLAM_a36ee97478d759796de3898398f1c8944} 
 virtual \mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ {\bfseries predict\+Feature\+Bundle\+Density} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const =0
 \item 
-\Hypertarget{classMeasurementSLAM_a67c2b400dd266680c182e7e80f674060}\label{classMeasurementSLAM_a67c2b400dd266680c182e7e80f674060} 
-virtual const std\+::vector$<$ int $>$ \& {\bfseries associate} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks)=0
+virtual const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAM_a67c2b400dd266680c182e7e80f674060}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks)=0
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
@@ -102,6 +101,21 @@ virtual void \mbox{\hyperlink{classMeasurement_a30df1dcc9aac6e9d25e54498ca11758a
 \item 
 virtual std\+::string \mbox{\hyperlink{classEvent_a5610e63185ccb47c969fe2f8796921a7}{get\+Process\+String}} () const
 \begin{DoxyCompactList}\small\item\em Get a string representation of the event processing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{classMeasurementSLAM_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classMeasurementSLAM_a67c2b400dd266680c182e7e80f674060}\index{MeasurementSLAM@{MeasurementSLAM}!associate@{associate}}
+\index{associate@{associate}!MeasurementSLAM@{MeasurementSLAM}}
+\doxysubsubsection{\texorpdfstring{associate()}{associate()}}
+{\footnotesize\ttfamily \label{classMeasurementSLAM_a67c2b400dd266680c182e7e80f674060} 
+virtual const std\+::vector$<$ int $>$ \& Measurement\+SLAM\+::associate (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Implemented in \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{Measurement\+SLAMUnique\+Tag\+Bundle}}.
+
 
 
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}

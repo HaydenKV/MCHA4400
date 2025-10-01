@@ -9,6 +9,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -165,8 +166,16 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
     std::unique_ptr<SystemSLAM> systemPtr;
     if (scenario == 1)
     {
-        Eigen::VectorXd mu_body(12); mu_body.setZero();
-        Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12) * 1e-2; // tight prior on body
+        Eigen::VectorXd mu_body(12); 
+        mu_body.setZero(); // Start at origin, zero velocity
+
+        Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12); // tight prior on body
+
+        S_body.block<6,6>(0,0) *= 1e-2; // velocity 
+        const double d2r = M_PI / 180.0;
+        S_body.block<3,3>(6,6) *= 1e-2;           // Position: 10cm
+        S_body.block<3,3>(9,9) *= (0.5 * d2r);   // Orientation: 5°
+
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPoseLandmarks>(SystemSLAMPoseLandmarks(p0));
     }
@@ -222,105 +231,180 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
 
         const double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
 
+        // ============================================================================
+        // SCENARIO 1: ArUco Tag SLAM with 6-DOF Pose Landmarks
+        // ============================================================================
         if (scenario == 1)
         {
-            // 1) Detect ArUco tags
+            // 1) DETECT ARUCO TAGS
+            // Returns: ids[], corners[] (4 corners per tag in TL,TR,BR,BL order)
             ArucoDetections dets = detectArucoLab2(imgin, cv::aruco::DICT_6X6_250, /*refine*/true);
 
-            // 2) Per-marker PnP using SOLVEPNP_IPPE_SQUARE with corners reordered to TL,TR,BR,BL
+            // 2) PER-MARKER PNP SOLVE
+            // Solve for tag pose in camera frame using IPPE (best for planar targets)
             std::vector<cv::Vec3d> rvecs, tvecs;
             rvecs.reserve(dets.corners.size());
             tvecs.reserve(dets.corners.size());
             for (const auto& arr : dets.corners)
             {
+                // Reorder corners to match objPts (TL,TR,BR,BL)
                 const std::vector<cv::Point2f> imgPts = reorderTLTRBRBL(arr);
                 cv::Vec3d rvec, tvec;
                 bool ok = cv::solvePnP(objPts, imgPts,
-                                       camera.cameraMatrix, camera.distCoeffs,
-                                       rvec, tvec, false, cv::SOLVEPNP_IPPE_SQUARE);
+                                    camera.cameraMatrix, camera.distCoeffs,
+                                    rvec, tvec, false, cv::SOLVEPNP_IPPE_SQUARE);
                 if (!ok) { rvec = cv::Vec3d(0,0,0); tvec = cv::Vec3d(0,0,0); }
                 rvecs.push_back(rvec);
                 tvecs.push_back(tvec);
             }
 
-            // 3) Spawn new landmarks for any newly seen tag IDs (transform PnP pose to world frame)
+            // 3) INITIALIZE NEW LANDMARKS
+            // For any tag ID we haven't seen before, add it to the map
             auto* sysPose = dynamic_cast<SystemSLAMPoseLandmarks*>(&system);
             assert(sysPose && "Scenario 1 expects SystemSLAMPoseLandmarks");
 
-            // Ensure mapping length matches current number of landmarks
+            // Ensure mapping vector is sized to match current landmarks
             if (id_by_landmark.size() < system.numberLandmarks())
                 id_by_landmark.resize(system.numberLandmarks(), -1);
 
-            // Current camera pose from the (mean) state
+            // Get current camera pose from state estimate (mean of Gaussian)
             const Eigen::VectorXd xmean = sysPose->density.mean();
             const Eigen::Vector3d rCNn  = SystemSLAM::cameraPosition(camera, xmean);
             const Eigen::Matrix3d Rnc   = SystemSLAM::cameraOrientation(camera, xmean);
 
+            // Check each detected tag
             for (std::size_t i = 0; i < dets.ids.size(); ++i)
             {
                 const int tagId = dets.ids[i];
-                const bool known = std::find(id_by_landmark.begin(), id_by_landmark.end(), tagId) != id_by_landmark.end();
-                if (known) continue;
+                
+                // Is this tag already in our map?
+                const bool known = std::find(id_by_landmark.begin(), id_by_landmark.end(), tagId) 
+                                != id_by_landmark.end();
+                if (known) continue;  // Skip if already initialized
 
-                // Tag pose in camera frame (from our IPPE solve)
+                // NEW TAG DETECTED - Initialize landmark
+                
+                // A) Get tag pose in CAMERA frame from PnP
                 cv::Mat Rcv;
-                cv::Rodrigues(rvecs[i], Rcv); // 3x3, CV_64F
+                cv::Rodrigues(rvecs[i], Rcv); // Convert Rodrigues vector → rotation matrix
                 Eigen::Matrix3d Rcj;
                 for (int r = 0; r < 3; ++r)
                     for (int c = 0; c < 3; ++c)
                         Rcj(r,c) = Rcv.at<double>(r,c);
                 const Eigen::Vector3d rCj(tvecs[i][0], tvecs[i][1], tvecs[i][2]);
 
-                // Transform to nav/world frame
+                // B) Transform tag pose from CAMERA frame to WORLD/NAV frame
+                // Rotation: R^n_j = R^n_c * R^c_j
+                // Position: r^n_j/N = r^n_C/N + R^n_c * r^c_j/C
                 const Eigen::Matrix3d Rnj = Rnc * Rcj;
                 const Eigen::Vector3d rnj = rCNn + Rnc * rCj;
 
-                // CHANGED LINE: Extract Euler angles from rotation matrix
-                const Eigen::Vector3d Thetanj = rot2rpy(Rnj);  // Changed from Eigen::Vector3d::Zero()
+                // C) Convert rotation matrix to RPY Euler angles
+                // This is required because our state uses Θ^n_j (roll, pitch, yaw)
+                const Eigen::Vector3d Thetanj = rot2rpy(Rnj);
 
-                // Initial sqrt-cov (upper-triangular): 0.25 m on pos, 15° on eulers
+                // D) Set initial uncertainty (sqrt-covariance, upper triangular)
+                // Position: σ = 0.25 m (reasonable for PnP initialization)
+                // Orientation: σ = 15° (converted to radians)
                 const double d2r = M_PI / 180.0;
                 Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
-                Sj.diagonal() << 0.25, 0.25, 0.25, (15.0*d2r), (15.0*d2r), (15.0*d2r);
+                Sj.diagonal() << 0.5, 0.5, 0.5,           // position uncertainty
+                                (25.0*d2r), (25.0*d2r), (25.0*d2r);  // orientation uncertainty
 
+                // E) Augment state with new landmark [r^n_j/N; Θ^n_j]
                 const std::size_t j = sysPose->appendLandmark(rnj, Thetanj, Sj);
 
-                if (j >= id_by_landmark.size()) id_by_landmark.resize(j+1, -1);
+                // F) Record tag ID for this landmark index
+                if (j >= id_by_landmark.size()) 
+                    id_by_landmark.resize(j+1, -1);
                 id_by_landmark[j] = tagId;
             }
 
-            // 4) Build centroid measurement Yc (2 x N) + ids
-            const std::size_t N = dets.ids.size();
-            Eigen::Matrix<double,2,Eigen::Dynamic> Yc(2, static_cast<int>(N));
+            // 4) BUILD MEASUREMENT - ALL 4 CORNERS PER TAG
+            // 
+            // CRITICAL: The assignment spec requires using ALL corner measurements:
+            //   log p(y|x) = Σ Σ log p(y_ic | η, m_j) - 4|U| log |Y|
+            //              (i,j)∈A c=1..4
+            //
+            // This means we need Y as a (2 × 4N) matrix, NOT centroids!
+            //
+            const std::size_t N = dets.ids.size();  // Number of detected tags
+            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*N);  // 4 corners × N tags
+            
             for (std::size_t i = 0; i < N; ++i)
             {
-                const auto & cs = dets.corners[i];
-                double u=0.0, v=0.0;
-                for (int c = 0; c < 4; ++c) { u += cs[c].x; v += cs[c].y; }
-                Yc(0, static_cast<int>(i)) = u * 0.25;
-                Yc(1, static_cast<int>(i)) = v * 0.25;
+                const auto& corners = dets.corners[i];  // 4 corners: TL, TR, BR, BL
+                
+                // Stack all 4 corner measurements for this tag
+                // Column layout: [tag0_TL, tag0_TR, tag0_BR, tag0_BL, tag1_TL, tag1_TR, ...]
+                for (int c = 0; c < 4; ++c)
+                {
+                    Y(0, 4*i + c) = corners[c].x;  // u coordinate (horizontal)
+                    Y(1, 4*i + c) = corners[c].y;  // v coordinate (vertical)
+                }
             }
 
-            // 5) Compose left-pane overlay: green boxes (already drawn by detectArucoLab2) + RGB pose axes
+            // 5) COMPOSE VISUALIZATION OVERLAY
+            // Draw detected tags with axes showing their estimated pose
             cv::Mat overlay = dets.annotated.empty() ? imgin.clone() : dets.annotated.clone();
             for (std::size_t i = 0; i < dets.ids.size(); ++i)
             {
+                // Draw RGB axes (X=red, Y=green, Z=blue) at tag location
                 cv::drawFrameAxes(overlay,
-                                  camera.cameraMatrix, camera.distCoeffs,
-                                  rvecs[i], tvecs[i],
-                                  tagSizeMeters * 1.5f, 2);
+                                camera.cameraMatrix, camera.distCoeffs,
+                                rvecs[i], tvecs[i],
+                                tagSizeMeters * 0.4f,  // axis length
+                                2);  // line thickness
+
+
+                // Optional: Draw tag ID as text
+                // const auto& corners = dets.corners[i];
+                // cv::Point2f center = (corners[0] + corners[1] + corners[2] + corners[3]) * 0.25f;
+                // cv::putText(overlay, 
+                //             std::to_string(dets.ids[i]),
+                //             center,
+                //             cv::FONT_HERSHEY_SIMPLEX,
+                //             0.6,              // font scale
+                //             cv::Scalar(255, 255, 0),  // cyan color
+                //             2);               // thickness
             }
             system.view() = overlay;
 
-            // Predict system state forward
+            // 6) TIME UPDATE
+            // Propagate state estimate forward to current frame time
             system.predict(t);
 
-            // 6) Fuse: ID-based association + optimiser update
-            MeasurementSLAMUniqueTagBundle meas(t, Yc, camera, dets.ids);
-            meas.setIdByLandmark(id_by_landmark);
-            meas.process(system); // predict → associate(by ID) → update
+            // 7) MEASUREMENT UPDATE
+            // Create measurement object with:
+            //   - Y: all corner measurements (2×4N)
+            //   - camera: calibration parameters
+            //   - dets.ids: tag IDs for association
+            MeasurementSLAMUniqueTagBundle meas(t, Y, camera, dets.ids);
+            meas.setIdByLandmark(id_by_landmark);  // Pass ID mapping for association
+            meas.process(system);  // Performs: predict → associate → optimize
 
-            // 7) Plot both panes
+            // DEBUG COMMENT OUT
+            // After measurement update, print diagnostics
+            if (frameIdx % 30 == 0) {  // Every 30 frames
+                std::cout << "\n=== Frame " << frameIdx << " ===\n";
+                std::cout << "  Landmarks: " << system.numberLandmarks() << "\n";
+                std::cout << "  Detected tags: " << dets.ids.size() << "\n";
+                
+                // Count associations
+                int nAssoc = 0;
+                for (int idx : meas.idxFeatures()) {
+                    if (idx >= 0) nAssoc++;
+                }
+                std::cout << "  Associated: " << nAssoc << "\n";
+                
+                // Camera position
+                const Eigen::VectorXd x = system.density.mean();
+                const Eigen::Vector3d camPos = SystemSLAM::cameraPosition(camera, x);
+                std::cout << "  Camera pos: [" << camPos.transpose() << "]\n";
+            }
+
+
+            // 8) VISUALIZE
             plot.setData(system, meas);
             plot.render();
             if (doExport) bufferedVideoWriter.write(plot.getFrame());
