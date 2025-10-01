@@ -127,13 +127,15 @@ Inheritance diagram for MeasurementSLAMUniqueTagBundle:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a7aeed22fa8af8e8aae887fc655f3d2c4" id="r_a7aeed22fa8af8e8aae887fc655f3d2c4"><td class="memItemLeft" align="right" valign="top"><a id="a7aeed22fa8af8e8aae887fc655f3d2c4" name="a7aeed22fa8af8e8aae887fc655f3d2c4"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>MeasurementSLAMUniqueTagBundle</b> (double time, const Eigen::Matrix&lt; double, 2, Eigen::Dynamic &gt; &amp;Yc, const <a class="el" href="structCamera.html">Camera</a> &amp;camera, const std::vector&lt; int &gt; &amp;ids)</td></tr>
+<tr class="memitem:a9664b84d0ecb7b8c8d956814ddcd6f49" id="r_a9664b84d0ecb7b8c8d956814ddcd6f49"><td class="memItemLeft" align="right" valign="top"><a id="a9664b84d0ecb7b8c8d956814ddcd6f49" name="a9664b84d0ecb7b8c8d956814ddcd6f49"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>MeasurementSLAMUniqueTagBundle</b> (double time, const Eigen::Matrix&lt; double, 2, Eigen::Dynamic &gt; &amp;Y, const <a class="el" href="structCamera.html">Camera</a> &amp;camera, const std::vector&lt; int &gt; &amp;ids)</td></tr>
 <tr class="memitem:a01e32a3cc6fab9242d691a347373eb00" id="r_a01e32a3cc6fab9242d691a347373eb00"><td class="memItemLeft" align="right" valign="top"><a id="a01e32a3cc6fab9242d691a347373eb00" name="a01e32a3cc6fab9242d691a347373eb00"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setIdByLandmark</b> (const std::vector&lt; int &gt; &amp;m)</td></tr>
 <tr class="memitem:ab0ff41f2014f768dafaf708460fff3d3" id="r_ab0ff41f2014f768dafaf708460fff3d3"><td class="memItemLeft" align="right" valign="top"><a id="ab0ff41f2014f768dafaf708460fff3d3" name="ab0ff41f2014f768dafaf708460fff3d3"></a>
 const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>idByLandmark</b> () const</td></tr>
-<tr class="memitem:a9b15d929706870c1b47cc6b3c8abb354" id="r_a9b15d929706870c1b47cc6b3c8abb354"><td class="memItemLeft" align="right" valign="top">const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9b15d929706870c1b47cc6b3c8abb354">associate</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) override</td></tr>
+<tr class="memitem:a9b15d929706870c1b47cc6b3c8abb354" id="r_a9b15d929706870c1b47cc6b3c8abb354"><td class="memItemLeft" align="right" valign="top">virtual const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9b15d929706870c1b47cc6b3c8abb354">associate</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) override</td></tr>
+<tr class="memitem:a78197c8e25dc7f4624ea5b0efc550f86" id="r_a78197c8e25dc7f4624ea5b0efc550f86"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78197c8e25dc7f4624ea5b0efc550f86">update</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system) override</td></tr>
+<tr class="memdesc:a78197c8e25dc7f4624ea5b0efc550f86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the system based on this measurement.  <br /></td></tr>
 <tr class="inherit_header pub_methods_classMeasurementPointBundle"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pub_methods_classMeasurementPointBundle')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Public Member Functions inherited from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a></td></tr>
 <tr class="memitem:ad3e9a288190a3ebcc09b61cea2ca79cf inherit pub_methods_classMeasurementPointBundle" id="r_ad3e9a288190a3ebcc09b61cea2ca79cf"><td class="memItemLeft" align="right" valign="top">
 &#160;</td><td class="memItemRight" valign="bottom"><b>MeasurementPointBundle</b> (double time, const Eigen::Matrix&lt; double, 2, Eigen::Dynamic &gt; &amp;Y, const <a class="el" href="structCamera.html">Camera</a> &amp;camera)</td></tr>
@@ -158,8 +160,8 @@ template&lt;typename Scalar&gt; </td></tr>
 <tr class="memitem:a60189a5119bd961a2828bbc0f17027fe inherit pub_methods_classMeasurementPointBundle" id="r_a60189a5119bd961a2828bbc0f17027fe"><td class="memItemLeft" align="right" valign="top">
 Eigen::VectorXd&#160;</td><td class="memItemRight" valign="bottom"><b>predictFeatureBundle</b> (const Eigen::VectorXd &amp;x, Eigen::MatrixXd &amp;J, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) const</td></tr>
 <tr class="memitem:a721625a147f92659a905fc6687642c3e inherit pub_methods_classMeasurementPointBundle" id="r_a721625a147f92659a905fc6687642c3e"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classGaussianInfo.html">GaussianInfo</a>&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurementPointBundle.html#a721625a147f92659a905fc6687642c3e">predictFeatureBundleDensity</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) const override</td></tr>
-<tr class="memitem:afd21d5e0b8d4236c8ba60515a1c9d481 inherit pub_methods_classMeasurementPointBundle" id="r_afd21d5e0b8d4236c8ba60515a1c9d481"><td class="memItemLeft" align="right" valign="top">
-const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>associationsThisFrame</b> () const</td></tr>
+<tr class="memitem:a7aaf45de719eb1930575e83295a9caf1 inherit pub_methods_classMeasurementPointBundle" id="r_a7aaf45de719eb1930575e83295a9caf1"><td class="memItemLeft" align="right" valign="top">
+const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>idxFeatures</b> () const</td></tr>
 <tr class="inherit_header pub_methods_classMeasurementSLAM"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pub_methods_classMeasurementSLAM')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Public Member Functions inherited from <a class="el" href="classMeasurementSLAM.html">MeasurementSLAM</a></td></tr>
 <tr class="memitem:a34aab37381e6e2f5fcb18b32fd5a8d76 inherit pub_methods_classMeasurementSLAM" id="r_a34aab37381e6e2f5fcb18b32fd5a8d76"><td class="memItemLeft" align="right" valign="top">
 &#160;</td><td class="memItemRight" valign="bottom"><b>MeasurementSLAM</b> (double time, const <a class="el" href="structCamera.html">Camera</a> &amp;camera)</td></tr>
@@ -182,6 +184,24 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><b>~Event</b> ()</td>
 <tr class="memitem:a0a4e814f472c519ace0a22f1a23acb0a inherit pub_methods_classEvent" id="r_a0a4e814f472c519ace0a22f1a23acb0a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEvent.html#a0a4e814f472c519ace0a22f1a23acb0a">process</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system)</td></tr>
 <tr class="memdesc:a0a4e814f472c519ace0a22f1a23acb0a inherit pub_methods_classEvent"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process the event in the given system.  <br /></td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a78fa7cdc85fe0c072e9796a0a9fb9546" id="r_a78fa7cdc85fe0c072e9796a0a9fb9546"><td class="memItemLeft" align="right" valign="top"><a id="a78fa7cdc85fe0c072e9796a0a9fb9546" name="a78fa7cdc85fe0c072e9796a0a9fb9546"></a>
+Eigen::Matrix&lt; double, 8, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>predictTagCorners</b> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, std::size_t idxLandmark) const</td></tr>
+<tr class="memitem:ae1680c7f86af60ebeb2b8a6f172b9083" id="r_ae1680c7f86af60ebeb2b8a6f172b9083"><td class="memTemplParams" colspan="2"><a id="ae1680c7f86af60ebeb2b8a6f172b9083" name="ae1680c7f86af60ebeb2b8a6f172b9083"></a>
+template&lt;typename Scalar&gt; </td></tr>
+<tr class="memitem:ae1680c7f86af60ebeb2b8a6f172b9083 template"><td class="memItemLeft" align="right" valign="top">Eigen::Matrix&lt; Scalar, 8, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>predictTagCornersT</b> (const Eigen::VectorX&lt; Scalar &gt; &amp;x, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, std::size_t idxLandmark) const</td></tr>
+<tr class="inherit_header pro_methods_classMeasurement"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classMeasurement')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classMeasurement.html">Measurement</a></td></tr>
+<tr class="memitem:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement" id="r_a3e2ef4fbb8d8eeb71940f5ffd6848ea6"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#a3e2ef4fbb8d8eeb71940f5ffd6848ea6">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const</td></tr>
+<tr class="memdesc:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density.  <br /></td></tr>
+<tr class="memitem:aaea34bb7e795a1c29a28f37b7e252ecf inherit pro_methods_classMeasurement" id="r_aaea34bb7e795a1c29a28f37b7e252ecf"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#aaea34bb7e795a1c29a28f37b7e252ecf">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g) const</td></tr>
+<tr class="memdesc:aaea34bb7e795a1c29a28f37b7e252ecf inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density and its gradient.  <br /></td></tr>
+<tr class="memitem:aeae3ef416c7110a2041fdfb320a57559 inherit pro_methods_classMeasurement" id="r_aeae3ef416c7110a2041fdfb320a57559"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#aeae3ef416c7110a2041fdfb320a57559">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g, Eigen::MatrixXd &amp;H) const</td></tr>
+<tr class="memdesc:aeae3ef416c7110a2041fdfb320a57559 inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density, its gradient, and Hessian.  <br /></td></tr>
+<tr class="inherit_header pro_methods_classEvent"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classEvent')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classEvent.html">Event</a></td></tr>
+<tr class="memitem:a5610e63185ccb47c969fe2f8796921a7 inherit pro_methods_classEvent" id="r_a5610e63185ccb47c969fe2f8796921a7"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEvent.html#a5610e63185ccb47c969fe2f8796921a7">getProcessString</a> () const</td></tr>
+<tr class="memdesc:a5610e63185ccb47c969fe2f8796921a7 inherit pro_methods_classEvent"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a string representation of the event processing.  <br /></td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-inherited" class="groupheader"><a id="inherited" name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pro_types_classMeasurement"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_types_classMeasurement')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Types inherited from <a class="el" href="classMeasurement.html">Measurement</a></td></tr>
@@ -197,19 +217,6 @@ Additional Inherited Members</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="memdesc:af49d21e894f7502251497eabcf1f2dff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enumeration of update methods. <br /></td></tr>
-<tr class="inherit_header pro_methods_classMeasurementPointBundle"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classMeasurementPointBundle')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a></td></tr>
-<tr class="memitem:a4d7ec2ad6e6fe05ffffe8e537f551365 inherit pro_methods_classMeasurementPointBundle" id="r_a4d7ec2ad6e6fe05ffffe8e537f551365"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurementPointBundle.html#a4d7ec2ad6e6fe05ffffe8e537f551365">update</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system) override</td></tr>
-<tr class="memdesc:a4d7ec2ad6e6fe05ffffe8e537f551365 inherit pro_methods_classMeasurementPointBundle"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the system based on this measurement.  <br /></td></tr>
-<tr class="inherit_header pro_methods_classMeasurement"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classMeasurement')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classMeasurement.html">Measurement</a></td></tr>
-<tr class="memitem:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement" id="r_a3e2ef4fbb8d8eeb71940f5ffd6848ea6"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#a3e2ef4fbb8d8eeb71940f5ffd6848ea6">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const</td></tr>
-<tr class="memdesc:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density.  <br /></td></tr>
-<tr class="memitem:aaea34bb7e795a1c29a28f37b7e252ecf inherit pro_methods_classMeasurement" id="r_aaea34bb7e795a1c29a28f37b7e252ecf"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#aaea34bb7e795a1c29a28f37b7e252ecf">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g) const</td></tr>
-<tr class="memdesc:aaea34bb7e795a1c29a28f37b7e252ecf inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density and its gradient.  <br /></td></tr>
-<tr class="memitem:aeae3ef416c7110a2041fdfb320a57559 inherit pro_methods_classMeasurement" id="r_aeae3ef416c7110a2041fdfb320a57559"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#aeae3ef416c7110a2041fdfb320a57559">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g, Eigen::MatrixXd &amp;H) const</td></tr>
-<tr class="memdesc:aeae3ef416c7110a2041fdfb320a57559 inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density, its gradient, and Hessian.  <br /></td></tr>
-<tr class="inherit_header pro_methods_classEvent"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classEvent')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classEvent.html">Event</a></td></tr>
-<tr class="memitem:a5610e63185ccb47c969fe2f8796921a7 inherit pro_methods_classEvent" id="r_a5610e63185ccb47c969fe2f8796921a7"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEvent.html#a5610e63185ccb47c969fe2f8796921a7">getProcessString</a> () const</td></tr>
-<tr class="memdesc:a5610e63185ccb47c969fe2f8796921a7 inherit pro_methods_classEvent"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a string representation of the event processing.  <br /></td></tr>
 <tr class="inherit_header pro_attribs_classMeasurementPointBundle"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_attribs_classMeasurementPointBundle')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Attributes inherited from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a></td></tr>
 <tr class="memitem:a08c27bb7111e2d612e75e8cf6ee666b7 inherit pro_attribs_classMeasurementPointBundle" id="r_a08c27bb7111e2d612e75e8cf6ee666b7"><td class="memItemLeft" align="right" valign="top">
 Eigen::Matrix&lt; double, 2, Eigen::Dynamic &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Y_</b></td></tr>
@@ -261,6 +268,41 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 </div><div class="memdoc">
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a>.</p>
+
+</div>
+</div>
+<a id="a78197c8e25dc7f4624ea5b0efc550f86" name="a78197c8e25dc7f4624ea5b0efc550f86"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78197c8e25dc7f4624ea5b0efc550f86">&#9670;&#160;</a></span>update()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MeasurementSLAMUniqueTagBundle::update </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classSystemBase.html">SystemBase</a> &amp;</td>          <td class="paramname"><span class="paramname"><em>system</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel override">override</span><span class="mlabel virtual">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Update the system based on this measurement. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">system</td><td>The system to update. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html#a4d7ec2ad6e6fe05ffffe8e537f551365">MeasurementPointBundle</a>.</p>
 
 </div>
 </div>

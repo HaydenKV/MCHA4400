@@ -1,4 +1,4 @@
 var classMeasurementSLAMUniqueTagBundle =
 [
-    [ "TagCorners", "structMeasurementSLAMUniqueTagBundle_1_1TagCorners.html", null ]
+    [ "update", "classMeasurementSLAMUniqueTagBundle.html#a78197c8e25dc7f4624ea5b0efc550f86", null ]
 ];

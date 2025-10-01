@@ -9,8 +9,8 @@ Inheritance diagram for Measurement\+SLAMUnique\+Tag\+Bundle\+:\begin{figure}[H]
 \doxysubsubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\Hypertarget{classMeasurementSLAMUniqueTagBundle_a7aeed22fa8af8e8aae887fc655f3d2c4}\label{classMeasurementSLAMUniqueTagBundle_a7aeed22fa8af8e8aae887fc655f3d2c4} 
-{\bfseries Measurement\+SLAMUnique\+Tag\+Bundle} (double time, const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&Yc, const \mbox{\hyperlink{structCamera}{Camera}} \&camera, const std\+::vector$<$ int $>$ \&ids)
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}\label{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49} 
+{\bfseries Measurement\+SLAMUnique\+Tag\+Bundle} (double time, const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&Y, const \mbox{\hyperlink{structCamera}{Camera}} \&camera, const std\+::vector$<$ int $>$ \&ids)
 \item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00}\label{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00} 
 void {\bfseries set\+Id\+By\+Landmark} (const std\+::vector$<$ int $>$ \&m)
@@ -18,8 +18,10 @@ void {\bfseries set\+Id\+By\+Landmark} (const std\+::vector$<$ int $>$ \&m)
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_ab0ff41f2014f768dafaf708460fff3d3}\label{classMeasurementSLAMUniqueTagBundle_ab0ff41f2014f768dafaf708460fff3d3} 
 const std\+::vector$<$ int $>$ \& {\bfseries id\+By\+Landmark} () const
 \item 
-const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
-\end{DoxyCompactItemize}
+virtual const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
+\item 
+virtual void \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
+\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}}
 \begin{DoxyCompactItemize}
 \item 
@@ -47,7 +49,7 @@ Eigen\+::\+Vector\+Xd {\bfseries predict\+Feature\+Bundle} (const Eigen\+::\+Vec
 \item 
 virtual \mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox{\hyperlink{classMeasurementPointBundle_a721625a147f92659a905fc6687642c3e}{predict\+Feature\+Bundle\+Density}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const override
 \item 
-const std\+::vector$<$ int $>$ \& {\bfseries associations\+This\+Frame} () const
+const std\+::vector$<$ int $>$ \& {\bfseries idx\+Features} () const
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}}}
 \begin{DoxyCompactItemize}
@@ -74,6 +76,29 @@ virtual {\bfseries \texorpdfstring{$\sim$}{\string~}\+Event} ()
 \begin{DoxyCompactList}\small\item\em Destroy the \doxylink{classEvent}{Event} object. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classEvent_a0a4e814f472c519ace0a22f1a23acb0a}{process}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system)
 \begin{DoxyCompactList}\small\item\em Process the event in the given system. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}\label{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546} 
+Eigen\+::\+Matrix$<$ double, 8, 1 $>$ {\bfseries predict\+Tag\+Corners} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\item 
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_ae1680c7f86af60ebeb2b8a6f172b9083}\label{classMeasurementSLAMUniqueTagBundle_ae1680c7f86af60ebeb2b8a6f172b9083} 
+{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 8, 1 $>$ {\bfseries predict\+Tag\+CornersT} (const Eigen\+::\+VectorX$<$ Scalar $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
+\begin{DoxyCompactItemize}
+\item 
+double \mbox{\hyperlink{classMeasurement_a3e2ef4fbb8d8eeb71940f5ffd6848ea6}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const
+\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classMeasurement_aaea34bb7e795a1c29a28f37b7e252ecf}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const
+\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density and its gradient. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classMeasurement_aeae3ef416c7110a2041fdfb320a57559}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const
+\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density, its gradient, and Hessian. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classEvent}{Event}}}
+\begin{DoxyCompactItemize}
+\item 
+virtual std\+::string \mbox{\hyperlink{classEvent_a5610e63185ccb47c969fe2f8796921a7}{get\+Process\+String}} () const
+\begin{DoxyCompactList}\small\item\em Get a string representation of the event processing. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsubsection*{Additional Inherited Members}
 \doxysubsection*{Protected Types inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
@@ -90,25 +115,6 @@ enum class \mbox{\hyperlink{classMeasurement_af49d21e894f7502251497eabcf1f2dff}{
 , {\bfseries LEVENBERGMARQUARDT}
  \}
 \begin{DoxyCompactList}\small\item\em Enumeration of update methods. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}}
-\begin{DoxyCompactItemize}
-\item 
-virtual void \mbox{\hyperlink{classMeasurementPointBundle_a4d7ec2ad6e6fe05ffffe8e537f551365}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
-\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
-\begin{DoxyCompactItemize}
-\item 
-double \mbox{\hyperlink{classMeasurement_a3e2ef4fbb8d8eeb71940f5ffd6848ea6}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const
-\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density. \end{DoxyCompactList}\item 
-double \mbox{\hyperlink{classMeasurement_aaea34bb7e795a1c29a28f37b7e252ecf}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const
-\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density and its gradient. \end{DoxyCompactList}\item 
-double \mbox{\hyperlink{classMeasurement_aeae3ef416c7110a2041fdfb320a57559}{cost\+Joint\+Density}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const
-\begin{DoxyCompactList}\small\item\em Calculate the cost of the joint density, its gradient, and Hessian. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classEvent}{Event}}}
-\begin{DoxyCompactItemize}
-\item 
-virtual std\+::string \mbox{\hyperlink{classEvent_a5610e63185ccb47c969fe2f8796921a7}{get\+Process\+String}} () const
-\begin{DoxyCompactList}\small\item\em Get a string representation of the event processing. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Attributes inherited from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}}
 \begin{DoxyCompactItemize}
 \item 
@@ -149,6 +155,25 @@ const std\+::vector$<$ int $>$ \& Measurement\+SLAMUnique\+Tag\+Bundle\+::associ
 
 
 Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}.
+
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!update@{update}}
+\index{update@{update}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86} 
+void Measurement\+SLAMUnique\+Tag\+Bundle\+::update (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classSystemBase}{System\+Base}} \&}]{system}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Update the system based on this measurement. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em system} & The system to update. \\
+\hline
+\end{DoxyParams}
+
+
+Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_a4d7ec2ad6e6fe05ffffe8e537f551365}{Measurement\+Point\+Bundle}}.
 
 
 

@@ -26,6 +26,7 @@
 #include "GaussianInfo.hpp"
 
 #include "imagefeatures.h"
+#include "rotation.hpp"
 
 // Helper: convert Rodrigues rvec to rotation matrix
 static inline Eigen::Matrix3d rodriguesToRot(const cv::Vec3d& rvec)
@@ -274,11 +275,11 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 const Eigen::Matrix3d Rnj = Rnc * Rcj;
                 const Eigen::Vector3d rnj = rCNn + Rnc * rCj;
 
-                // Keep landmark Euler simple (0) – Scenario 1 uses position only for plotting
-                const Eigen::Vector3d Thetanj = Eigen::Vector3d::Zero();
+                // CHANGED LINE: Extract Euler angles from rotation matrix
+                const Eigen::Vector3d Thetanj = rot2rpy(Rnj);  // Changed from Eigen::Vector3d::Zero()
 
                 // Initial sqrt-cov (upper-triangular): 0.25 m on pos, 15° on eulers
-                const double d2r = 3.14159265358979323846 / 180.0;
+                const double d2r = M_PI / 180.0;
                 Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
                 Sj.diagonal() << 0.25, 0.25, 0.25, (15.0*d2r), (15.0*d2r), (15.0*d2r);
 
@@ -310,6 +311,9 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                                   tagSizeMeters * 1.5f, 2);
             }
             system.view() = overlay;
+
+            // Predict system state forward
+            system.predict(t);
 
             // 6) Fuse: ID-based association + optimiser update
             MeasurementSLAMUniqueTagBundle meas(t, Yc, camera, dets.ids);

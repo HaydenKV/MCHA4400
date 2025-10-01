@@ -84,6 +84,7 @@
 #include "SystemSLAM.h"
 #include "MeasurementSLAM.h"
 #include "MeasurementSLAMPointBundle.h"
+#include "MeasurementSLAMUniqueTagBundle.h"
 #include "Plot.h"
 
 // Forward declarations
@@ -663,7 +664,7 @@ void Plot::render()
     // Per-frame associations from the active measurement (UniqueTagBundle derives from PointBundle)
     const auto* pBundle = dynamic_cast<const MeasurementPointBundle*>(pMeasurement.get());
     const std::vector<int>* assocPtr = nullptr;
-    if (pBundle) assocPtr = &pBundle->associationsThisFrame();
+    if (pBundle) assocPtr = &pBundle->idxFeatures();
 
     // Strict visibility check helper (front-facing + in-bounds pixel)
     auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool

@@ -19,7 +19,7 @@ var annotated_dup =
     [ "Measurement", "classMeasurement.html", "classMeasurement" ],
     [ "MeasurementPointBundle", "classMeasurementPointBundle.html", "classMeasurementPointBundle" ],
     [ "MeasurementSLAM", "classMeasurementSLAM.html", null ],
-    [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ],
+    [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", "classMeasurementSLAMUniqueTagBundle" ],
     [ "Plot", "structPlot.html", null ],
     [ "Pose", "structPose.html", "structPose" ],
     [ "QuadricPlot", "structQuadricPlot.html", null ],

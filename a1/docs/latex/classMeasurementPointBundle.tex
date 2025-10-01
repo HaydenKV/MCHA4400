@@ -40,8 +40,8 @@ virtual \mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox
 \item 
 virtual const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementPointBundle_a7d66e44af75c2e6b53e5957f21c19568}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
 \item 
-\Hypertarget{classMeasurementPointBundle_afd21d5e0b8d4236c8ba60515a1c9d481}\label{classMeasurementPointBundle_afd21d5e0b8d4236c8ba60515a1c9d481} 
-const std\+::vector$<$ int $>$ \& {\bfseries associations\+This\+Frame} () const
+\Hypertarget{classMeasurementPointBundle_a7aaf45de719eb1930575e83295a9caf1}\label{classMeasurementPointBundle_a7aaf45de719eb1930575e83295a9caf1} 
+const std\+::vector$<$ int $>$ \& {\bfseries idx\+Features} () const
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}}}
 \begin{DoxyCompactItemize}
@@ -297,6 +297,10 @@ Update the system based on this measurement.
 
 
 Reimplemented from \mbox{\hyperlink{classMeasurement_a30df1dcc9aac6e9d25e54498ca11758a}{Measurement}}.
+
+
+
+Reimplemented in \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{Measurement\+SLAMUnique\+Tag\+Bundle}}.
 
 
 

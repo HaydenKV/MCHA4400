@@ -118,6 +118,7 @@ var NAVTREEINDEX0 =
 "classMeasurementPointBundle.html#ae2b8fad7d79ec97b0afd7cf1d216d2bd":[2,0,17,2],
 "classMeasurementSLAM.html":[2,0,18],
 "classMeasurementSLAMUniqueTagBundle.html":[2,0,19],
+"classMeasurementSLAMUniqueTagBundle.html#a78197c8e25dc7f4624ea5b0efc550f86":[2,0,19,0],
 "classSystemBase.html":[2,0,23],
 "classSystemBase.html#a1d07dc3316390544ac3999dd8ac03bfe":[2,0,23,2],
 "classSystemBase.html#a4959bd9849715e69f0387214e3a7f356":[2,0,23,1],

@@ -10,32 +10,34 @@
 \DoxyCodeLine{00006\ \textcolor{keyword}{class\ }MeasurementSLAMUniqueTagBundle\ :\ \textcolor{keyword}{public}\ MeasurementPointBundle}
 \DoxyCodeLine{00007\ \{}
 \DoxyCodeLine{00008\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00009\ \ \ \ \ \textcolor{comment}{//\ Yc\ is\ 2xN\ (centroid\ per\ detected\ tag),\ ids\ is\ length\ N\ (OpenCV\ order)}}
-\DoxyCodeLine{00010\ \ \ \ \ MeasurementSLAMUniqueTagBundle(\textcolor{keywordtype}{double}\ time,}
-\DoxyCodeLine{00011\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yc,}
-\DoxyCodeLine{00012\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
-\DoxyCodeLine{00013\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ ids)}
-\DoxyCodeLine{00014\ \ \ \ \ :\ MeasurementPointBundle(time,\ Yc,\ camera)}
-\DoxyCodeLine{00015\ \ \ \ \ ,\ ids\_(ids)}
-\DoxyCodeLine{00016\ \ \ \ \ ,\ id\_by\_landmark\_()}
-\DoxyCodeLine{00017\ \ \ \ \ \{}
-\DoxyCodeLine{00018\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ scenario\ 1:\ pixel\ noise\ \string~\ 2\ px\ is\ reasonable}}
-\DoxyCodeLine{00019\ \ \ \ \ \ \ \ \ this-\/>sigma\_\ =\ 1.0;}
-\DoxyCodeLine{00020\ \ \ \ \ \}}
+\DoxyCodeLine{00009\ \ \ \ \ MeasurementSLAMUniqueTagBundle(\textcolor{keywordtype}{double}\ time,}
+\DoxyCodeLine{00010\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Y,}
+\DoxyCodeLine{00011\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
+\DoxyCodeLine{00012\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ ids);}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{void}\ setIdByLandmark(\textcolor{keyword}{const}\ std::vector<int>\&\ m)\ \{\ id\_by\_landmark\_\ =\ m;\ \}}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ idByLandmark()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ id\_by\_landmark\_;\ \}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keyword}{const}\ std::vector<int>\&\ associate(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00018\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00019\ \ \ \ \ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
 \DoxyCodeLine{00021\ }
-\DoxyCodeLine{00022\ \ \ \ \ \textcolor{comment}{//\ Set\ persistent\ mapping\ (landmark\ index\ -\/>\ tag\ ID)}}
-\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{void}\ setIdByLandmark(\textcolor{keyword}{const}\ std::vector<int>\&\ m)\ \{\ id\_by\_landmark\_\ =\ m;\ \}}
-\DoxyCodeLine{00024\ }
-\DoxyCodeLine{00025\ \ \ \ \ \textcolor{comment}{//\ Accessor\ (optional)}}
-\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ idByLandmark()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ id\_by\_landmark\_;\ \}}
-\DoxyCodeLine{00027\ }
-\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{//\ Override:\ associate\ landmarks\ to\ current\ frame\ features\ by\ ID}}
-\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ associate(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00022\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00023\ \ \ \ \ Eigen::Matrix<double,8,1>\ predictTagCorners(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ }
+\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ }
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00026\ \ \ \ \ }
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00028\ \ \ \ \ Eigen::Matrix<Scalar,8,1>\ predictTagCornersT(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\&\ x,}
+\DoxyCodeLine{00029\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
 \DoxyCodeLine{00031\ }
 \DoxyCodeLine{00032\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00033\ \ \ \ \ std::vector<int>\ ids\_;\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ current\ frame\ tag\ IDs\ (aligned\ with\ columns\ of\ Y\_)}}
-\DoxyCodeLine{00034\ \ \ \ \ std::vector<int>\ id\_by\_landmark\_;\ \textcolor{comment}{//\ persistent\ mapping:\ landmark\ j\ -\/>\ tag\ ID}}
-\DoxyCodeLine{00035\ \};}
+\DoxyCodeLine{00033\ \ \ \ \ std::vector<int>\ ids\_;}
+\DoxyCodeLine{00034\ \ \ \ \ std::vector<int>\ id\_by\_landmark\_;}
+\DoxyCodeLine{00035\ \ \ \ \ }
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ TAG\_SIZE\ =\ 0.166;}
+\DoxyCodeLine{00037\ \};}
 
 \end{DoxyCode}
