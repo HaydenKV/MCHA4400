@@ -279,16 +279,36 @@ ArucoDetections detectArucoLab2(const cv::Mat & imgBGR,
     // --- OpenCV 4.11 ArUco (new API) ---
     cv::aruco::Dictionary dict = cv::aruco::getPredefinedDictionary(dictionary);
     cv::aruco::DetectorParameters params;
+
     // Good Lab-2 style defaults (tune if needed)
     params.cornerRefinementMethod = doCornerRefine
         ? cv::aruco::CornerRefineMethod::CORNER_REFINE_SUBPIX
         : cv::aruco::CornerRefineMethod::CORNER_REFINE_NONE;
-    params.aprilTagMinClusterPixels = 0; // not using AprilTag
-    params.minMarkerPerimeterRate = 0.03;   // more permissive for small tags
-    params.maxMarkerPerimeterRate = 4.0;
-    params.adaptiveThreshWinSizeMin = 5;
-    params.adaptiveThreshWinSizeMax = 35;
-    params.adaptiveThreshWinSizeStep = 5;
+
+    // More permissive for edge cases
+    params.minMarkerPerimeterRate = 0.02;      // Lower threshold (was 0.03)
+    params.maxMarkerPerimeterRate = 5.0;       // Higher threshold (was 4.0)
+    
+    // Adaptive thresholding - more robust to lighting
+    params.adaptiveThreshWinSizeMin = 3;       // Smaller window (was 5)
+    params.adaptiveThreshWinSizeMax = 45;      // Larger window (was 35)
+    params.adaptiveThreshWinSizeStep = 4;
+    params.adaptiveThreshConstant = 7;
+    
+    // Contour filtering - more permissive
+    params.minCornerDistanceRate = 0.03;       // Allow closer corners
+    params.minDistanceToBorder = 1;            // Allow closer to border (was 3)
+    
+    // Polygon approximation - more accurate
+    params.polygonalApproxAccuracyRate = 0.04; // More accurate (was 0.05)
+    
+    // Corner refinement - more iterations for accuracy
+    params.cornerRefinementWinSize = 5;
+    params.cornerRefinementMaxIterations = 50;
+    params.cornerRefinementMinAccuracy = 0.05;
+    
+    // Error correction - more permissive
+    params.errorCorrectionRate = 0.8;          // Allow more bit errors
 
     cv::aruco::ArucoDetector detector(dict, params);
 
