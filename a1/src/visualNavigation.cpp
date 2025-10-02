@@ -196,6 +196,10 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
     static std::vector<int> id_by_landmark;
     id_by_landmark.clear();
 
+    // Persistent miss counter (must survive across frames!)
+    static std::vector<int> consecutive_misses;
+    consecutive_misses.clear();
+
     const float tagSizeMeters = 0.166f; // set to your printed tag edge length
 
     // Object points for a square tag in its own frame, TL,TR,BR,BL
@@ -381,7 +385,10 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             //   - dets.ids: tag IDs for association
             MeasurementSLAMUniqueTagBundle meas(t, Y, camera, dets.ids);
             meas.setIdByLandmark(id_by_landmark);  // Pass ID mapping for association
+            meas.setConsecutiveMisses(consecutive_misses);  // Set miss counter
             meas.process(system);  // Performs: predict → associate → optimize
+            //Get updated miss counter back (it was modified during associate())
+            consecutive_misses = meas.getConsecutiveMisses();
 
             // DEBUG COMMENT OUT
             // After measurement update, print diagnostics

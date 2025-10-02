@@ -12,8 +12,7 @@ Inheritance diagram for Measurement\+SLAM\+:\begin{figure}[H]
 \Hypertarget{classMeasurementSLAM_a34aab37381e6e2f5fcb18b32fd5a8d76}\label{classMeasurementSLAM_a34aab37381e6e2f5fcb18b32fd5a8d76} 
 {\bfseries Measurement\+SLAM} (double time, const \mbox{\hyperlink{structCamera}{Camera}} \&camera)
 \item 
-\Hypertarget{classMeasurementSLAM_a81647ae81600c374da68062f46dc4e11}\label{classMeasurementSLAM_a81647ae81600c374da68062f46dc4e11} 
-virtual \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}} \texorpdfstring{$\ast$}{*} {\bfseries clone} () const =0
+virtual \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{classMeasurementSLAM_a81647ae81600c374da68062f46dc4e11}{clone}} () const =0
 \item 
 \Hypertarget{classMeasurementSLAM_a0b075967ae394826e57b5e266755586f}\label{classMeasurementSLAM_a0b075967ae394826e57b5e266755586f} 
 virtual \mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ {\bfseries predict\+Feature\+Density} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const =0
@@ -115,6 +114,16 @@ virtual const std\+::vector$<$ int $>$ \& Measurement\+SLAM\+::associate (\begin
 
 
 Implemented in \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{Measurement\+SLAMUnique\+Tag\+Bundle}}.
+
+\Hypertarget{classMeasurementSLAM_a81647ae81600c374da68062f46dc4e11}\index{MeasurementSLAM@{MeasurementSLAM}!clone@{clone}}
+\index{clone@{clone}!MeasurementSLAM@{MeasurementSLAM}}
+\doxysubsubsection{\texorpdfstring{clone()}{clone()}}
+{\footnotesize\ttfamily \label{classMeasurementSLAM_a81647ae81600c374da68062f46dc4e11} 
+virtual \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}} \texorpdfstring{$\ast$}{*} Measurement\+SLAM\+::clone (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Implemented in \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_abb703d706a191b323666bc74798ef8fc}{Measurement\+SLAMUnique\+Tag\+Bundle}}.
 
 
 

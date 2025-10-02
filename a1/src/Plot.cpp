@@ -698,8 +698,21 @@ void Plot::render()
 
         // ASSOCIATED this frame (>=0 means detected & matched)
         bool associated = false;
-        if (assocPtr && i < assocPtr->size())
+
+        // Old way
+        // if (assocPtr && i < assocPtr->size())
+        //     associated = ((*assocPtr)[i] >= 0);
+
+        // Try to cast to unique tag bundle (supports grace period)
+        auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
+
+        if (tagMeas != nullptr) {
+            // Use grace period logic - stays blue during miss counter period
+            associated = tagMeas->isEffectivelyAssociated(i);
+        } else if (assocPtr && i < assocPtr->size()) {
+            // Fallback for other measurement types
             associated = ((*assocPtr)[i] >= 0);
+        }
 
         // Colour semantics:
         // Blue   = visible + associated
