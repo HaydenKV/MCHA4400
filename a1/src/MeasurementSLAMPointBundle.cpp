@@ -60,9 +60,9 @@ MeasurementPointBundle::MeasurementPointBundle(double time, const Eigen::Matrix<
     , sigma_(1.0) // TODO: Assignment(s)
 {
     // updateMethod_ = UpdateMethod::BFGSLMSQRT;
-    updateMethod_ = UpdateMethod::BFGSTRUSTSQRT;
+    // updateMethod_ = UpdateMethod::BFGSTRUSTSQRT;
     // updateMethod_ = UpdateMethod::SR1TRUSTEIG;
-    // updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
+    updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
 MeasurementSLAM * MeasurementPointBundle::clone() const

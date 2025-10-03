@@ -29,6 +29,7 @@ public:
     virtual const std::vector<int> & associate(const SystemSLAM & system, const std::vector<std::size_t> & idxLandmarks) override;
 
     const std::vector<int>& idxFeatures() const { return idxFeatures_; }
+    const Eigen::Matrix<double,2,Eigen::Dynamic>& Y() const { return Y_; }
 protected:
     virtual void update(SystemBase & system) override;
     Eigen::Matrix<double, 2, Eigen::Dynamic> Y_;    // Feature bundle
