@@ -169,6 +169,8 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
         cv::Mat imgin = bufferedVideoReader.read();
         if (imgin.empty()) break;
 
+        std::cout << "Frame " << frameIdx << " - Start" << std::endl;
+
         const double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
 
         if (scenario == 1)
@@ -264,6 +266,8 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 }
             }
 
+            std::cout << "Frame " << frameIdx << " - After measurement" << std::endl;
+
             // Display
             system.view() = dets.annotated.empty() ? imgin.clone() : dets.annotated.clone();
 
@@ -272,6 +276,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             meas.setIdByLandmark(id_by_landmark);
             // (we intentionally do NOT do any pruning or grace-based coloring)
             meas.process(system);
+            std::cout << "Frame " << frameIdx << " - After update" << std::endl;
 
             // Diagnostics
             if (frameIdx % 30 == 0) {

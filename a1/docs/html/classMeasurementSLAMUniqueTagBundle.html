@@ -113,7 +113,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs.  
+<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs (Scenario 1)  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="MeasurementSLAMUniqueTagBundle_8h_source.html">MeasurementSLAMUniqueTagBundle.h</a>&gt;</code></p>
@@ -139,16 +139,13 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setIdByLandmark</b> (const std::vector&lt; int &gt; &amp;m)</td></tr>
 <tr class="memitem:ab0ff41f2014f768dafaf708460fff3d3" id="r_ab0ff41f2014f768dafaf708460fff3d3"><td class="memItemLeft" align="right" valign="top"><a id="ab0ff41f2014f768dafaf708460fff3d3" name="ab0ff41f2014f768dafaf708460fff3d3"></a>
 const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>idByLandmark</b> () const</td></tr>
-<tr class="memitem:ad7dc9bfd4d33ef888b0e4047b5202f7f" id="r_ad7dc9bfd4d33ef888b0e4047b5202f7f"><td class="memItemLeft" align="right" valign="top"><a id="ad7dc9bfd4d33ef888b0e4047b5202f7f" name="ad7dc9bfd4d33ef888b0e4047b5202f7f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>setConsecutiveMisses</b> (const std::vector&lt; int &gt; &amp;m)</td></tr>
-<tr class="memitem:a0b7fb3d43950d184e0461a25e158fdad" id="r_a0b7fb3d43950d184e0461a25e158fdad"><td class="memItemLeft" align="right" valign="top"><a id="a0b7fb3d43950d184e0461a25e158fdad" name="a0b7fb3d43950d184e0461a25e158fdad"></a>
-const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getConsecutiveMisses</b> () const</td></tr>
 <tr class="memitem:a6117b0994eb8219ece7cc5e2fb404a70" id="r_a6117b0994eb8219ece7cc5e2fb404a70"><td class="memItemLeft" align="right" valign="top"><a id="a6117b0994eb8219ece7cc5e2fb404a70" name="a6117b0994eb8219ece7cc5e2fb404a70"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>isEffectivelyAssociated</b> (std::size_t landmarkIdx) const</td></tr>
+<tr class="memdesc:a6117b0994eb8219ece7cc5e2fb404a70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if landmark was effectively associated this frame Used by <a class="el" href="structPlot.html">Plot</a> to color ellipses (blue=associated, red=unassociated) <br /></td></tr>
 <tr class="memitem:a9b15d929706870c1b47cc6b3c8abb354" id="r_a9b15d929706870c1b47cc6b3c8abb354"><td class="memItemLeft" align="right" valign="top">virtual const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9b15d929706870c1b47cc6b3c8abb354">associate</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) override</td></tr>
 <tr class="memdesc:a9b15d929706870c1b47cc6b3c8abb354"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID-based data association.  <br /></td></tr>
 <tr class="memitem:a78197c8e25dc7f4624ea5b0efc550f86" id="r_a78197c8e25dc7f4624ea5b0efc550f86"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78197c8e25dc7f4624ea5b0efc550f86">update</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system) override</td></tr>
-<tr class="memdesc:a78197c8e25dc7f4624ea5b0efc550f86"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update with uncertainty inflation and deletion.  <br /></td></tr>
+<tr class="memdesc:a78197c8e25dc7f4624ea5b0efc550f86"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update WITHOUT deletion (Scenario 1)  <br /></td></tr>
 <tr class="memitem:ab1e228bf6421d3cd253044d138f34013" id="r_ab1e228bf6421d3cd253044d138f34013"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab1e228bf6421d3cd253044d138f34013">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const override</td></tr>
 <tr class="memdesc:ab1e228bf6421d3cd253044d138f34013"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the log-likelihood of a measurement.  <br /></td></tr>
 <tr class="memitem:a0b739a11c73f4dd3f15bb56df770adf5" id="r_a0b739a11c73f4dd3f15bb56df770adf5"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0b739a11c73f4dd3f15bb56df770adf5">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g) const override</td></tr>
@@ -253,12 +250,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 <tr class="memdesc:ac98f29e9b794a6294f6a1be787263e35 inherit pro_attribs_classEvent"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verbosity level. <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs. </p>
-<p>Handles:</p><ul>
+<div class="textblock"><p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs (Scenario 1) </p>
+<p>Key features for Scenario 1:</p><ul>
 <li>ID-based data association (trivial since tags have unique IDs)</li>
 <li>4-corner measurement model per tag</li>
-<li>Grace period before deletion (10 frames while visible)</li>
-<li>Uncertainty inflation for visible-but-unassociated landmarks </li>
+<li>NO DELETION of landmarks (tags persist for loop closure)</li>
+<li>Visual distinction: blue=associated, red=unassociated </li>
 </ul>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9664b84d0ecb7b8c8d956814ddcd6f49" name="a9664b84d0ecb7b8c8d956814ddcd6f49"></a>
@@ -330,7 +327,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 </div><div class="memdoc">
 
 <p>ID-based data association. </p>
-<p>Matches detected tags with map landmarks using unique IDs. Increments miss counter only for landmarks that are visible but not detected. </p>
+<p>Matches detected tags with map landmarks using unique IDs. Conservative FOV checking to reject measurements near image borders. </p>
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a>.</p>
 
@@ -566,12 +563,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 </table>
 </div><div class="memdoc">
 
-<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update with uncertainty inflation and deletion. </p>
-<ol type="1">
-<li>Inflates uncertainty for visible-but-unassociated landmarks (red)</li>
-<li>Deletes landmarks after MAX_CONSECUTIVE_MISSES (10 frames)</li>
-<li>Performs Kalman update for associated landmarks </li>
-</ol>
+<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update WITHOUT deletion (Scenario 1) </p>
+<p>Performs Kalman update for associated landmarks. DOES NOT delete landmarks - tags persist for loop closure. </p>
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html#a4d7ec2ad6e6fe05ffffe8e537f551365">MeasurementPointBundle</a>.</p>
 

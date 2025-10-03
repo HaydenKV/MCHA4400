@@ -9,6 +9,8 @@
 
 #include <Eigen/Core>
 #include <Eigen/QR>
+#include <Eigen/Eigenvalues>
+
 
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc.hpp>
@@ -669,17 +671,24 @@ void Plot::render()
     // Strict visibility check helper (front-facing + in-bounds pixel)
     auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool
     {
-        // project world → camera ray (unit)
-        const cv::Vec3d uPCc = camera.worldToVector(cv::Vec3d(rPNn.x(), rPNn.y(), rPNn.z()), Tnb);
-        if (!std::isfinite(uPCc[0]) || !std::isfinite(uPCc[1]) || !std::isfinite(uPCc[2])) return false;
-        if (uPCc[2] <= 1e-9) return false; // behind camera
+        // camera pose for this frame (already computed above)
+        // rCNn, Rnc available; need Rcn
+        const Eigen::Matrix3d Rcn = Rnc.transpose();
 
-        // pixel check (distorted) — use your own model
-        const cv::Vec2d pix = camera.vectorToPixel(uPCc);
-        if (!std::isfinite(pix[0]) || !std::isfinite(pix[1])) return false;
+        // point in camera frame
+        const Eigen::Vector3d rPCc = Rcn * (rPNn - rCNn);
+        if (!std::isfinite(rPCc.x()) || !std::isfinite(rPCc.y()) || !std::isfinite(rPCc.z()))
+            return false;
 
-        const bool inBounds = (pix[0] >= 0.0 && pix[0] < camera.imageSize.width &&
-                               pix[1] >= 0.0 && pix[1] < camera.imageSize.height);
+        // strictly in front of camera
+        if (rPCc.z() <= 1e-9) return false;
+
+        // pixel in-bounds
+        const Eigen::Vector2d pix = camera.vectorToPixel(rPCc);
+        if (!std::isfinite(pix.x()) || !std::isfinite(pix.y())) return false;
+
+        const bool inBounds = (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
+                            pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
         return inBounds;
     };
 
@@ -854,3 +863,54 @@ void plotGaussianConfidenceEllipse(cv::Mat & img, const GaussianInfo<double> & p
         }
     }
 }
+
+// static void plotGaussianConfidenceEllipse(cv::Mat & img,
+//                                           const GaussianInfo<double> & prQOi,
+//                                           const Eigen::Vector3d & color)
+// {
+//     assert(prQOi.dim() == 2);
+
+//     // k-sigma ellipse
+//     const double k = 3.0;
+//     const int N = 100;
+
+//     // Recover covariance: Σ = S Sᵀ
+//     const Eigen::Matrix2d S = prQOi.sqrtCov();
+//     Eigen::Matrix2d Sigma = S * S.transpose();
+
+//     // Numerical guard (in case of near-singular)
+//     Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(Sigma);
+//     Eigen::Vector2d evals = es.eigenvalues().cwiseMax(1e-12).cwiseSqrt(); // std devs
+//     Eigen::Matrix2d U = es.eigenvectors();
+
+//     const Eigen::Vector2d mu = prQOi.mean();
+
+//     // Build polyline points
+//     std::vector<cv::Point> pts;
+//     pts.reserve(N);
+//     for (int i = 0; i < N; ++i) {
+//         const double th = 2.0 * M_PI * (static_cast<double>(i) / (N - 1));
+//         const Eigen::Vector2d unit(std::cos(th), std::sin(th));
+//         const Eigen::Vector2d xy = mu + k * (U * evals.asDiagonal() * unit);
+//         pts.emplace_back(cvRound(xy.x()), cvRound(xy.y()));
+//     }
+
+//     // Color (BGR)
+//     const cv::Scalar bgr(color(2), color(1), color(0));
+
+//     // Draw center
+//     cv::drawMarker(img, cv::Point(cvRound(mu.x()), cvRound(mu.y())),
+//                    bgr, cv::MARKER_CROSS, 24, 2);
+
+//     // Draw ellipse as a polyline (clip by bounds to avoid wrap artifacts)
+//     for (int i = 0; i < N - 1; ++i) {
+//         const cv::Point p1 = pts[i];
+//         const cv::Point p2 = pts[i + 1];
+
+//         const bool in1 = (0 <= p1.x && p1.x < img.cols && 0 <= p1.y && p1.y < img.rows);
+//         const bool in2 = (0 <= p2.x && p2.x < img.cols && 0 <= p2.y && p2.y < img.rows);
+//         if (in1 && in2) {
+//             cv::line(img, p1, p2, bgr, 2, cv::LINE_AA);
+//         }
+//     }
+// }

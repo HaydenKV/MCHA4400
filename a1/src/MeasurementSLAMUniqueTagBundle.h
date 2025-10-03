@@ -3,13 +3,13 @@
 #include "MeasurementSLAMPointBundle.h"
 
 /**
- * @brief Measurement class for ArUco tag SLAM with unique IDs
+ * @brief Measurement class for ArUco tag SLAM with unique IDs (Scenario 1)
  * 
- * Handles:
+ * Key features for Scenario 1:
  * - ID-based data association (trivial since tags have unique IDs)
  * - 4-corner measurement model per tag
- * - Grace period before deletion (10 frames while visible)
- * - Uncertainty inflation for visible-but-unassociated landmarks
+ * - NO DELETION of landmarks (tags persist for loop closure)
+ * - Visual distinction: blue=associated, red=unassociated
  */
 class MeasurementSLAMUniqueTagBundle : public MeasurementPointBundle
 {
@@ -33,27 +33,27 @@ public:
     // Persistent state management (survives across frames)
     void setIdByLandmark(const std::vector<int>& m) { id_by_landmark_ = m; }
     const std::vector<int>& idByLandmark() const { return id_by_landmark_; }
-    
-    void setConsecutiveMisses(const std::vector<int>& m) { consecutive_misses_ = m; }
-    const std::vector<int>& getConsecutiveMisses() const { return consecutive_misses_; }
 
+    /**
+     * @brief Check if landmark was effectively associated this frame
+     * Used by Plot to color ellipses (blue=associated, red=unassociated)
+     */
     bool isEffectivelyAssociated(std::size_t landmarkIdx) const;
-
+    
     /**
      * @brief ID-based data association
      * 
      * Matches detected tags with map landmarks using unique IDs.
-     * Increments miss counter only for landmarks that are visible but not detected.
+     * Conservative FOV checking to reject measurements near image borders.
      */
     virtual const std::vector<int>& associate(const SystemSLAM& system,
                                               const std::vector<std::size_t>& idxLandmarks) override;
     
     /**
-     * @brief Measurement update with uncertainty inflation and deletion
+     * @brief Measurement update WITHOUT deletion (Scenario 1)
      * 
-     * 1. Inflates uncertainty for visible-but-unassociated landmarks (red)
-     * 2. Deletes landmarks after MAX_CONSECUTIVE_MISSES (10 frames)
-     * 3. Performs Kalman update for associated landmarks
+     * Performs Kalman update for associated landmarks.
+     * DOES NOT delete landmarks - tags persist for loop closure.
      */
     virtual void update(SystemBase& system) override;
     
@@ -82,8 +82,7 @@ protected:
 private:
     std::vector<int> ids_;                  ///< Detected tag IDs this frame
     std::vector<int> id_by_landmark_;       ///< Persistent: landmark index → tag ID
-    std::vector<int> consecutive_misses_;   ///< Persistent: miss counter per landmark
     
     static constexpr double TAG_SIZE = 0.166;        ///< Tag edge length (meters)
-    static constexpr int MAX_CONSECUTIVE_MISSES = 10; ///< Delete after this many misses
+    static constexpr int BORDER_MARGIN = 15;         ///< Conservative FOV margin (pixels)
 };

@@ -37,28 +37,32 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     f.setZero();
     // TODO: Implement in Assignment(s)
     // Extract states
-    Eigen::Vector3d vBNb = x.segment<3>(0);      // body velocity
-    Eigen::Vector3d omegaBNb = x.segment<3>(3);  // body angular velocity
-    Eigen::Vector3d Thetanb = x.segment<3>(9);   // orientation (RPY)
+    // Extract velocity states
+    Eigen::Vector3d vBNb = x.segment<3>(0);      // Body translational velocity
+    Eigen::Vector3d omegaBNb = x.segment<3>(3);  // Body angular velocity
     
-    // Rotation matrix from body to nav
+    // Extract pose states (needed for kinematic transform)
+    Eigen::Vector3d Thetanb = x.segment<3>(9);   // RPY Euler angles
+    
+    // Convert Euler angles to rotation matrix
     Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
     
-    // Omega Jacobian T(Theta) such that dot(Theta) = T(Theta) * omega
-    // For ZYX Euler (RPY): dot(Theta) = T * omega_body
+    // Kinematic transformation: dposition/dt = Rnb * vBNb
+    f.segment<3>(6) = Rnb * vBNb;
+    
+    // Kinematic transformation: dTheta/dt = T * omegaBNb
     const double phi = Thetanb(0);
     const double theta = Thetanb(1);
+    
     Eigen::Matrix3d T;
     T << 1.0, std::sin(phi)*std::tan(theta),  std::cos(phi)*std::tan(theta),
          0.0, std::cos(phi),                 -std::sin(phi),
          0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
     
-    // Dynamics
-    f.segment<3>(0).setZero();       // dv/dt = 0 (+ process noise)
-    f.segment<3>(3).setZero();       // domega/dt = 0 (+ process noise)
-    f.segment<3>(6) = Rnb * vBNb;    // dr/dt = Rnb * vBNb
-    f.segment<3>(9) = T * omegaBNb;  // dTheta/dt = T * omegaBNb
-    // Landmarks static: f[12:end] = 0
+    f.segment<3>(9) = T * omegaBNb;
+
+    // Landmark states: dm/dt = 0 (static landmarks)
+    // Already set to zero above
 
     return f;
 }
@@ -78,15 +82,17 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     J.setZero();
     // TODO: Implement in Assignment(s)
 
+    // Extract states
     Eigen::Vector3d vBNb = x.segment<3>(0);
     Eigen::Vector3d omegaBNb = x.segment<3>(3);
     Eigen::Vector3d Thetanb = x.segment<3>(9);
     
-    // J[6:8, 0:2] = dRnb/dvBNb = Rnb
     Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
+    
+    // J[6:8, 0:2] = Rnb (derivative of position w.r.t. velocity)
     J.block<3,3>(6,0) = Rnb;
     
-    // J[6:8, 9:11] = d(Rnb*vBNb)/dTheta (numerical)
+    // J[6:8, 9:11] = d(Rnb*vBNb)/dTheta (numerical differentiation for robustness)
     const double eps = 1e-7;
     for (int i = 0; i < 3; ++i) {
         Eigen::Vector3d Theta_plus = Thetanb;
@@ -95,7 +101,7 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
         J.block<3,1>(6, 9+i) = (Rnb_plus * vBNb - Rnb * vBNb) / eps;
     }
     
-    // J[9:11, 3:5] = T
+    // J[9:11, 3:5] = T (derivative of orientation w.r.t. angular velocity)
     const double phi = Thetanb(0);
     const double theta = Thetanb(1);
     Eigen::Matrix3d T;
@@ -104,7 +110,7 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
          0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
     J.block<3,3>(9,3) = T;
     
-    // J[9:11, 9:11] = d(T*omega)/dTheta (numerical)
+    // J[9:11, 9:11] = d(T*omega)/dTheta (numerical differentiation)
     for (int i = 0; i < 3; ++i) {
         Eigen::Vector3d Theta_plus = Thetanb;
         Theta_plus(i) += eps;
@@ -116,7 +122,6 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
                   0.0, std::sin(phi_p)/std::cos(theta_p),  std::cos(phi_p)/std::cos(theta_p);
         J.block<3,1>(9, 9+i) = (T_plus * omegaBNb - T * omegaBNb) / eps;
     }
-
     return f;
 }
 
@@ -131,16 +136,19 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
     Eigen::MatrixXd SQ(6, 6);
     SQ.setZero();
 
-    const double qv = 1e-4;
-    const double qw = 1e-4;
+    // Process noise parameters (TUNABLE - start here and adjust based on drift)
+    // These control how much the filter trusts the process model vs measurements
+    const double qv = 1e-3;  // Translational velocity noise (m/s^1.5)
+    const double qw = 1e-3;  // Angular velocity noise (rad/s^1.5)
     
     // TODO: Assignment(s)
-    SQ(0,0) = std::sqrt(qv);
-    SQ(1,1) = std::sqrt(qv);
-    SQ(2,2) = std::sqrt(qv);
-    SQ(3,3) = std::sqrt(qw);
-    SQ(4,4) = std::sqrt(qw);
-    SQ(5,5) = std::sqrt(qw);
+    // Diagonal noise (independent noise on each velocity component)
+    SQ(0,0) = std::sqrt(qv);  // x-velocity noise
+    SQ(1,1) = std::sqrt(qv);  // y-velocity noise
+    SQ(2,2) = std::sqrt(qv);  // z-velocity noise
+    SQ(3,3) = std::sqrt(qw);  // roll rate noise
+    SQ(4,4) = std::sqrt(qw);  // pitch rate noise
+    SQ(5,5) = std::sqrt(qw);  // yaw rate noise
 
     // Distribution of noise increment dw ~ N(0, Q*dt) for time increment dt
     return GaussianInfo<double>::fromSqrtMoment(SQ*std::sqrt(dt));
@@ -149,6 +157,7 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
 std::vector<Eigen::Index> SystemSLAM::processNoiseIndex() const
 {
     // Indices of process model equations where process noise is injected
+    // Noise only affects velocity states (indices 0-5)
     std::vector<Eigen::Index> idxQ{0, 1, 2, 3, 4, 5};
     // TODO: Assignment(s)
     return idxQ;
