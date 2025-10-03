@@ -22,16 +22,20 @@
 \DoxyCodeLine{00018\ \ \ \ \ cv::Mat\ annotated;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ input\ image\ with\ markers\ drawn}}
 \DoxyCodeLine{00019\ \};}
 \DoxyCodeLine{00020\ }
-\DoxyCodeLine{00021\ \textcolor{comment}{//\ Choose\ a\ dictionary\ that\ matches\ your\ printed\ tags\ (Lab-\/2\ typically\ used\ one\ of\ these):}}
-\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ cv::aruco::DICT\_6X6\_250\ \ \ or\ \ \ cv::aruco::DICT\_4X4\_50}}
-\DoxyCodeLine{00023\ \mbox{\hyperlink{structArucoDetections}{ArucoDetections}}\ detectArucoLab2(\textcolor{keyword}{const}\ cv::Mat\ \&\ imgBGR,}
-\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dictionary\ =\ cv::aruco::DICT\_6X6\_250,}
-\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ doCornerRefine\ =\ \textcolor{keyword}{true});}
-\DoxyCodeLine{00026\ }
-\DoxyCodeLine{00027\ \textcolor{comment}{//\ Helpful\ utility:\ build\ the\ 2x(4*N)\ measurement\ matrix\ from\ corners}}
-\DoxyCodeLine{00028\ Eigen::Matrix<double,2,Eigen::Dynamic>}
-\DoxyCodeLine{00029\ buildYFromAruco(\textcolor{keyword}{const}\ std::vector<std::array<cv::Point2f,4>>\ \&\ corners);}
-\DoxyCodeLine{00030\ }
-\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00021\ \mbox{\hyperlink{structArucoDetections}{ArucoDetections}}\ detectArUcoPOSE(}
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ imgBGR,}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{int}\ dictionary,}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{bool}\ doCornerRefine,}
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ cameraMatrix,}
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ distCoeffs,}
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keywordtype}{float}\ tagSizeMeters,}
+\DoxyCodeLine{00028\ \ \ \ \ std::vector<cv::Vec3d>*\ outRvecs\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00029\ \ \ \ \ std::vector<cv::Vec3d>*\ outTvecs\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00030\ \ \ \ \ std::vector<double>*\ outMeanReprojErr\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordtype}{double}\ reprojErrThreshPx\ =\ 4.0,}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordtype}{bool}\ drawRejected\ =\ \textcolor{keyword}{false}}
+\DoxyCodeLine{00033\ );}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

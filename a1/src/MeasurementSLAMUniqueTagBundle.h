@@ -37,10 +37,6 @@ public:
     void setConsecutiveMisses(const std::vector<int>& m) { consecutive_misses_ = m; }
     const std::vector<int>& getConsecutiveMisses() const { return consecutive_misses_; }
 
-    /**
-     * @brief Check if landmark should be visualized as "associated"
-     * Returns true if detected this frame OR within grace period
-     */
     bool isEffectivelyAssociated(std::size_t landmarkIdx) const;
 
     /**

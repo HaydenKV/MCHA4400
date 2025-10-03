@@ -31,11 +31,27 @@
 \DoxyCodeLine{00027\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ numberLandmarks()\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ landmarkPositionIndex(std::size\_t\ idxLandmark)\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00029\ }
-\DoxyCodeLine{00033\ \ \ \ \ std::size\_t\ \mbox{\hyperlink{classSystemSLAMPoseLandmarks_af753d8a8f7963cc5b295af8c79872b60}{appendLandmark}}(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ r\_nL,}
-\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Vector3d\&\ Theta\_nL,}
-\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,6,6>\&\ Sj);}
-\DoxyCodeLine{00036\ \};}
-\DoxyCodeLine{00037\ }
-\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{comment}{//\ ===============================}}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{comment}{//\ SystemSLAMPoseLandmarks::appendLandmark}}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ ===============================}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ Appends\ a\ 6-\/DOF\ pose\ landmark\ to\ the\ SLAM\ state:\ [r\_nj;\ Theta\_nj]\ (position\ in\ world,\ Euler\ angles).}}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{comment}{//\ Inputs:}}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{comment}{//\ \ \ rnj\ \ \ \ \ \ :\ Eigen::Vector3d\ \ (world\ position\ of\ tag/landmark)}}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{comment}{//\ \ \ Thetanj\ \ :\ Eigen::Vector3d\ \ (landmark\ world\ orientation\ as\ Euler\ rpy\ [rad])}}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{comment}{//\ \ \ Sj\ \ \ \ \ \ \ :\ 6x6\ upper-\/triangular\ sqrt-\/covariance\ for\ the\ landmark\ block}}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{comment}{//\ Returns:}}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{comment}{//\ \ \ size\_t\ index\ of\ the\ newly\ appended\ landmark\ (0-\/based\ among\ the\ pose\ landmarks).}}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{//\ Notes:}}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{comment}{//\ -\/\ We\ expand\ the\ state's\ mean\ and\ sqrt-\/covariance\ by\ 6.}}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{comment}{//\ -\/\ Cross-\/covariance\ between\ existing\ states\ and\ the\ new\ landmark\ is\ initialized\ to\ zero}}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{comment}{//\ \ \ (you\ can\ later\ add\ a\ data-\/driven\ cross\ term\ if\ you\ propagate\ uncertainties\ here).}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{comment}{//\ -\/\ Sj\ should\ be\ reasonably\ conservative;\ SLAM\ updates\ will\ tighten\ it.}}
+\DoxyCodeLine{00046\ \ \ \ \ std::size\_t\ appendLandmark(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ rnj,}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Vector3d\&\ Thetanj,}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,6,6>\&\ Sj);}
+\DoxyCodeLine{00049\ \};}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

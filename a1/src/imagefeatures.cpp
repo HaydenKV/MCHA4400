@@ -1,7 +1,11 @@
 #include <string>  
 #include <print>
+#include <vector>
+#include <array>
+#include <iostream>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/calib3d.hpp>
 #include <opencv2/aruco.hpp>
 #include <Eigen/Core>
 #include "imagefeatures.h"
@@ -268,86 +272,131 @@ cv::Mat detectAndDrawArUco(const cv::Mat & img, int maxNumFeatures)
 }
 
 
-ArucoDetections detectArucoLab2(const cv::Mat & imgBGR,
-                                int dictionary,
-                                bool doCornerRefine)
+ArucoDetections detectArUcoPOSE(
+    const cv::Mat& imgBGR,
+    int dictionary,
+    bool doCornerRefine,
+    const cv::Mat& cameraMatrix,
+    const cv::Mat& distCoeffs,
+    float tagSizeMeters,
+    std::vector<cv::Vec3d>* outRvecs,
+    std::vector<cv::Vec3d>* outTvecs,
+    std::vector<double>* outMeanReprojErr,
+    double reprojErrThreshPx,
+    bool drawRejected
+)
 {
     CV_Assert(!imgBGR.empty());
+    CV_Assert(cameraMatrix.rows == 3 && cameraMatrix.cols == 3);
+    CV_Assert(tagSizeMeters > 0.f);
+
     ArucoDetections out;
     out.annotated = imgBGR.clone();
 
-    // --- OpenCV 4.11 ArUco (new API) ---
+    // --- Dictionary & conservative parameters (loosen only if recall is low) ---
     cv::aruco::Dictionary dict = cv::aruco::getPredefinedDictionary(dictionary);
     cv::aruco::DetectorParameters params;
 
-    // Good Lab-2 style defaults (tune if needed)
     params.cornerRefinementMethod = doCornerRefine
-        ? cv::aruco::CornerRefineMethod::CORNER_REFINE_SUBPIX
-        : cv::aruco::CornerRefineMethod::CORNER_REFINE_NONE;
+        ? cv::aruco::CORNER_REFINE_SUBPIX
+        : cv::aruco::CORNER_REFINE_NONE;
 
-    // More permissive for edge cases
-    params.minMarkerPerimeterRate = 0.02;      // Lower threshold (was 0.03)
-    params.maxMarkerPerimeterRate = 5.0;       // Higher threshold (was 4.0)
-    
-    // Adaptive thresholding - more robust to lighting
-    params.adaptiveThreshWinSizeMin = 3;       // Smaller window (was 5)
-    params.adaptiveThreshWinSizeMax = 45;      // Larger window (was 35)
-    params.adaptiveThreshWinSizeStep = 4;
-    params.adaptiveThreshConstant = 7;
-    
-    // Contour filtering - more permissive
-    params.minCornerDistanceRate = 0.03;       // Allow closer corners
-    params.minDistanceToBorder = 1;            // Allow closer to border (was 3)
-    
-    // Polygon approximation - more accurate
-    params.polygonalApproxAccuracyRate = 0.04; // More accurate (was 0.05)
-    
-    // Corner refinement - more iterations for accuracy
-    params.cornerRefinementWinSize = 5;
+    params.minMarkerPerimeterRate = 0.03f;
+    params.maxMarkerPerimeterRate = 4.0f;
+
+    params.adaptiveThreshWinSizeMin = 5;
+    params.adaptiveThreshWinSizeMax = 35;
+    params.adaptiveThreshWinSizeStep = 5;
+    params.adaptiveThreshConstant   = 7;
+
+    params.minCornerDistanceRate = 0.05f;
+    params.minDistanceToBorder   = 3;
+    params.polygonalApproxAccuracyRate = 0.05f;
+
+    params.cornerRefinementWinSize       = 5;
     params.cornerRefinementMaxIterations = 50;
-    params.cornerRefinementMinAccuracy = 0.05;
-    
-    // Error correction - more permissive
-    params.errorCorrectionRate = 0.8;          // Allow more bit errors
+    params.cornerRefinementMinAccuracy   = 0.05;
+
+    params.errorCorrectionRate = 0.5f;
 
     cv::aruco::ArucoDetector detector(dict, params);
 
-    // Detect
-    std::vector<int> ids;
-    std::vector<std::vector<cv::Point2f>> rawCorners;
-    detector.detectMarkers(imgBGR, rawCorners, ids);
+    // --- Detect ---
+    std::vector<int> ids_raw;
+    std::vector<std::vector<cv::Point2f>> corners_raw, rejected;
+    detector.detectMarkers(imgBGR, corners_raw, ids_raw, rejected);
 
-    if (!ids.empty())
-    {
-        // Draw on output
-        cv::aruco::drawDetectedMarkers(out.annotated, rawCorners, ids);
-
-        // Pack to fixed-size arrays (TL,TR,BR,BL)
-        out.ids = ids;
-        out.corners.reserve(ids.size());
-        for (const auto & cvec : rawCorners)
-        {
-            std::array<cv::Point2f,4> c{};
-            for (int i = 0; i < 4; ++i) c[i] = cvec[i];
-            out.corners.push_back(c);
-        }
+    if (drawRejected && !rejected.empty()) {
+        cv::aruco::drawDetectedMarkers(out.annotated, rejected, std::vector<int>(), cv::Scalar(120,120,120));
     }
+    if (ids_raw.empty()) {
+        return out; // nothing found
+    }
+
+    // Visualize detections (even if some will be rejected by PnP gating)
+    cv::aruco::drawDetectedMarkers(out.annotated, corners_raw, ids_raw);
+
+    // --- Prepare canonical object points in TL,TR,BR,BL to match OpenCV order ---
+    const float L = tagSizeMeters;
+    const std::vector<cv::Point3f> objPts = {
+        {-L/2.f,  L/2.f, 0.f},   // TL
+        { L/2.f,  L/2.f, 0.f},   // TR
+        { L/2.f, -L/2.f, 0.f},   // BR
+        {-L/2.f, -L/2.f, 0.f}    // BL
+    };
+
+    if (outRvecs) outRvecs->clear();
+    if (outTvecs) outTvecs->clear();
+    if (outMeanReprojErr) outMeanReprojErr->clear();
+
+    out.ids.reserve(ids_raw.size());
+    out.corners.reserve(ids_raw.size());
+    if (outRvecs) outRvecs->reserve(ids_raw.size());
+    if (outTvecs) outTvecs->reserve(ids_raw.size());
+    if (outMeanReprojErr) outMeanReprojErr->reserve(ids_raw.size());
+
+    // --- Per-marker pose + optional reprojection gate ---
+    for (size_t i = 0; i < ids_raw.size(); ++i) {
+        const std::vector<cv::Point2f>& imgPts = corners_raw[i]; // OpenCV order TL,TR,BR,BL
+
+        cv::Vec3d rvec, tvec;
+        bool ok = cv::solvePnP(
+            objPts, imgPts,
+            cameraMatrix, distCoeffs,
+            rvec, tvec,
+            false, cv::SOLVEPNP_IPPE_SQUARE
+        );
+        if (!ok) continue;
+
+        // Mean reprojection error (px)
+        double meanErr = 0.0;
+        {
+            std::vector<cv::Point2f> reproj(4);
+            cv::projectPoints(objPts, rvec, tvec, cameraMatrix, distCoeffs, reproj);
+            for (int c = 0; c < 4; ++c) {
+                cv::Point2f d = reproj[c] - imgPts[c];
+                meanErr += std::sqrt(d.dot(d));
+            }
+            meanErr *= 0.25;
+        }
+
+        // Optional gate (keeps the solution robust in real video)
+        if (reprojErrThreshPx > 0.0 && meanErr > reprojErrThreshPx)
+            continue;
+
+        // Keep this marker
+        out.ids.push_back(ids_raw[i]);
+        std::array<cv::Point2f,4> c{};
+        for (int k = 0; k < 4; ++k) c[k] = imgPts[k];
+        out.corners.push_back(c);
+
+        if (outRvecs) outRvecs->push_back(rvec);
+        if (outTvecs) outTvecs->push_back(tvec);
+        if (outMeanReprojErr) outMeanReprojErr->push_back(meanErr);
+
+        // Nice visual confirmation
+        cv::drawFrameAxes(out.annotated, cameraMatrix, distCoeffs, rvec, tvec, 0.4f * L, 2);
+    }
+
     return out;
-}
-
-Eigen::Matrix<double,2,Eigen::Dynamic>
-buildYFromAruco(const std::vector<std::array<cv::Point2f,4>> & corners)
-{
-    const int n = static_cast<int>(corners.size());
-    Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*n);
-    for (int k = 0; k < n; ++k)
-    {
-        // Column order: TL, TR, BR, BL (OpenCV standard)
-        for (int c = 0; c < 4; ++c)
-        {
-            Y(0, 4*k + c) = corners[k][c].x;  // u
-            Y(1, 4*k + c) = corners[k][c].y;  // v
-        }
-    }
-    return Y;
 }

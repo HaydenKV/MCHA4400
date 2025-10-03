@@ -27,5 +27,5 @@ var annotated_dup =
     [ "SystemEstimator", "classSystemEstimator.html", "classSystemEstimator" ],
     [ "SystemSLAM", "classSystemSLAM.html", "classSystemSLAM" ],
     [ "SystemSLAMPointLandmarks", "classSystemSLAMPointLandmarks.html", null ],
-    [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", "classSystemSLAMPoseLandmarks" ]
+    [ "SystemSLAMPoseLandmarks", "classSystemSLAMPoseLandmarks.html", null ]
 ];
