@@ -63,7 +63,7 @@ MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle(
 {
     // Measurement noise: ArUco corner detection with subpixel refinement
     // Conservative estimate: 1.5 pixels standard deviation
-    sigma_ = 10.0;
+    sigma_ = 5.0;
     updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 

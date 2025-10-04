@@ -10,6 +10,11 @@
  * - 4-corner measurement model per tag
  * - NO DELETION of landmarks (tags persist for loop closure)
  * - Visual distinction: blue=associated, red=unassociated
+ * 
+ * IMPORTANT: Left pane ellipses show TAG CENTER (not corners!)
+ * - Base class predictFeature() reads only position part of pose landmark
+ * - For pose landmarks: state = [rLNn(3), ThetaLn(3)]
+ * - predictFeature() reads only first 3 elements → tag center position
  */
 class MeasurementSLAMUniqueTagBundle : public MeasurementPointBundle
 {
@@ -84,5 +89,5 @@ private:
     std::vector<int> id_by_landmark_;       ///< Persistent: landmark index → tag ID
     
     static constexpr double TAG_SIZE = 0.166;        ///< Tag edge length (meters)
-    static constexpr int BORDER_MARGIN = 15;         ///< Conservative FOV margin (pixels)
+    static constexpr int BORDER_MARGIN = 15;         ///< Conservative FOV margin (pixels) ← FIXED: Now consistent!
 };

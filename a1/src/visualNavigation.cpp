@@ -128,7 +128,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
         S_body.block<6,6>(0,0) *= 1e-2;               // velocity
         const double d2r = M_PI / 180.0;
         S_body.block<3,3>(6,6) *= 1e-2;               // Position: 10cm
-        S_body.block<3,3>(9,9) *= (0.5 * d2r);        // Orientation: 5°
+        S_body.block<3,3>(9,9) *= (1.0 * d2r);        // Orientation: 5°
 
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPoseLandmarks>(SystemSLAMPoseLandmarks(p0));
@@ -204,7 +204,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             // --- Conservative image-border gating for NEW landmark init ---
             const int W = camera.imageSize.width;
             const int H = camera.imageSize.height;
-            const int BORDER_MARGIN = 12; // ~10–15 px as discussed
+            const int BORDER_MARGIN = 15; // ~10–15 px as discussed
 
             auto nearBorder = [&](const std::array<cv::Point2f,4>& c)->bool {
                 for (int k = 0; k < 4; ++k) {
@@ -244,8 +244,11 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
 
                 // Moderate init sqrt-covariance (position meters, Euler radians)
                 Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
-                const double pos_sigma = 0.40;                 // ~40 cm
-                const double ang_sigma = 20.0 * M_PI/180.0;    // ~20°
+                // 0.1 5° Small Fast but may lock onto wrong solution
+                // 0.4 20° Medium Moderate
+                // 1.0 45° Large Slow
+                const double pos_sigma = 0.1;                 // ~40 cm
+                const double ang_sigma = 5.0 * M_PI/180.0;    // ~20°
                 Sj(0,0) = pos_sigma;  Sj(1,1) = pos_sigma;  Sj(2,2) = pos_sigma;
                 Sj(3,3) = ang_sigma;  Sj(4,4) = ang_sigma;  Sj(5,5) = ang_sigma;
 
@@ -277,6 +280,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             // (we intentionally do NOT do any pruning or grace-based coloring)
             meas.process(system);
             std::cout << "Frame " << frameIdx << " - After update" << std::endl;
+            id_by_landmark = meas.idByLandmark();
 
             // Diagnostics
             if (frameIdx % 30 == 0) {

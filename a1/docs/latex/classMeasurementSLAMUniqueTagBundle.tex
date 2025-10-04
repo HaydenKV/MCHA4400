@@ -163,7 +163,14 @@ Key features for Scenario 1\+:
 \item ID-\/based data association (trivial since tags have unique IDs)
 \item 4-\/corner measurement model per tag
 \item NO DELETION of landmarks (tags persist for loop closure)
-\item Visual distinction\+: blue=associated, red=unassociated 
+\item Visual distinction\+: blue=associated, red=unassociated
+\end{DoxyItemize}
+
+IMPORTANT\+: Left pane ellipses show TAG CENTER (not corners!)
+\begin{DoxyItemize}
+\item Base class predict\+Feature() reads only position part of pose landmark
+\item For pose landmarks\+: state = \mbox{[}r\+LNn(3), Theta\+Ln(3)\mbox{]}
+\item predict\+Feature() reads only first 3 elements → tag center position 
 \end{DoxyItemize}
 
 \label{doc-constructors}

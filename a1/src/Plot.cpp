@@ -101,50 +101,6 @@ projectLandmarkPosToPixel(const GaussianInfo<double>& posDen,
                           const Eigen::Vector3d& rCNn,
                           const Eigen::Matrix3d& Rnc);
 
-// NEW: draw measured feature center (supports UniqueTagBundle 4-corner case and simple point case)
-static void drawAssociatedFeatureCenter(cv::Mat& img,
-                                        const MeasurementSLAM& meas,
-                                        std::size_t landmarkIndex);
-
-// Draw the detected feature center associated with a landmark (white dot).
-// Works for UniqueTagBundle (4 corners per tag) and plain PointBundle (single point).
-void drawAssociatedFeatureCenter(cv::Mat& img,
-                                        const MeasurementSLAM& meas,
-                                        std::size_t landmarkIndex)
-{
-    const auto* mp = dynamic_cast<const MeasurementPointBundle*>(&meas);
-    if (!mp) return;
-
-    // association: landmark index -> feature index this frame
-    const auto& assoc = mp->idxFeatures();
-    if (landmarkIndex >= assoc.size()) return;
-
-    const int fi = assoc[landmarkIndex];
-    if (fi < 0) return; // not associated
-
-    // NOTE: requires a getter on MeasurementSLAMPointBundle:
-    //   const Eigen::Matrix<double,2,Eigen::Dynamic>& Y() const;
-    const auto& Y = mp->Y();
-
-    // UniqueTagBundle: 4 corners per detected feature (TL,TR,BR,BL)
-    if (4*fi + 3 < Y.cols()) {
-        Eigen::Vector2d c = Eigen::Vector2d::Zero();
-        for (int k = 0; k < 4; ++k) c += Y.col(4*fi + k);
-        c *= 0.25;
-        cv::circle(img,
-                   cv::Point((int)std::lround(c.x()), (int)std::lround(c.y())),
-                   4, cv::Scalar(255,255,255), cv::FILLED, cv::LINE_AA);
-    }
-    // Plain PointBundle: single pixel column per feature
-    else if (fi >= 0 && fi < Y.cols()) {
-        const Eigen::Vector2d c = Y.col(fi);
-        cv::circle(img,
-                   cv::Point((int)std::lround(c.x()), (int)std::lround(c.y())),
-                   4, cv::Scalar(255,255,255), cv::FILLED, cv::LINE_AA);
-    }
-}
-
-
 // -------------------------------------------------------
 // Bounds
 // -------------------------------------------------------
@@ -648,43 +604,46 @@ void Plot::render()
         qpLandmarks.pop_back();
     }    
 
-    // --- camera pose (means) for this frame ---
+    // --- Current camera pose (means) ---
     const Eigen::Vector3d rCNn    = pSystem->cameraPositionDensity(camera).mean();
     const Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
     const Eigen::Matrix3d Rnc     = rpy2rot(Thetanc);
     const Eigen::Matrix3d Rcn     = Rnc.transpose();
 
-    // Per-frame associations from the active measurement (UniqueTagBundle derives from PointBundle)
+    // Get association data from measurement
     const auto* pBundle = dynamic_cast<const MeasurementPointBundle*>(pMeasurement.get());
     const std::vector<int>* assocPtr = nullptr;
     if (pBundle) assocPtr = &pBundle->idxFeatures();
 
-    // Strict visibility check helper (front-facing + in-bounds pixel)
+    // Helper: Strict visibility check
+    // Checks if SLAM's predicted landmark position projects into current camera FOV
+    // This is GEOMETRIC only - does NOT account for physical occlusion!
     auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool
     {
         const Eigen::Vector3d rPCc = Rcn * (rPNn - rCNn);
         if (!std::isfinite(rPCc.x()) || !std::isfinite(rPCc.y()) || !std::isfinite(rPCc.z()))
             return false;
-        if (rPCc.z() <= 1e-9) return false; // behind camera
+        if (rPCc.z() <= 1e-9) return false; // Behind camera plane
 
         const Eigen::Vector2d pix = camera.vectorToPixel(rPCc);
         if (!std::isfinite(pix.x()) || !std::isfinite(pix.y())) return false;
 
-        const bool inBounds = (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
-                               pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
-        return inBounds;
+        return (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
+                pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
     };
 
+    // Process each landmark
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
-        // Landmark position density (3D)
+        // Get landmark position density (3D) - SLAM's current belief
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
         const Eigen::Vector3d rPNn_mean   = posDen.mean();
 
-        // VISIBILITY (strict, pixel-in-bounds)
+        // VISIBILITY: Does SLAM prediction project into current FOV?
+        // (Geometric check - doesn't know about walls/occlusion)
         const bool visible = isVisibleStrict(rPNn_mean);
 
-        // ASSOCIATED this frame (>=0 means detected & matched)
+        // ASSOCIATION: Was this landmark matched to a detection this frame?
         bool associated = false;
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
             associated = tagMeas->isEffectivelyAssociated(i);
@@ -692,31 +651,39 @@ void Plot::render()
             associated = ((*assocPtr)[i] >= 0);
         }
 
-        // Color semantics:
-        // Right pane: Blue = visible+associated; Red = visible+!associated; Yellow = !visible
-        // Left pane (ellipses only drawn when visible): Blue/Red only
+        // COLOR SEMANTICS:
+        // Blue   = Visible in FOV + Detected this frame (loop closure success!)
+        // Red    = Visible in FOV + NOT detected (occluded? moved? wrong estimate?)
+        // Yellow = Not visible in FOV (behind camera or outside frame)
         double cr, cg, cb;
-        if (!visible)        { cr = 1.0; cg = 1.0; cb = 0.0; }     // Yellow
-        else if (associated) { cr = 0.0; cg = 0.5; cb = 1.0; }     // Blue-ish
-        else                 { cr = 1.0; cg = 0.25; cb = 0.25; }   // Red-ish
+        if (!visible) {
+            // Yellow: SLAM prediction not in current FOV
+            cr = 1.0; cg = 1.0; cb = 0.0;
+        } else if (associated) {
+            // Blue: In FOV AND detected
+            cr = 0.0; cg = 0.5; cb = 1.0;
+        } else {
+            // Red: In FOV but NOT detected (important for loop closure!)
+            cr = 1.0; cg = 0.25; cb = 0.25;
+        }
 
-        Eigen::Vector3d rgb2d;
-        rgb2d << cr*255.0, cg*255.0, cb*255.0;
+        Eigen::Vector3d rgb2d(cr*255.0, cg*255.0, cb*255.0);
 
-        // --- LEFT PANE ---
-        // 3σ confidence ellipse for expected location in image (only if visible)
+        // ===== LEFT PANE: Image View =====
+        
+        // Draw 3σ confidence ellipse for tag CENTER at PREDICTED location
+        // Only if SLAM thinks it should be visible in current view
         if (visible) {
+            // predictFeatureDensity() uses base class MeasurementPointBundle::predictFeature()
+            // which reads only position part [rLNn(3)] from pose landmark [rLNn(3), ThetaLn(3)]
+            // This gives the tag CENTER position projected to image
             GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
             plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
         }
 
-        // Detected feature center (white dot) for associated landmarks
-        if (associated) {
-            drawAssociatedFeatureCenter(pSystem->view(), *pMeasurement, i);
-        }
-
-        // --- RIGHT PANE ---
-        // 3D ellipsoid for landmark position & color per spec
+        // ===== RIGHT PANE: 3D View =====
+        
+        // Draw 3D ellipsoid for landmark position (always rendered)
         QuadricPlot & qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
@@ -724,7 +691,7 @@ void Plot::render()
         qp.bounds.setExtremity(globalBounds); 
     }
 
-    // Axes / frustum / image panes
+    // Update axes, frustum, and image display
     ap.update(globalBounds);
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);

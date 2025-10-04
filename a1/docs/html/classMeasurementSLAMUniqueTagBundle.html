@@ -257,7 +257,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 <li>ID-based data association (trivial since tags have unique IDs)</li>
 <li>4-corner measurement model per tag</li>
 <li>NO DELETION of landmarks (tags persist for loop closure)</li>
-<li>Visual distinction: blue=associated, red=unassociated </li>
+<li>Visual distinction: blue=associated, red=unassociated</li>
+</ul>
+<p>IMPORTANT: Left pane ellipses show TAG CENTER (not corners!)</p><ul>
+<li>Base class predictFeature() reads only position part of pose landmark</li>
+<li>For pose landmarks: state = [rLNn(3), ThetaLn(3)]</li>
+<li>predictFeature() reads only first 3 elements → tag center position </li>
 </ul>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9664b84d0ecb7b8c8d956814ddcd6f49" name="a9664b84d0ecb7b8c8d956814ddcd6f49"></a>
