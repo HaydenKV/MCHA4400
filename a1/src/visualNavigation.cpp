@@ -57,7 +57,8 @@ static inline cv::Vec3d toCv(const Eigen::Vector3d& v) { return cv::Vec3d(v.x(),
 void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                                   const std::filesystem::path & cameraPath,
                                   int scenario, int interactive,
-                                  const std::filesystem::path & outputDirectory)
+                                  const std::filesystem::path & outputDirectory,
+                                  int max_frames)
 {
     assert(!videoPath.empty());
 
@@ -92,6 +93,9 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
     int nFrames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
     assert(nFrames > 0);
     double fps = cap.get(cv::CAP_PROP_FPS);
+
+    std::cout << "Total frames in video: " << nFrames << std::endl;
+    std::cout << "Video duration (approx): " << (nFrames / fps) << " seconds" << std::endl;
 
     BufferedVideoReader bufferedVideoReader(5);
     bufferedVideoReader.start(cap);
@@ -166,6 +170,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
     int frameIdx = 0;
     while (true)
     {
+        if (max_frames > 0 && frameIdx >= max_frames) break;  // <- early-out
         cv::Mat imgin = bufferedVideoReader.read();
         if (imgin.empty()) break;
 
@@ -269,7 +274,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 }
             }
 
-            std::cout << "Frame " << frameIdx << " - After measurement" << std::endl;
+            // std::cout << "Frame " << frameIdx << " - After measurement" << std::endl;
 
             // Display
             system.view() = dets.annotated.empty() ? imgin.clone() : dets.annotated.clone();
@@ -279,7 +284,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             meas.setIdByLandmark(id_by_landmark);
             // (we intentionally do NOT do any pruning or grace-based coloring)
             meas.process(system);
-            std::cout << "Frame " << frameIdx << " - After update" << std::endl;
+            // std::cout << "Frame " << frameIdx << " - After update" << std::endl;
             id_by_landmark = meas.idByLandmark();
 
             // Diagnostics

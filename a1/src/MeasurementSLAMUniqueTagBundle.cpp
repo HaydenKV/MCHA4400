@@ -82,13 +82,17 @@ MeasurementSLAM* MeasurementSLAMUniqueTagBundle::clone() const
 
 bool MeasurementSLAMUniqueTagBundle::isEffectivelyAssociated(std::size_t landmarkIdx) const
 {
-    // A landmark is "effectively associated" (blue) if:
-    // 1. It has a valid feature association this frame (idxFeatures_[landmarkIdx] >= 0)
-    // Otherwise it's unassociated (red) - either not detected or failed FOV check
-    if (landmarkIdx >= idxFeatures_.size()) {
-        return false;
+    // Check for persistent tag ID, not just current frame detection
+    // A landmark is "associated" if it has a known tag ID in the map
+    // This makes it stay BLUE even during detector dropout
+    
+    if (landmarkIdx >= id_by_landmark_.size()) {
+        return false;  // Landmark not yet in persistent map
     }
-    return idxFeatures_[landmarkIdx] >= 0;
+    
+    // Has a valid tag ID? → Part of the map → Blue
+    // No tag ID? → Unidentified → Red (should never happen in Scenario 1)
+    return id_by_landmark_[landmarkIdx] >= 0;
 }
 
 const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(

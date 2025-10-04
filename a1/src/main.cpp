@@ -16,7 +16,8 @@ int main(int argc, char* argv [])
         "{calibrate c     |          | perform camera calibration for given configuration XML}"
         "{scenario s      | 3        | run visual navigation on input video with scenario type (1:tag, 2:duck, 3:point)}"
         "{interactive i   | 0        | interactivity (0:none, 1:last frame, 2:all frames)}"
-        "{export e        |          | export video}";
+        "{export e        |          | export video}"
+        "{max_frames m    | -1       | limit processing to the first N frames (<=0 means no limit)}";
 
     cv::CommandLineParser parser(argc, argv, keys);
     parser.about("MCHA4400 Assignment 1");
@@ -29,6 +30,7 @@ int main(int argc, char* argv [])
 
     int scenario = parser.get<int>("scenario");
     int interactive = parser.get<int>("interactive");
+    int max_frames = parser.get<int>("max_frames");
     bool hasExport = parser.has("export");
     bool hasCalibrate = parser.has("calibrate");
     std::filesystem::path inputPath = parser.get<std::string>("@input");
@@ -67,7 +69,7 @@ int main(int argc, char* argv [])
         std::cout << "Running visual navigation" << std::endl;
         std::cout << "Input video: " << inputPath.string() << std::endl;
         std::filesystem::path cameraPath = inputPath.parent_path() / "camera.xml"; 
-        runVisualNavigationFromVideo(inputPath, cameraPath, scenario, interactive, outputDirectory);
+        runVisualNavigationFromVideo(inputPath, cameraPath, scenario, interactive, outputDirectory, max_frames);
     }
 
     return EXIT_SUCCESS;
