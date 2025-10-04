@@ -8,6 +8,10 @@
 #include "SystemSLAM.h"
 #include "rotation.hpp"
 
+#include <autodiff/forward/dual.hpp>
+#include <autodiff/forward/dual/eigen.hpp>
+
+
 SystemSLAM::SystemSLAM(const GaussianInfo<double> & density)
     : SystemEstimator(density)
 {}
@@ -70,60 +74,127 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
 // Evaluate f(x) and its Jacobian J = df/fx from the SDE dx = f(x)*dt + dw
 Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u, Eigen::MatrixXd & J) const
 {
-    Eigen::VectorXd f = dynamics(t, x, u);
+    // Keep the forward model EXACTLY as you already wrote it
+    // Eigen::VectorXd f = dynamics(t, x, u);
 
-    // Jacobian J = df/dx
+    //
+    //  Jacobian J = df/dx
     //    
     //     [  0                  0 0 ]
     // J = [ JK d(JK(eta)*nu)/deta 0 ]
     //     [  0                  0 0 ]
     //
-    J.resize(f.size(), x.size());
-    J.setZero();
-    // TODO: Implement in Assignment(s)
+    // where JK(eta) = blkdiag(Rnb(Theta), T(Theta))
+    //
+    using autodiff::dual;
+    using autodiff::jacobian;
+    using autodiff::wrt;
+    using autodiff::at;
+    using autodiff::val;
 
-    // Extract states
-    Eigen::Vector3d vBNb = x.segment<3>(0);
-    Eigen::Vector3d omegaBNb = x.segment<3>(3);
-    Eigen::Vector3d Thetanb = x.segment<3>(9);
-    
-    Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
-    
-    // J[6:8, 0:2] = Rnb (derivative of position w.r.t. velocity)
-    J.block<3,3>(6,0) = Rnb;
-    
-    // J[6:8, 9:11] = d(Rnb*vBNb)/dTheta (numerical differentiation for robustness)
-    const double eps = 1e-7;
-    for (int i = 0; i < 3; ++i) {
-        Eigen::Vector3d Theta_plus = Thetanb;
-        Theta_plus(i) += eps;
-        Eigen::Matrix3d Rnb_plus = rpy2rot(Theta_plus);
-        J.block<3,1>(6, 9+i) = (Rnb_plus * vBNb - Rnb * vBNb) / eps;
+    // Cast state to dual numbers
+    Eigen::VectorX<dual> x_dual = x.cast<dual>();
+
+    // Define dynamics function for autodiff
+    auto f_dual = [&](const Eigen::VectorX<dual>& xd) -> Eigen::VectorX<dual> {
+        Eigen::VectorX<dual> fd(xd.size());
+        fd.setZero();
+
+        // Extract states
+        Eigen::Vector3<dual> vBNb = xd.segment<3>(0);
+        Eigen::Vector3<dual> omegaBNb = xd.segment<3>(3);
+        Eigen::Vector3<dual> Thetanb = xd.segment<3>(9);
+
+        // Rotation matrix (autodiff-compatible)
+        Eigen::Matrix3<dual> Rnb = rpy2rot(Thetanb);
+
+        // Position dynamics
+        fd.segment<3>(6) = Rnb * vBNb;
+
+        // Orientation dynamics
+        const dual phi = Thetanb(0);
+        const dual theta = Thetanb(1);
+
+        Eigen::Matrix3<dual> T;
+        T << dual(1.0), sin(phi)*tan(theta), cos(phi)*tan(theta),
+             dual(0.0), cos(phi), -sin(phi),
+             dual(0.0), sin(phi)/cos(theta), cos(phi)/cos(theta);
+
+        fd.segment<3>(9) = T * omegaBNb;
+
+        return fd;
+    };
+
+    // Compute Jacobian via autodiff
+    Eigen::VectorX<dual> f_dual_out;
+    J = jacobian(f_dual, wrt(x_dual), at(x_dual), f_dual_out);
+
+    // Return function value as double
+    Eigen::VectorXd f(x.size());
+    for (int i = 0; i < f.size(); ++i) {
+        f(i) = val(f_dual_out(i));
     }
-    
-    // J[9:11, 3:5] = T (derivative of orientation w.r.t. angular velocity)
-    const double phi = Thetanb(0);
-    const double theta = Thetanb(1);
-    Eigen::Matrix3d T;
-    T << 1.0, std::sin(phi)*std::tan(theta),  std::cos(phi)*std::tan(theta),
-         0.0, std::cos(phi),                 -std::sin(phi),
-         0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
-    J.block<3,3>(9,3) = T;
-    
-    // J[9:11, 9:11] = d(T*omega)/dTheta (numerical differentiation)
-    for (int i = 0; i < 3; ++i) {
-        Eigen::Vector3d Theta_plus = Thetanb;
-        Theta_plus(i) += eps;
-        const double phi_p = Theta_plus(0);
-        const double theta_p = Theta_plus(1);
-        Eigen::Matrix3d T_plus;
-        T_plus << 1.0, std::sin(phi_p)*std::tan(theta_p),  std::cos(phi_p)*std::tan(theta_p),
-                  0.0, std::cos(phi_p),                    -std::sin(phi_p),
-                  0.0, std::sin(phi_p)/std::cos(theta_p),  std::cos(phi_p)/std::cos(theta_p);
-        J.block<3,1>(9, 9+i) = (T_plus * omegaBNb - T * omegaBNb) / eps;
-    }
+
     return f;
 }
+
+// // Evaluate f(x) and its Jacobian J = df/fx from the SDE dx = f(x)*dt + dw
+// Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u, Eigen::MatrixXd & J) const
+// {
+//     Eigen::VectorXd f = dynamics(t, x, u);
+
+//     // Jacobian J = df/dx
+//     //    
+//     //     [  0                  0 0 ]
+//     // J = [ JK d(JK(eta)*nu)/deta 0 ]
+//     //     [  0                  0 0 ]
+//     //
+//     J.resize(f.size(), x.size());
+//     J.setZero();
+//     // TODO: Implement in Assignment(s)
+
+//     // Extract states
+//     Eigen::Vector3d vBNb = x.segment<3>(0);
+//     Eigen::Vector3d omegaBNb = x.segment<3>(3);
+//     Eigen::Vector3d Thetanb = x.segment<3>(9);
+    
+//     Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
+    
+//     // J[6:8, 0:2] = Rnb (derivative of position w.r.t. velocity)
+//     J.block<3,3>(6,0) = Rnb;
+    
+//     // J[6:8, 9:11] = d(Rnb*vBNb)/dTheta (numerical differentiation for robustness)
+//     const double eps = 1e-7;
+//     for (int i = 0; i < 3; ++i) {
+//         Eigen::Vector3d Theta_plus = Thetanb;
+//         Theta_plus(i) += eps;
+//         Eigen::Matrix3d Rnb_plus = rpy2rot(Theta_plus);
+//         J.block<3,1>(6, 9+i) = (Rnb_plus * vBNb - Rnb * vBNb) / eps;
+//     }
+    
+//     // J[9:11, 3:5] = T (derivative of orientation w.r.t. angular velocity)
+//     const double phi = Thetanb(0);
+//     const double theta = Thetanb(1);
+//     Eigen::Matrix3d T;
+//     T << 1.0, std::sin(phi)*std::tan(theta),  std::cos(phi)*std::tan(theta),
+//          0.0, std::cos(phi),                 -std::sin(phi),
+//          0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
+//     J.block<3,3>(9,3) = T;
+    
+//     // J[9:11, 9:11] = d(T*omega)/dTheta (numerical differentiation)
+//     for (int i = 0; i < 3; ++i) {
+//         Eigen::Vector3d Theta_plus = Thetanb;
+//         Theta_plus(i) += eps;
+//         const double phi_p = Theta_plus(0);
+//         const double theta_p = Theta_plus(1);
+//         Eigen::Matrix3d T_plus;
+//         T_plus << 1.0, std::sin(phi_p)*std::tan(theta_p),  std::cos(phi_p)*std::tan(theta_p),
+//                   0.0, std::cos(phi_p),                    -std::sin(phi_p),
+//                   0.0, std::sin(phi_p)/std::cos(theta_p),  std::cos(phi_p)/std::cos(theta_p);
+//         J.block<3,1>(9, 9+i) = (T_plus * omegaBNb - T * omegaBNb) / eps;
+//     }
+//     return f;
+// }
 
 Eigen::VectorXd SystemSLAM::input(double t, const Eigen::VectorXd & x) const
 {
@@ -138,8 +209,8 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
 
     // Process noise parameters (TUNABLE - start here and adjust based on drift)
     // These control how much the filter trusts the process model vs measurements
-    const double qv = 0.1;  // Translational velocity noise (m/s^1.5)
-    const double qw = 0.1;  // Angular velocity noise (rad/s^1.5)
+    const double qv = 0.01;  // Translational velocity noise (m/s^1.5)
+    const double qw = 0.01;  // Angular velocity noise (rad/s^1.5)
     
     // TODO: Assignment(s)
     // Diagonal noise (independent noise on each velocity component)

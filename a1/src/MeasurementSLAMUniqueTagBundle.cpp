@@ -63,7 +63,7 @@ MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle(
 {
     // Measurement noise: ArUco corner detection with subpixel refinement
     // Conservative estimate: 1.5 pixels standard deviation
-    sigma_ = 3;
+    sigma_ = 2;
     updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
@@ -82,17 +82,25 @@ MeasurementSLAM* MeasurementSLAMUniqueTagBundle::clone() const
 
 bool MeasurementSLAMUniqueTagBundle::isEffectivelyAssociated(std::size_t landmarkIdx) const
 {
-    // Check for persistent tag ID, not just current frame detection
-    // A landmark is "associated" if it has a known tag ID in the map
-    // This makes it stay BLUE even during detector dropout
+    // A landmark is "effectively associated" if:
+    // 1. It has a tag ID in the persistent map (id_by_landmark_)
+    // AND
+    // 2. It was actually detected and associated THIS FRAME (idxFeatures_)
     
     if (landmarkIdx >= id_by_landmark_.size()) {
-        return false;  // Landmark not yet in persistent map
+        return false;  // Not in map yet
     }
     
-    // Has a valid tag ID? → Part of the map → Blue
-    // No tag ID? → Unidentified → Red (should never happen in Scenario 1)
-    return id_by_landmark_[landmarkIdx] >= 0;
+    if (id_by_landmark_[landmarkIdx] < 0) {
+        return false;  // No tag ID assigned
+    }
+    
+    // Check if associated THIS FRAME
+    if (landmarkIdx >= idxFeatures_.size()) {
+        return false;  // No association data
+    }
+    
+    return idxFeatures_[landmarkIdx] >= 0;  // Detected this frame
 }
 
 const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(

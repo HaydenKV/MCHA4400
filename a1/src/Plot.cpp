@@ -643,20 +643,29 @@ void Plot::render()
         // VISIBILITY: Geometric FOV check
         const bool visible = isVisibleStrict(rPNn_mean);
 
-        // ASSOCIATION: Has persistent identity? (fixed!)
-        bool associated = false;
+        // PERSISTENT IDENTITY: Has tag ID in map? (CHANGED)
+        bool hasTagId = false;
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-            associated = tagMeas->isEffectivelyAssociated(i);  // Uses tag ID now!
-        } else if (assocPtr && i < assocPtr->size()) {
-            associated = ((*assocPtr)[i] >= 0);
+            const auto& idByLandmark = tagMeas->idByLandmark();
+            if (i < idByLandmark.size() && idByLandmark[i] >= 0) {
+                hasTagId = true;
+            }
         }
+
+        // // ASSOCIATION: Has persistent identity? (fixed!)
+        // bool associated = false;
+        // if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
+        //     associated = tagMeas->isEffectivelyAssociated(i);  // Uses tag ID now!
+        // } else if (assocPtr && i < assocPtr->size()) {
+        //     associated = ((*assocPtr)[i] >= 0);
+        // }
 
         // COLOR SEMANTICS (corrected)
         double cr, cg, cb;
         if (!visible) {
             // Yellow: Behind camera or out of FOV
             cr = 1.0; cg = 1.0; cb = 0.0;
-        } else if (associated) {
+        } else if (hasTagId) {
             // Blue: Has tag ID (part of map) - stays blue even during dropout!
             cr = 0.0; cg = 0.5; cb = 1.0;
         } else {
@@ -666,53 +675,57 @@ void Plot::render()
 
         Eigen::Vector3d rgb2d(cr*255.0, cg*255.0, cb*255.0);
 
-        // ===== LEFT PANE =====
-        // if (visible) {
-        //     // This correctly propagates ALL uncertainties (camera + landmark + measurement)
-        //     GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-        //     plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
-        // }
-        if (visible) {
-            try {
-                // Predict pixel measurement with full uncertainty propagation
-                GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-                const Eigen::Vector2d pixMean = prQOi.mean();
-                
-                // GUARD 1: Check predicted pixel center is safely away from edges
-                const bool pixelSafe = (
-                    pixMean.x() > ELLIPSE_SAFE_MARGIN &&
-                    pixMean.x() < (camera.imageSize.width - ELLIPSE_SAFE_MARGIN) &&
-                    pixMean.y() > ELLIPSE_SAFE_MARGIN &&
-                    pixMean.y() < (camera.imageSize.height - ELLIPSE_SAFE_MARGIN)
+        // ===== LEFT PANE - DRAW ALL LANDMARKS WITH VALID PREDICTIONS =====
+        try {
+            // Predict pixel measurement with full uncertainty propagation
+            GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+            const Eigen::Vector2d pixMean = prQOi.mean();
+            
+            // GUARD 1: Check predicted pixel center is safely away from edges
+            const bool pixelSafe = (
+                pixMean.x() > ELLIPSE_SAFE_MARGIN &&
+                pixMean.x() < (camera.imageSize.width - ELLIPSE_SAFE_MARGIN) &&
+                pixMean.y() > ELLIPSE_SAFE_MARGIN &&
+                pixMean.y() < (camera.imageSize.height - ELLIPSE_SAFE_MARGIN)
+            );
+            
+            if (pixelSafe) {
+                // GUARD 2: Check covariance is numerically valid and reasonable
+                const Eigen::Matrix2d S = prQOi.sqrtCov();
+                const bool covValid = (
+                    S.allFinite() &&
+                    (S.diagonal().array() > 0).all() &&
+                    (S.diagonal().maxCoeff() < MAX_STD_DEV)
                 );
                 
-                if (pixelSafe) {
-                    // GUARD 2: Check covariance is numerically valid and reasonable
-                    const Eigen::Matrix2d S = prQOi.sqrtCov();
-                    const bool covValid = (
-                        S.allFinite() &&
-                        (S.diagonal().array() > 0).all() &&
-                        (S.diagonal().maxCoeff() < MAX_STD_DEV)
-                    );
+                if (covValid) {
+                    // Safe to draw full ellipse
+                    plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
                     
-                    if (covValid) {
-                        // Safe to draw full ellipse
-                        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
-                    } else {
-                        // Covariance too large/invalid - just draw center marker
-                        cv::drawMarker(pSystem->view(), 
-                                      cv::Point(cvRound(pixMean.x()), cvRound(pixMean.y())),
-                                      cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)),
-                                      cv::MARKER_CROSS, 16, 2);
+                    // DEBUG: Add tag ID label for all landmarks
+                    if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
+                        const auto& idByLandmark = tagMeas->idByLandmark();
+                        if (i < idByLandmark.size() && idByLandmark[i] >= 0) {
+                            std::string label = std::to_string(idByLandmark[i]);
+                            cv::putText(pSystem->view(), label,
+                                       cv::Point(pixMean.x() + 10, pixMean.y() - 10),
+                                       cv::FONT_HERSHEY_SIMPLEX, 0.4,
+                                       cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)), 1);
+                        }
                     }
+                } else {
+                    // Covariance too large/invalid - draw marker only
+                    cv::drawMarker(pSystem->view(), 
+                                  cv::Point(cvRound(pixMean.x()), cvRound(pixMean.y())),
+                                  cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)),
+                                  cv::MARKER_DIAMOND, 8, 1);
                 }
-                // If not pixelSafe: skip entirely (predicted pixel outside safe zone)
-                
-            } catch (const std::exception& e) {
-                // Catch numerical errors in affine transform
-                std::cerr << "Warning: Ellipse prediction failed for landmark " << i 
-                          << ": " << e.what() << std::endl;
             }
+            // If not pixelSafe: skip (prediction too close to edge)
+            
+        } catch (const std::exception& e) {
+            // Catch numerical errors in affine transform
+            // (silent - happens frequently for yellow landmarks with extreme predictions)
         }
 
         // ===== RIGHT PANE =====
@@ -806,11 +819,19 @@ void plotGaussianConfidenceEllipse(cv::Mat & img, const GaussianInfo<double> & p
     int markerSize              = 24;
     int markerThickness         = 2;
 
+    Eigen::VectorXd murQOi = prQOi.mean();
+
+    // Check if center is in image bounds
+    if (murQOi(0) < 0 || murQOi(0) >= img.cols ||
+        murQOi(1) < 0 || murQOi(1) >= img.rows) {
+        return;  // Don't draw anything if center is outside
+    }
+
     Eigen::MatrixXd rQOi_ellipse = prQOi.confidenceEllipse(3, 100);
 
     cv::Scalar bgr(color(2), color(1), color(0));
 
-    Eigen::VectorXd murQOi = prQOi.mean();
+    // Eigen::VectorXd murQOi = prQOi.mean();
     cv::drawMarker(img, cv::Point(murQOi(0), murQOi(1)), bgr,   cv::MARKER_CROSS,   markerSize, markerThickness);
     Eigen::VectorXd rQOi_seg1, rQOi_seg2;
 
