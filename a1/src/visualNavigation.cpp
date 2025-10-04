@@ -174,7 +174,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
         cv::Mat imgin = bufferedVideoReader.read();
         if (imgin.empty()) break;
 
-        std::cout << "Frame " << frameIdx << " - Start" << std::endl;
+        // std::cout << "Frame " << frameIdx << " - Start" << std::endl;
 
         const double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
 
@@ -252,7 +252,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 // 0.1 5° Small Fast but may lock onto wrong solution
                 // 0.4 20° Medium Moderate
                 // 1.0 45° Large Slow
-                const double pos_sigma = 0.1;                 // ~40 cm
+                const double pos_sigma = 0.15;                 // ~40 cm
                 const double ang_sigma = 5.0 * M_PI/180.0;    // ~20°
                 Sj(0,0) = pos_sigma;  Sj(1,1) = pos_sigma;  Sj(2,2) = pos_sigma;
                 Sj(3,3) = ang_sigma;  Sj(4,4) = ang_sigma;  Sj(5,5) = ang_sigma;
@@ -288,7 +288,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             id_by_landmark = meas.idByLandmark();
 
             // Diagnostics
-            if (frameIdx % 30 == 0) {
+            if (frameIdx % 10 == 0) {
                 std::cout << "\n=== Frame " << frameIdx << " ===\n";
                 std::cout << "  Landmarks: " << system.numberLandmarks() << "\n";
                 std::cout << "  Detected tags: " << dets.ids.size() << "\n";
@@ -298,6 +298,13 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 const Eigen::VectorXd x = system.density.mean();
                 const Eigen::Vector3d camPos = SystemSLAM::cameraPosition(camera, x);
                 std::cout << "  Camera pos: [" << camPos.transpose() << "]\n";
+
+                for (std::size_t i = 0; i < system.numberLandmarks(); ++i) {
+                const auto posDen = system.landmarkPositionDensity(i);
+                const Eigen::Vector3d std_dev = posDen.sqrtCov().diagonal();
+                std::cout << "  Landmark " << i << " std: [" 
+                        << std_dev.transpose() << "] m\n";
+                }
             }
 
             // Render / export

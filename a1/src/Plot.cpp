@@ -620,7 +620,7 @@ void Plot::render()
         const Eigen::Vector3d rPCc = Rcn * (rPNn - rCNn);
         if (!std::isfinite(rPCc.x()) || !std::isfinite(rPCc.y()) || !std::isfinite(rPCc.z()))
             return false;
-        if (rPCc.z() <= 1e-9) return false;
+        if (rPCc.z() <= 1e-6) return false;
 
         const Eigen::Vector2d pix = camera.vectorToPixel(rPCc);
         if (!std::isfinite(pix.x()) || !std::isfinite(pix.y())) return false;
@@ -628,6 +628,10 @@ void Plot::render()
         return (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
                 pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
     };
+
+    // Safety margin for ellipse drawing (pixels from edge)
+    const int ELLIPSE_SAFE_MARGIN = 15;
+    const double MAX_STD_DEV = 100.0;  // Maximum standard deviation in pixels
 
     // Process each landmark
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
@@ -663,10 +667,52 @@ void Plot::render()
         Eigen::Vector3d rgb2d(cr*255.0, cg*255.0, cb*255.0);
 
         // ===== LEFT PANE =====
+        // if (visible) {
+        //     // This correctly propagates ALL uncertainties (camera + landmark + measurement)
+        //     GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+        //     plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
+        // }
         if (visible) {
-            // This correctly propagates ALL uncertainties (camera + landmark + measurement)
-            GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-            plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
+            try {
+                // Predict pixel measurement with full uncertainty propagation
+                GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+                const Eigen::Vector2d pixMean = prQOi.mean();
+                
+                // GUARD 1: Check predicted pixel center is safely away from edges
+                const bool pixelSafe = (
+                    pixMean.x() > ELLIPSE_SAFE_MARGIN &&
+                    pixMean.x() < (camera.imageSize.width - ELLIPSE_SAFE_MARGIN) &&
+                    pixMean.y() > ELLIPSE_SAFE_MARGIN &&
+                    pixMean.y() < (camera.imageSize.height - ELLIPSE_SAFE_MARGIN)
+                );
+                
+                if (pixelSafe) {
+                    // GUARD 2: Check covariance is numerically valid and reasonable
+                    const Eigen::Matrix2d S = prQOi.sqrtCov();
+                    const bool covValid = (
+                        S.allFinite() &&
+                        (S.diagonal().array() > 0).all() &&
+                        (S.diagonal().maxCoeff() < MAX_STD_DEV)
+                    );
+                    
+                    if (covValid) {
+                        // Safe to draw full ellipse
+                        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
+                    } else {
+                        // Covariance too large/invalid - just draw center marker
+                        cv::drawMarker(pSystem->view(), 
+                                      cv::Point(cvRound(pixMean.x()), cvRound(pixMean.y())),
+                                      cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)),
+                                      cv::MARKER_CROSS, 16, 2);
+                    }
+                }
+                // If not pixelSafe: skip entirely (predicted pixel outside safe zone)
+                
+            } catch (const std::exception& e) {
+                // Catch numerical errors in affine transform
+                std::cerr << "Warning: Ellipse prediction failed for landmark " << i 
+                          << ": " << e.what() << std::endl;
+            }
         }
 
         // ===== RIGHT PANE =====
@@ -684,138 +730,6 @@ void Plot::render()
 
     renderWindow->Render();
 }
-
-
-// void Plot::render()
-// {
-//     double r,g,b;   
-//     hsv2rgb(330, 1., 1., r, g, b);
-//     qpCamera.update(pSystem->cameraPositionDensity(camera));
-//     qpCamera.getActor()->GetProperty()->SetOpacity(0.1);
-//     qpCamera.getActor()->GetProperty()->SetColor(r,g,b);
-
-//     Bounds globalBounds;
-//     qpCamera.bounds.setExtremity(globalBounds); 
-
-//     // Grow landmark quadric plots to match number of landmarks
-//     while (qpLandmarks.size() < pSystem->numberLandmarks())
-//     {
-//         QuadricPlot qp;
-//         qpLandmarks.push_back(qp);
-//         threeDimRenderer->AddActor(qpLandmarks.back().getActor());
-//     }
-
-//     // Shrink landmark quadric plots to match number of landmarks
-//     while (qpLandmarks.size() > pSystem->numberLandmarks())
-//     {
-//         threeDimRenderer->RemoveActor(qpLandmarks.back().getActor());
-//         qpLandmarks.pop_back();
-//     }    
-
-//     // --- camera pose (means) for this frame ---
-//     Eigen::Vector3d rCNn   = pSystem->cameraPositionDensity(camera).mean();
-//     Eigen::Vector3d Thetanc= pSystem->cameraOrientationEulerDensity(camera).mean();
-//     Eigen::Matrix3d Rnc    = rpy2rot(Thetanc);
-
-//     // Build Tnc and convert to Tnb via your helper
-//     Posed Tnc;
-//     Tnc.rotationMatrix    = Rnc;
-//     Tnc.translationVector = rCNn;
-//     Posed Tnb = camera.cameraToBody(Tnc); // Tnb = Tnc * Tcb^{-1}
-
-//     // Per-frame associations from the active measurement (UniqueTagBundle derives from PointBundle)
-//     const auto* pBundle = dynamic_cast<const MeasurementPointBundle*>(pMeasurement.get());
-//     const std::vector<int>* assocPtr = nullptr;
-//     if (pBundle) assocPtr = &pBundle->idxFeatures();
-
-//     // Strict visibility check helper (front-facing + in-bounds pixel)
-//     auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool
-//     {
-//         // camera pose for this frame (already computed above)
-//         // rCNn, Rnc available; need Rcn
-//         const Eigen::Matrix3d Rcn = Rnc.transpose();
-
-//         // point in camera frame
-//         const Eigen::Vector3d rPCc = Rcn * (rPNn - rCNn);
-//         if (!std::isfinite(rPCc.x()) || !std::isfinite(rPCc.y()) || !std::isfinite(rPCc.z()))
-//             return false;
-
-//         // strictly in front of camera
-//         if (rPCc.z() <= 1e-9) return false;
-
-//         // pixel in-bounds
-//         const Eigen::Vector2d pix = camera.vectorToPixel(rPCc);
-//         if (!std::isfinite(pix.x()) || !std::isfinite(pix.y())) return false;
-
-//         const bool inBounds = (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
-//                             pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
-//         return inBounds;
-//     };
-
-//     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
-//     {
-//         // predicted pixel covariance (left pane ellipse)
-//         Eigen::Vector3d rgb2d;
-//         double cr, cg, cb;
-
-//         // Landmark position mean (tag centre for Scenario 1)
-//         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
-//         const Eigen::Vector3d rPNn_mean   = posDen.mean();
-
-//         // VISIBILITY (strict, pixel-in-bounds)
-//         const bool visible = isVisibleStrict(rPNn_mean);
-
-//         // ASSOCIATED this frame (>=0 means detected & matched)
-//         bool associated = false;
-
-//         // Old way
-//         // if (assocPtr && i < assocPtr->size())
-//         //     associated = ((*assocPtr)[i] >= 0);
-
-//         // Try to cast to unique tag bundle (supports grace period)
-//         auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
-
-//         if (tagMeas != nullptr) {
-//             // Use grace period logic - stays blue during miss counter period
-//             associated = tagMeas->isEffectivelyAssociated(i);
-//         } else if (assocPtr && i < assocPtr->size()) {
-//             // Fallback for other measurement types
-//             associated = ((*assocPtr)[i] >= 0);
-//         }
-
-//         // Colour semantics:
-//         // Blue   = visible + associated
-//         // Red    = visible + !associated
-//         // Yellow = !visible
-//         if (!visible)        { cr = 1.0; cg = 1.0; cb = 0.0; }     // Yellow
-//         else if (associated) { cr = 0.0; cg = 0.5; cb = 1.0; }     // Blue-ish
-//         else                 { cr = 1.0; cg = 0.25; cb = 0.25; }   // Red-ish
-
-//         // 2D ellipse colour
-//         rgb2d(0) = cr*255.0;
-//         rgb2d(1) = cg*255.0;
-//         rgb2d(2) = cb*255.0;
-
-//         GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-//         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
-
-//         // 3D quadric colour
-//         QuadricPlot & qp = qpLandmarks[i];
-//         qp.update(posDen);
-//         qp.getActor()->GetProperty()->SetOpacity(0.5);
-//         qp.getActor()->GetProperty()->SetColor(cr, cg, cb);
-//         qp.bounds.setExtremity(globalBounds); 
-//     }
-
-//     // Axes / frustum / image panes (unchanged)
-//     ap.update(globalBounds);
-//     bp.update(rCNn, Thetanc);
-//     fp.update(rCNn, Thetanc);
-//     ip.update(pSystem->view());
-
-//     renderWindow->Render();
-// }
-
 
 void Plot::start() const
 {
