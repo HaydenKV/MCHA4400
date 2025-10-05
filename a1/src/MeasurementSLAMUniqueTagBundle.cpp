@@ -111,6 +111,7 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
     is_effectively_associated_.assign(nL, false);
     idxFeatures_.assign(nL, -1);
 
+    // Build map: tag ID → feature index in measurement Y
     std::unordered_map<int, int> id2feat;
     for (std::size_t i = 0; i < ids_.size(); ++i) {
         id2feat[ids_[i]] = static_cast<int>(i);
@@ -121,22 +122,43 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
     for (std::size_t j = 0; j < nL; ++j)
     {
         const int tagId = id_by_landmark_[j];
-        if (tagId < 0) continue;
+        if (tagId < 0) continue;  // No tag ID assigned to this landmark
 
-        // CRITICAL FIX: "Visible" means ALL 4 corners are inside bounds
+        // ====================================================================
+        // CRITICAL FIX: Decouple detection-based association from visibility
+        // ====================================================================
+        
+        // STEP 1: Check if tag was DETECTED (ID-based association)
+        // If a tag was detected, it already passed all quality gates in
+        // detectArUcoPOSE, so we should associate it regardless of whether
+        // the predicted corners from our (possibly slightly inaccurate) state
+        // estimate are perfectly aligned.
+        auto it = id2feat.find(tagId);
+        if (it != id2feat.end()) {
+            const int featIdx = it->second;
+            idxFeatures_[j] = featIdx;
+            is_effectively_associated_[j] = true;
+        }
+
+        // STEP 2: SEPARATELY check predicted visibility (for |U| penalty)
+        // This determines if the landmark SHOULD be visible based on the
+        // current state estimate, regardless of whether it was detected.
+        // 
+        // Used for the |U| penalty term in the log-likelihood, which penalizes
+        // landmarks that are predicted to be visible but were not detected.
+        // This correctly includes:
+        // - Landmarks behind walls (geometrically visible but occluded)
+        // - Landmarks with detection dropout
+        // - Landmarks just outside the reliable detection region
         auto corners = predictTagCorners(xmean, sysPose, j);
         const bool allCornersVisible = camera_.areCornersInside(corners);
+        is_visible_[j] = allCornersVisible;
         
-        is_visible_[j] = allCornersVisible;  // FIX: Use corner-based visibility
-        
-        if (!allCornersVisible) continue;
-
-        auto it = id2feat.find(tagId);
-        if (it == id2feat.end()) continue;
-
-        const int featIdx = it->second;
-        idxFeatures_[j] = featIdx;
-        is_effectively_associated_[j] = true;
+        // Note: is_visible_ is used for |U| penalty regardless of association.
+        // A landmark can be:
+        // - is_visible_=true, is_effectively_associated_=true  → Blue (detected)
+        // - is_visible_=true, is_effectively_associated_=false → Red (visible but not detected)
+        // - is_visible_=false, is_effectively_associated_=false → Yellow (out of FOV)
     }
 
     return idxFeatures_;

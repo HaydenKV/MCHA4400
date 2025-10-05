@@ -36,8 +36,8 @@ namespace {
     // At 2-3m distance, solvePnP with IPPE typically achieves:
     // - Position accuracy: ~5-10cm
     // - Orientation accuracy: ~3-5 degrees
-    constexpr double INIT_POS_SIGMA = 0.10;          // 10cm position uncertainty (was 40cm!)
-    constexpr double INIT_ANG_SIGMA = 5.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
+    constexpr double INIT_POS_SIGMA = 0.05;          // 10cm position uncertainty (was 40cm!)
+    constexpr double INIT_ANG_SIGMA = 3.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
     
     // Small offset to avoid perfect initialization (per MCHA4400 lecture slide 21)
     // "Don't initialise landmarks exactly at known solution" to ensure enough
@@ -134,9 +134,9 @@ void runVisualNavigationFromVideo(
         mu_body.setZero(); // Start at origin, zero velocity
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12); // tight prior on body
-        S_body.block<6,6>(0,0) *= 1e-2;               // velocity
+        S_body.block<6,6>(0,0) *= 1e-4;               // velocity
         const double d2r = M_PI / 180.0;
-        S_body.block<3,3>(6,6) *= 1e-2;               // Position: 10cm
+        S_body.block<3,3>(6,6) *= 1e-2;               // Position: 1cm
         S_body.block<3,3>(9,9) *= (1.0 * d2r);        // Orientation: 5°
 
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
@@ -387,23 +387,31 @@ void runVisualNavigationFromVideo(
                           << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(2) << "]   ║\n";
                 
                 // Landmark uncertainties (show first 5 for brevity)
-                const std::size_t nShow = std::min(system.numberLandmarks(), size_t(5));
+                const std::size_t nShow = system.numberLandmarks();
                 if (nShow > 0) {
                     std::cout << "╠════════════════════════════════════════════════════════════╣\n";
-                    std::cout << "║ LANDMARK UNCERTAINTIES (first " << nShow << " landmarks)                  ║\n";
+                    std::cout << "║ LANDMARK UNCERTAINTIES (Show " << nShow << " landmarks)                  ║\n";
                     for (std::size_t i = 0; i < nShow; ++i) {
                         const auto posDen = system.landmarkPositionDensity(i);
-                        const Eigen::Vector3d pos_std = posDen.sqrtCov().diagonal();
                         const Eigen::Vector3d pos_mean = posDen.mean();
                         
+                        // FIXED: Extract standard deviations using marginals (same as Plot.cpp)
+                        GaussianInfo<double> px = posDen.marginal(Eigen::seqN(0, 1));  // x marginal
+                        GaussianInfo<double> py = posDen.marginal(Eigen::seqN(1, 1));  // y marginal
+                        GaussianInfo<double> pz = posDen.marginal(Eigen::seqN(2, 1));  // z marginal
+                        
+                        double std_x = std::abs(px.sqrtCov()(0, 0));  // σ_x
+                        double std_y = std::abs(py.sqrtCov()(0, 0));  // σ_y
+                        double std_z = std::abs(pz.sqrtCov()(0, 0));  // σ_z
+                        
                         std::cout << "║   LM[" << i << "] pos: ["
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(0) << ","
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(1) << ","
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(2) << "]m  ";
+                                << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(0) << ","
+                                << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(1) << ","
+                                << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(2) << "]m  ";
                         std::cout << "σ:[" 
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(0) << ","
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(1) << ","
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(2) << "]m ║\n";
+                                << std::setw(5) << std::fixed << std::setprecision(3) << std_x << ","
+                                << std::setw(5) << std::fixed << std::setprecision(3) << std_y << ","
+                                << std::setw(5) << std::fixed << std::setprecision(3) << std_z << "]m ║\n";
                     }
                 }
                 

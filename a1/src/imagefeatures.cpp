@@ -331,7 +331,7 @@ ArucoDetections detectArUcoPOSE(
     // └─────────────────────────────────────────────────────────────────┘
     params.minCornerDistanceRate = 0.04f;          // REDUCED from 0.05 (less strict)
     params.minDistanceToBorder   = 2;              // REDUCED from 3 (detect near edges)
-    params.polygonalApproxAccuracyRate = 0.04f;    // LOOSER from 0.02 (tolerate imperfect quads)
+    params.polygonalApproxAccuracyRate = 0.05f;    // LOOSER from 0.02 (tolerate imperfect quads)
 
     // ┌─────────────────────────────────────────────────────────────────┐
     // │ ERROR CORRECTION: Higher tolerance to reduce false rejections    │
