@@ -75,6 +75,8 @@ MeasurementSLAM* MeasurementSLAMUniqueTagBundle::clone() const
     // Copy persistent state
     copy->id_by_landmark_ = this->id_by_landmark_;
     copy->idxFeatures_ = this->idxFeatures_;
+    copy->is_visible_ = this->is_visible_;
+    copy->is_effectively_associated_ = this->is_effectively_associated_;
     copy->sigma_ = this->sigma_;
 
     return copy;
@@ -82,25 +84,14 @@ MeasurementSLAM* MeasurementSLAMUniqueTagBundle::clone() const
 
 bool MeasurementSLAMUniqueTagBundle::isEffectivelyAssociated(std::size_t landmarkIdx) const
 {
-    // A landmark is "effectively associated" if:
-    // 1. It has a tag ID in the persistent map (id_by_landmark_)
-    // AND
-    // 2. It was actually detected and associated THIS FRAME (idxFeatures_)
+    // Returns true if: has ID + in FOV + passed BORDER_MARGIN + detected
+    // This determines BLUE (true) vs YELLOW (false) for landmarks in FOV
     
-    if (landmarkIdx >= id_by_landmark_.size()) {
-        return false;  // Not in map yet
+    if (landmarkIdx >= is_effectively_associated_.size()) {
+        return false;
     }
     
-    if (id_by_landmark_[landmarkIdx] < 0) {
-        return false;  // No tag ID assigned
-    }
-    
-    // Check if associated THIS FRAME
-    if (landmarkIdx >= idxFeatures_.size()) {
-        return false;  // No association data
-    }
-    
-    return idxFeatures_[landmarkIdx] >= 0;  // Detected this frame
+    return is_effectively_associated_[landmarkIdx];
 }
 
 const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
@@ -110,44 +101,64 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
     const SystemSLAMPoseLandmarks& sysPose = dynamic_cast<const SystemSLAMPoseLandmarks&>(system);
     const std::size_t nL = sysPose.numberLandmarks();
 
-    // Ensure id_by_landmark is sized correctly
     if (id_by_landmark_.size() < nL) {
         id_by_landmark_.resize(nL, -1);
     }
 
-    // Initialize association to "no match"
+    // Initialize
+    is_visible_.assign(nL, false);
+    is_effectively_associated_.assign(nL, false);
     idxFeatures_.assign(nL, -1);
 
-    // Build reverse map: detected tag ID → feature index
     std::unordered_map<int, int> id2feat;
     for (std::size_t i = 0; i < ids_.size(); ++i) {
         id2feat[ids_[i]] = static_cast<int>(i);
     }
 
-    // Get current camera pose for FOV checking
     const Eigen::VectorXd xmean = sysPose.density.mean();
     const int W = camera_.imageSize.width;
     const int H = camera_.imageSize.height;
+    
+    // Get body pose for Camera::isWorldWithinFOV
+    Posed Tnb;
+    Tnb.translationVector = xmean.segment<3>(6);
+    Tnb.rotationMatrix = rpy2rot(xmean.segment<3>(9));
 
-    // ID-based association with conservative FOV checking
     for (std::size_t j = 0; j < nL; ++j)
     {
         const int tagId = id_by_landmark_[j];
-        if (tagId < 0) continue;  // Uninitialized landmark
+        if (tagId < 0) {
+            // No tag ID → RED (not visible, not associated)
+            continue;
+        }
 
-        // Check if this tag was detected
+        // Get landmark 3D position
+        const GaussianInfo<double> posDen = sysPose.landmarkPositionDensity(j);
+        const Eigen::Vector3d rPNn_eigen = posDen.mean();
+        cv::Vec3d rPNn(rPNn_eigen.x(), rPNn_eigen.y(), rPNn_eigen.z());
+        
+        // Check FOV visibility using Camera function
+        const bool visible = camera_.isWorldWithinFOV(rPNn, Tnb);
+        is_visible_[j] = visible;
+        
+        if (!visible) {
+            // Has ID but not in FOV → YELLOW in 3D, not drawn in image
+            continue;
+        }
+
+        // At this point: has ID + in FOV
+        // Now check if detected + within BORDER_MARGIN
+
         auto it = id2feat.find(tagId);
         if (it == id2feat.end()) {
-            // Tag not detected this frame
+            // Has ID + in FOV but not detected → YELLOW in both panes
             continue;
         }
 
         const int featIdx = it->second;
-
-        // Predict where corners should appear
         auto predictedCorners = predictTagCorners(xmean, sysPose, j);
 
-        // Check if ALL corners are safely within image bounds (conservative margin)
+        // Check all corners within BORDER_MARGIN
         bool allCornersGood = true;
         for (int c = 0; c < 4; ++c) {
             const double u = predictedCorners(2*c);
@@ -161,9 +172,11 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
         }
 
         if (allCornersGood) {
-            // Associate this landmark with the detected feature
+            // Passed all checks: BLUE
             idxFeatures_[j] = featIdx;
+            is_effectively_associated_[j] = true;
         }
+        // else: has ID + in FOV + detected but corners too close → YELLOW
     }
 
     return idxFeatures_;

@@ -629,111 +629,79 @@ void Plot::render()
                 pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
     };
 
-    // Safety margin for ellipse drawing (pixels from edge)
     const int ELLIPSE_SAFE_MARGIN = 15;
-    const double MAX_STD_DEV = 100.0;  // Maximum standard deviation in pixels
+    const double MAX_STD_DEV = 100.0;
 
-    // Process each landmark
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
-        // 3D position density
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
-        const Eigen::Vector3d rPNn_mean   = posDen.mean();
 
-        // VISIBILITY: Geometric FOV check
-        const bool visible = isVisibleStrict(rPNn_mean);
-
-        // PERSISTENT IDENTITY: Has tag ID in map? (CHANGED)
+        bool inFOV = false;
+        bool isDetected = false;  // Actually detected by ArUco this frame
         bool hasTagId = false;
+        
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-            const auto& idByLandmark = tagMeas->idByLandmark();
-            if (i < idByLandmark.size() && idByLandmark[i] >= 0) {
-                hasTagId = true;
-            }
+            inFOV = (i < tagMeas->isVisible().size()) && tagMeas->isVisible()[i];
+            isDetected = tagMeas->isEffectivelyAssociated(i);  // Detected + passed checks
+            hasTagId = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
         }
 
-        // // ASSOCIATION: Has persistent identity? (fixed!)
-        // bool associated = false;
-        // if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-        //     associated = tagMeas->isEffectivelyAssociated(i);  // Uses tag ID now!
-        // } else if (assocPtr && i < assocPtr->size()) {
-        //     associated = ((*assocPtr)[i] >= 0);
-        // }
-
-        // COLOR SEMANTICS (corrected)
-        double cr, cg, cb;
-        if (!visible) {
-            // Yellow: Behind camera or out of FOV
-            cr = 1.0; cg = 1.0; cb = 0.0;
+        // Color for LEFT pane (detection status)
+        double cr_left, cg_left, cb_left;
+        if (hasTagId && isDetected) {
+            cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;  // Blue: detected
         } else if (hasTagId) {
-            // Blue: Has tag ID (part of map) - stays blue even during dropout!
-            cr = 0.0; cg = 0.5; cb = 1.0;
+            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;  // Red: not detected
         } else {
-            // Red: In FOV but no tag ID (should never happen in Scenario 1)
-            cr = 1.0; cg = 0.25; cb = 0.25;
+            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;  // Red: no ID
         }
 
-        Eigen::Vector3d rgb2d(cr*255.0, cg*255.0, cb*255.0);
+        // Color for RIGHT pane (visibility status)
+        double cr_right, cg_right, cb_right;
+        if (inFOV && hasTagId && isDetected) {
+            cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;  // Blue: visible + detected
+        } else if (hasTagId && !inFOV) {
+            cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;  // Yellow: not visible
+        } else if (hasTagId) {
+            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;  // Red: visible but not detected
+        } else {
+            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;  // Red: no ID
+        }
 
-        // ===== LEFT PANE - DRAW ALL LANDMARKS WITH VALID PREDICTIONS =====
-        try {
-            // Predict pixel measurement with full uncertainty propagation
-            GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-            const Eigen::Vector2d pixMean = prQOi.mean();
-            
-            // GUARD 1: Check predicted pixel center is safely away from edges
-            const bool pixelSafe = (
-                pixMean.x() > ELLIPSE_SAFE_MARGIN &&
-                pixMean.x() < (camera.imageSize.width - ELLIPSE_SAFE_MARGIN) &&
-                pixMean.y() > ELLIPSE_SAFE_MARGIN &&
-                pixMean.y() < (camera.imageSize.height - ELLIPSE_SAFE_MARGIN)
-            );
-            
-            if (pixelSafe) {
-                // GUARD 2: Check covariance is numerically valid and reasonable
-                const Eigen::Matrix2d S = prQOi.sqrtCov();
-                const bool covValid = (
-                    S.allFinite() &&
-                    (S.diagonal().array() > 0).all() &&
-                    (S.diagonal().maxCoeff() < MAX_STD_DEV)
-                );
+        // ===== LEFT PANE - Draw ALL landmarks with tag IDs =====
+        if (hasTagId && inFOV) {
+            try {
+                GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
+                Eigen::Vector2d pixMean = prQOi.mean();
                 
-                if (covValid) {
-                    // Safe to draw full ellipse
-                    plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d);
-                    
-                    // DEBUG: Add tag ID label for all landmarks
-                    if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-                        const auto& idByLandmark = tagMeas->idByLandmark();
-                        if (i < idByLandmark.size() && idByLandmark[i] >= 0) {
-                            std::string label = std::to_string(idByLandmark[i]);
-                            cv::putText(pSystem->view(), label,
-                                       cv::Point(pixMean.x() + 10, pixMean.y() - 10),
-                                       cv::FONT_HERSHEY_SIMPLEX, 0.4,
-                                       cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)), 1);
-                        }
+                bool pixelSafe = (pixMean.x() > ELLIPSE_SAFE_MARGIN && 
+                                  pixMean.x() < camera.imageSize.width - ELLIPSE_SAFE_MARGIN &&
+                                  pixMean.y() > ELLIPSE_SAFE_MARGIN && 
+                                  pixMean.y() < camera.imageSize.height - ELLIPSE_SAFE_MARGIN);
+                
+                if (pixelSafe) {
+                    Eigen::Matrix2d S = prQOi.sqrtCov();
+                    if (S.allFinite() && S.diagonal().maxCoeff() < MAX_STD_DEV) {
+                        Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
+                        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
+                        
+                        auto* tagMeas = static_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
+                        std::string label = std::to_string(tagMeas->idByLandmark()[i]);
+                        cv::putText(pSystem->view(), label,
+                                   cv::Point(pixMean.x() + 10, pixMean.y() - 10),
+                                   cv::FONT_HERSHEY_SIMPLEX, 0.4,
+                                   cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                     }
-                } else {
-                    // Covariance too large/invalid - draw marker only
-                    cv::drawMarker(pSystem->view(), 
-                                  cv::Point(cvRound(pixMean.x()), cvRound(pixMean.y())),
-                                  cv::Scalar(rgb2d(2), rgb2d(1), rgb2d(0)),
-                                  cv::MARKER_DIAMOND, 8, 1);
                 }
-            }
-            // If not pixelSafe: skip (prediction too close to edge)
-            
-        } catch (const std::exception& e) {
-            // Catch numerical errors in affine transform
-            // (silent - happens frequently for yellow landmarks with extreme predictions)
+            } catch (...) {}
         }
 
         // ===== RIGHT PANE =====
         QuadricPlot & qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
-        qp.getActor()->GetProperty()->SetColor(cr, cg, cb);
-        qp.bounds.setExtremity(globalBounds); 
+        qp.getActor()->GetProperty()->SetColor(cr_right, cg_right, cb_right);
+        qp.bounds.setExtremity(globalBounds);
     }
 
     ap.update(globalBounds);

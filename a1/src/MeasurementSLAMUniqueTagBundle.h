@@ -67,6 +67,8 @@ public:
     virtual double logLikelihood(const Eigen::VectorXd& x, const SystemEstimator& system, Eigen::VectorXd& g) const override;
     virtual double logLikelihood(const Eigen::VectorXd& x, const SystemEstimator& system, Eigen::VectorXd& g, Eigen::MatrixXd& H) const override;
 
+    const std::vector<bool>& isVisible() const { return is_visible_; }
+
 protected:
     /**
      * @brief Predict 4 corner pixel locations for a tag landmark
@@ -87,6 +89,8 @@ protected:
 private:
     std::vector<int> ids_;                  ///< Detected tag IDs this frame
     std::vector<int> id_by_landmark_;       ///< Persistent: landmark index → tag ID
+    std::vector<bool> is_visible_;              // In FOV (geometric check)
+    std::vector<bool> is_effectively_associated_; // In FOV + passed BORDER_MARGIN + detected
     
     static constexpr double TAG_SIZE = 0.166;        ///< Tag edge length (meters)
     static constexpr int BORDER_MARGIN = 15;         ///< Conservative FOV margin (pixels) ← FIXED: Now consistent!
