@@ -293,56 +293,94 @@ ArucoDetections detectArUcoPOSE(
     ArucoDetections out;
     out.annotated = imgBGR.clone();
 
-    // --- Dictionary & conservative parameters (loosen only if recall is low) ---
+    // ========================================================================
+    // PRODUCTION-GRADE DETECTION PARAMETERS
+    // Optimized for RELIABILITY (minimize dropouts) + ACCURACY (subpixel)
+    // ========================================================================
     cv::aruco::Dictionary dict = cv::aruco::getPredefinedDictionary(dictionary);
     cv::aruco::DetectorParameters params;
 
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ CORNER REFINEMENT: CRITICAL for accuracy & stability             │
+    // └─────────────────────────────────────────────────────────────────┘
     params.cornerRefinementMethod = doCornerRefine
         ? cv::aruco::CORNER_REFINE_SUBPIX
         : cv::aruco::CORNER_REFINE_NONE;
 
-    params.minMarkerPerimeterRate = 0.015f;
+    // Aggressive subpixel refinement (MUST converge for stable measurements)
+    params.cornerRefinementWinSize       = 5;     // Search window
+    params.cornerRefinementMaxIterations = 100;   // INCREASED - ensure convergence
+    params.cornerRefinementMinAccuracy   = 0.01;  // TIGHTENED - 0.01px accuracy
+
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ DETECTION PARAMETERS: Balanced for robustness                    │
+    // └─────────────────────────────────────────────────────────────────┘
+    
+    // Marker size constraints
+    params.minMarkerPerimeterRate = 0.01f;   // Allow smaller tags (was 0.015)
     params.maxMarkerPerimeterRate = 4.0f;
+    
+    // Adaptive thresholding (CRITICAL for varying lighting)
+    params.adaptiveThreshWinSizeMin = 3;     // Smaller windows for small tags
+    params.adaptiveThreshWinSizeMax = 23;    // Not too large (slows down)
+    params.adaptiveThreshWinSizeStep = 4;    // Reasonable steps
+    params.adaptiveThreshConstant   = 7;     // Good for indoor lighting
 
-    params.adaptiveThreshWinSizeMin = 5;
-    params.adaptiveThreshWinSizeMax = 35;
-    params.adaptiveThreshWinSizeStep = 5;
-    params.adaptiveThreshConstant   = 7;
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ POLYGON DETECTION: Looser to REDUCE false negatives              │
+    // └─────────────────────────────────────────────────────────────────┘
+    params.minCornerDistanceRate = 0.04f;          // REDUCED from 0.05 (less strict)
+    params.minDistanceToBorder   = 2;              // REDUCED from 3 (detect near edges)
+    params.polygonalApproxAccuracyRate = 0.04f;    // LOOSER from 0.02 (tolerate imperfect quads)
 
-    params.minCornerDistanceRate = 0.05f;
-    params.minDistanceToBorder   = 3;
-    params.polygonalApproxAccuracyRate = 0.02f;
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ ERROR CORRECTION: Higher tolerance to reduce false rejections    │
+    // └─────────────────────────────────────────────────────────────────┘
+    params.errorCorrectionRate = 0.6f;  // Higher = more tolerant
 
-    params.cornerRefinementWinSize       = 5;
-    params.cornerRefinementMaxIterations = 50;
-    params.cornerRefinementMinAccuracy   = 0.05;
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ PERSPECTIVE REMOVAL: Critical for decoding                       │
+    // └─────────────────────────────────────────────────────────────────┘
+    params.perspectiveRemovePixelPerCell = 8;       // High resolution for decoding
+    params.perspectiveRemoveIgnoredMarginPerCell = 0.13; // Standard margin
 
-    params.errorCorrectionRate = 0.5f;
+    // ┌─────────────────────────────────────────────────────────────────┐
+    // │ BIT EXTRACTION: Otsu thresholding is more robust                 │
+    // └─────────────────────────────────────────────────────────────────┘
+    params.markerBorderBits = 1;  // 6x6 dictionary has 1-bit border
 
     cv::aruco::ArucoDetector detector(dict, params);
 
-    // --- Detect ---
+    // ========================================================================
+    // DETECTION STAGE
+    // ========================================================================
     std::vector<int> ids_raw;
     std::vector<std::vector<cv::Point2f>> corners_raw, rejected;
     detector.detectMarkers(imgBGR, corners_raw, ids_raw, rejected);
 
+    // Optional: visualize rejected candidates (helpful for debugging)
     if (drawRejected && !rejected.empty()) {
-        cv::aruco::drawDetectedMarkers(out.annotated, rejected, std::vector<int>(), cv::Scalar(120,120,120));
-    }
-    if (ids_raw.empty()) {
-        return out; // nothing found
+        cv::aruco::drawDetectedMarkers(out.annotated, rejected, std::vector<int>(), cv::Scalar(100,100,100));
     }
 
-    // Visualize detections (even if some will be rejected by PnP gating)
+    if (ids_raw.empty()) {
+        return out; // No markers detected
+    }
+
+    // Visualize all initial detections
     cv::aruco::drawDetectedMarkers(out.annotated, corners_raw, ids_raw);
 
-    // --- Prepare canonical object points in TL,TR,BR,BL to match OpenCV order ---
+    // ========================================================================
+    // POSE ESTIMATION + QUALITY GATING
+    // ========================================================================
     const float L = tagSizeMeters;
+    
+    // Canonical tag corners in tag frame (OpenCV order: TL, TR, BR, BL)
     const std::vector<cv::Point3f> objPts = {
-        {-L/2.f,  L/2.f, 0.f},   // TL
-        { L/2.f,  L/2.f, 0.f},   // TR
-        { L/2.f, -L/2.f, 0.f},   // BR
-        {-L/2.f, -L/2.f, 0.f}    // BL
+        {-L/2.f,  L/2.f, 0.f},   // Top-Left
+        { L/2.f,  L/2.f, 0.f},   // Top-Right
+        { L/2.f, -L/2.f, 0.f},   // Bottom-Right
+        {-L/2.f, -L/2.f, 0.f}    // Bottom-Left
     };
 
     if (outRvecs) outRvecs->clear();
@@ -355,37 +393,50 @@ ArucoDetections detectArUcoPOSE(
     if (outTvecs) outTvecs->reserve(ids_raw.size());
     if (outMeanReprojErr) outMeanReprojErr->reserve(ids_raw.size());
 
-    // --- Per-marker pose + optional reprojection gate ---
+    // Process each detected marker
     for (size_t i = 0; i < ids_raw.size(); ++i) {
-        const std::vector<cv::Point2f>& imgPts = corners_raw[i]; // OpenCV order TL,TR,BR,BL
+        const std::vector<cv::Point2f>& imgPts = corners_raw[i];
 
+        // ====================================================================
+        // POSE ESTIMATION: IPPE_SQUARE is most accurate for planar markers
+        // ====================================================================
         cv::Vec3d rvec, tvec;
         bool ok = cv::solvePnP(
             objPts, imgPts,
             cameraMatrix, distCoeffs,
             rvec, tvec,
-            false, cv::SOLVEPNP_IPPE_SQUARE
+            false,                      // useExtrinsicGuess = false
+            cv::SOLVEPNP_IPPE_SQUARE    // Best for square planar markers
         );
-        if (!ok) continue;
+        
+        if (!ok) continue;  // PnP failed (rare)
 
-        // Mean reprojection error (px)
+        // ====================================================================
+        // REPROJECTION ERROR GATE (Quality check)
+        // ====================================================================
         double meanErr = 0.0;
         {
             std::vector<cv::Point2f> reproj(4);
             cv::projectPoints(objPts, rvec, tvec, cameraMatrix, distCoeffs, reproj);
+            
             for (int c = 0; c < 4; ++c) {
                 cv::Point2f d = reproj[c] - imgPts[c];
                 meanErr += std::sqrt(d.dot(d));
             }
-            meanErr *= 0.25;
+            meanErr *= 0.25;  // Average over 4 corners
         }
 
-        // Optional gate (keeps the solution robust in real video)
-        if (reprojErrThreshPx > 0.0 && meanErr > reprojErrThreshPx)
-            continue;
+        // CRITICAL: Reject if reprojection error too high
+        // This eliminates bad detections that would corrupt the SLAM estimate
+        if (reprojErrThreshPx > 0.0 && meanErr > reprojErrThreshPx) {
+            continue;  // Failed quality gate
+        }
 
-        // Keep this marker
+        // ====================================================================
+        // ACCEPT THIS MARKER
+        // ====================================================================
         out.ids.push_back(ids_raw[i]);
+        
         std::array<cv::Point2f,4> c{};
         for (int k = 0; k < 4; ++k) c[k] = imgPts[k];
         out.corners.push_back(c);
@@ -394,7 +445,7 @@ ArucoDetections detectArUcoPOSE(
         if (outTvecs) outTvecs->push_back(tvec);
         if (outMeanReprojErr) outMeanReprojErr->push_back(meanErr);
 
-        // Nice visual confirmation
+        // Visual confirmation: draw coordinate frame axes
         cv::drawFrameAxes(out.annotated, cameraMatrix, distCoeffs, rvec, tvec, 0.4f * L, 2);
     }
 

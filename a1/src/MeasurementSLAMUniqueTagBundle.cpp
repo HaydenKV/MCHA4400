@@ -73,7 +73,7 @@ MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle(
     assert(Y_.cols() % 4 == 0 && 
            "Y packing error: must have 4 columns per tag detection");
     
-    sigma_ = 1.5;
+    sigma_ = 1.0;
     updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 

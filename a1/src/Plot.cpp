@@ -609,7 +609,7 @@ void Plot::render()
     // ============================================================================
     auto isLandmarkCenterVisible = [&](const Eigen::Vector3d& rLNn) -> bool {
         const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn);
-        return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()));
+        return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()), CamDefaults::BorderMarginPx);
     };
 
     // ============================================================================

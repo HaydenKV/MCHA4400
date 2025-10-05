@@ -225,8 +225,8 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
 
     // Process noise parameters (TUNABLE - start here and adjust based on drift)
     // These control how much the filter trusts the process model vs measurements
-    const double qv = 0.01;  // Translational velocity noise (m/s^1.5)
-    const double qw = 0.01;  // Angular velocity noise (rad/s^1.5)
+    const double qv = 0.0001;  // Translational velocity noise (m/s^1.5)
+    const double qw = 0.0002;  // Angular velocity noise (rad/s^1.5)
     
     // TODO: Assignment(s)
     // Diagonal noise (independent noise on each velocity component)

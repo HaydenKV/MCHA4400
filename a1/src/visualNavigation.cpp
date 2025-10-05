@@ -9,6 +9,8 @@
 #include <opencv2/aruco.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
+#include <iomanip>
+#include <ctime>
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -28,11 +30,19 @@
 // ============================================================================
 namespace {
     constexpr float  TAG_SIZE_METERS = 0.166f;       // ArUco tag edge length (166mm)
-    constexpr double REPROJ_ERR_THRESH_PX = 4.0;     // IPPE reprojection gate (pixels)
+    constexpr double REPROJ_ERR_THRESH_PX = 1.0;     // IPPE reprojection gate (pixels)
     
-    // Initial landmark uncertainty (moderate values for robustness)
-    constexpr double INIT_POS_SIGMA = 0.4;           // ~40 cm position uncertainty
-    constexpr double INIT_ANG_SIGMA = 20.0 * M_PI / 180.0;  // ~20° orientation uncertainty
+    // CRITICAL FIX: More realistic initial uncertainties based on typical PnP accuracy
+    // At 2-3m distance, solvePnP with IPPE typically achieves:
+    // - Position accuracy: ~5-10cm
+    // - Orientation accuracy: ~3-5 degrees
+    constexpr double INIT_POS_SIGMA = 0.10;          // 10cm position uncertainty (was 40cm!)
+    constexpr double INIT_ANG_SIGMA = 5.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
+    
+    // Small offset to avoid perfect initialization (per MCHA4400 lecture slide 21)
+    // "Don't initialise landmarks exactly at known solution" to ensure enough
+    // quasi-Newton iterations for good Hessian approximation
+    constexpr double INIT_POS_OFFSET = 0.02;  // 2cm random offset from PnP solution
 }
 
 // Helper: convert Rodrigues rvec to rotation matrix
@@ -180,6 +190,9 @@ void runVisualNavigationFromVideo(
 
         if (scenario == 1)
         {
+            // ========================================================================
+            // STEP 1: DETECT ARUCO TAGS
+            // ========================================================================
             // Detect + pose (IPPE) + reprojection gating
             std::vector<cv::Vec3d> rvecs, tvecs;
             std::vector<double> meanErrs;
@@ -198,50 +211,102 @@ void runVisualNavigationFromVideo(
             auto* sysPose = dynamic_cast<SystemSLAMPoseLandmarks*>(&system);
             assert(sysPose && "Scenario 1 expects SystemSLAMPoseLandmarks");
 
+            // Ensure id_by_landmark vector is sized correctly
             if (id_by_landmark.size() < system.numberLandmarks())
                 id_by_landmark.resize(system.numberLandmarks(), -1);
 
-            // Current camera pose (mean)
+            // Current camera pose (mean estimate from filter)
             const Eigen::VectorXd xmean = sysPose->density.mean();
             const Eigen::Vector3d rCNn  = SystemSLAM::cameraPosition(camera, xmean);
             const Eigen::Matrix3d Rnc   = SystemSLAM::cameraOrientation(camera, xmean);
 
-            // Initialize new landmarks for any unseen tag IDs
+            // ========================================================================
+            // STEP 2: INITIALIZE NEW LANDMARKS (only for newly detected tag IDs)
+            // ========================================================================
+            // PRINCIPLE: Only initialize when we detect a NEW tag ID.
+            // The landmark will be IMMEDIATELY associated because IDs are unique.
+            //
+            // GATE ALIGNMENT: Initialization uses CamDefaults::BorderMarginPx to ensure
+            // tags are well-centered in FOV. Association uses NO margin. This is
+            // intentional - the margin prevents initialization of tags near image
+            // edges that would fail association on subsequent frames.
+            
+            int nInitialized = 0;
             for (std::size_t i = 0; i < dets.ids.size(); ++i)
             {
                 const int tagId = dets.ids[i];
-                if (id2lm.find(tagId) != id2lm.end())
-                    continue; // Already known
+                
+                // ================================================================
+                // GATE 1: Is this a new tag ID?
+                // ================================================================
+                if (id2lm.find(tagId) != id2lm.end()) {
+                    continue; // Already have a landmark for this tag
+                }
 
-                // Skip if detection too close to image border
-                if (!camera.areCornersInside(dets.corners[i]))
+                // ================================================================
+                // GATE 2: Are all 4 corners inside image bounds with margin?
+                // ================================================================
+                // Uses CamDefaults::BorderMarginPx margin to ensure:
+                // - Tag is well-centered in FOV (not near edges)
+                // - Future associations will succeed (association uses NO margin)
+                // - Prevents "dead zone" where landmark is initialized but can't associate
+                if (!camera.areCornersInside(dets.corners[i], CamDefaults::BorderMarginPx)) {
                     continue;
+                }
 
-                // Skip the tag CENTER ray is inside FOV after distortion (with the same margin)
-                const cv::Vec3d rCj(tvecs[i][0], tvecs[i][1], tvecs[i][2]); // camera->tag
-                if (!camera.isVectorWithinFOVConservative(rCj))
+                // ================================================================
+                // GATE 3: Is tag in front of camera?
+                // ================================================================
+                // Sanity check for PnP solution (Z must be positive)
+                if (tvecs[i][2] <= 1e-3) {  // Must be at least 1mm in front
                     continue;
+                }
 
-                // Convert IPPE pose (camera→tag) to world coordinates
+                // ================================================================
+                // ALL GATES PASSED → INITIALIZE NEW LANDMARK
+                // ================================================================
+                
+                // Convert IPPE pose (camera→tag in camera frame) to world frame
                 const Eigen::Matrix3d Rcj = rodriguesToRot(rvecs[i]);
-                const Eigen::Vector3d rCj(tvecs[i][0], tvecs[i][1], tvecs[i][2]);
+                const Eigen::Vector3d rCjVec(tvecs[i][0], tvecs[i][1], tvecs[i][2]);
                 
                 const Eigen::Matrix3d Rnj = Rnc * Rcj;
-                const Eigen::Vector3d rnj = rCNn + Rnc * Eigen::Vector3d(rCj[0], rCj[1], rCj[2]);
+                Eigen::Vector3d rnj = rCNn + Rnc * rCjVec;
                 const Eigen::Vector3d Thetanj = rot2rpy(Rnj);
 
-                // Initial uncertainty (moderate for robustness)
-                Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
-                Sj(0,0) = INIT_POS_SIGMA;  Sj(1,1) = INIT_POS_SIGMA;  Sj(2,2) = INIT_POS_SIGMA;
-                Sj(3,3) = INIT_ANG_SIGMA;  Sj(4,4) = INIT_ANG_SIGMA;  Sj(5,5) = INIT_ANG_SIGMA;
+                // CRITICAL: Add small random offset to avoid perfect initialization
+                // Per MCHA4400 lecture slide 21 - ensures enough optimization iterations
+                // for quasi-Newton methods to build accurate Hessian approximation
+                std::srand(static_cast<unsigned>(std::time(nullptr)) + i);
+                rnj(0) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
+                rnj(1) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
+                rnj(2) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
 
+                // Initial uncertainty (diagonal covariance)
+                Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
+                Sj(0,0) = INIT_POS_SIGMA;  // x position uncertainty
+                Sj(1,1) = INIT_POS_SIGMA;  // y position uncertainty
+                Sj(2,2) = INIT_POS_SIGMA;  // z position uncertainty
+                Sj(3,3) = INIT_ANG_SIGMA;  // roll uncertainty
+                Sj(4,4) = INIT_ANG_SIGMA;  // pitch uncertainty
+                Sj(5,5) = INIT_ANG_SIGMA;  // yaw uncertainty
+
+                // Append landmark to SLAM state
                 const std::size_t j = sysPose->appendLandmark(rnj, Thetanj, Sj);
+                
+                // Register this tag ID with the new landmark index
                 if (j >= id_by_landmark.size()) id_by_landmark.resize(j+1, -1);
                 id_by_landmark[j] = tagId;
                 id2lm[tagId] = j;
+                
+                nInitialized++;
             }
 
-            // Build measurement matrix Y (2 × 4N) with OpenCV order (TL,TR,BR,BL)
+            // ========================================================================
+            // STEP 3: BUILD MEASUREMENT MATRIX
+            // ========================================================================
+            // Pack all detected tag corners into measurement matrix Y (2 × 4N)
+            // Corners are in OpenCV order: TL, TR, BR, BL
             const std::size_t N = dets.ids.size();
             Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*N);
             for (std::size_t i = 0; i < N; ++i) {
@@ -256,39 +321,94 @@ void runVisualNavigationFromVideo(
             assert(Y.cols() == 4 * static_cast<int>(N) && 
                    "Y packing error: should have 4 columns per tag detection");
 
-            // Display
+            // ========================================================================
+            // STEP 4: TIME UPDATE + MEASUREMENT UPDATE
+            // ========================================================================
+            
+            // Display annotated image
             system.view() = dets.annotated.empty() ? imgin : dets.annotated;
 
             // Create measurement event
             MeasurementSLAMUniqueTagBundle meas(t, Y, camera, dets.ids);
             meas.setIdByLandmark(id_by_landmark);
 
-            // Process (time update + measurement update)
+            // Process event: time update (propagate) + measurement update (correct)
+            // This will automatically associate detected tags with landmarks via ID matching
             meas.process(system);
 
-            // Update persistent state
+            // Update persistent ID mapping (in case measurement modified it)
             id_by_landmark = meas.idByLandmark();
 
-            // Diagnostics
+            // ========================================================================
+            // STEP 5: DIAGNOSTICS (every 10 frames)
+            // ========================================================================
             if (frameIdx % 10 == 0) {
-                std::cout << "\n=== Frame " << frameIdx << " ===\n";
-                std::cout << "  Landmarks: " << system.numberLandmarks() << "\n";
-                std::cout << "  Detected tags: " << dets.ids.size() << "\n";
+                std::cout << "\n╔════════════════════════════════════════════════════════════╗\n";
+                std::cout << "║ Frame " << std::setw(5) << frameIdx 
+                          << " | Time: " << std::fixed << std::setprecision(2) << t << "s"
+                          << std::string(30, ' ') << "║\n";
+                std::cout << "╠════════════════════════════════════════════════════════════╣\n";
+                
+                // Detection statistics
+                std::cout << "║ DETECTIONS                                                 ║\n";
+                std::cout << "║   Total landmarks in map:   " << std::setw(4) << system.numberLandmarks() 
+                          << "                                  ║\n";
+                std::cout << "║   Tags detected this frame: " << std::setw(4) << dets.ids.size() 
+                          << "                                  ║\n";
+                std::cout << "║   New landmarks initialized:" << std::setw(4) << nInitialized 
+                          << "                                  ║\n";
+                
+                // Association statistics
                 int nAssoc = 0;
                 for (int idx : meas.idxFeatures()) if (idx >= 0) ++nAssoc;
-                std::cout << "  Associated: " << nAssoc << "\n";
+                std::cout << "║   Landmarks associated:     " << std::setw(4) << nAssoc 
+                          << "                                  ║\n";
+                
+                std::cout << "╠════════════════════════════════════════════════════════════╣\n";
+                
+                // Camera state
                 const Eigen::VectorXd x = system.density.mean();
                 const Eigen::Vector3d camPos = SystemSLAM::cameraPosition(camera, x);
-                std::cout << "  Camera pos: [" << camPos.transpose() << "]\n";
-
-                for (std::size_t i = 0; i < system.numberLandmarks(); ++i) {
-                const auto posDen = system.landmarkPositionDensity(i);
-                const Eigen::Vector3d std_dev = posDen.sqrtCov().diagonal();
-                std::cout << "  Landmark " << i << " std: [" 
-                        << std_dev.transpose() << "] m\n";
+                const Eigen::Vector3d camVel = x.segment<3>(0);  // Body-fixed velocity
+                const Eigen::Vector3d camOmega = x.segment<3>(3); // Body-fixed angular velocity
+                
+                std::cout << "║ CAMERA STATE                                               ║\n";
+                std::cout << "║   Position (m):    [" 
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(0) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(1) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(2) << "]   ║\n";
+                std::cout << "║   Velocity (m/s):  [" 
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(0) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(1) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(2) << "]   ║\n";
+                std::cout << "║   Ang vel (rad/s): [" 
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(0) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(1) << ", "
+                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(2) << "]   ║\n";
+                
+                // Landmark uncertainties (show first 5 for brevity)
+                const std::size_t nShow = std::min(system.numberLandmarks(), size_t(5));
+                if (nShow > 0) {
+                    std::cout << "╠════════════════════════════════════════════════════════════╣\n";
+                    std::cout << "║ LANDMARK UNCERTAINTIES (first " << nShow << " landmarks)                  ║\n";
+                    for (std::size_t i = 0; i < nShow; ++i) {
+                        const auto posDen = system.landmarkPositionDensity(i);
+                        const Eigen::Vector3d pos_std = posDen.sqrtCov().diagonal();
+                        const Eigen::Vector3d pos_mean = posDen.mean();
+                        
+                        std::cout << "║   LM[" << i << "] pos: ["
+                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(0) << ","
+                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(1) << ","
+                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(2) << "]m  ";
+                        std::cout << "σ:[" 
+                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(0) << ","
+                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(1) << ","
+                                  << std::setw(5) << std::fixed << std::setprecision(3) << pos_std(2) << "]m ║\n";
+                    }
                 }
+                
+                std::cout << "╚════════════════════════════════════════════════════════════╝\n";
             }
-
 
             // Visualization
             plot.setData(system, meas);
