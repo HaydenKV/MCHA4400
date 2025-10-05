@@ -4,11 +4,16 @@
 #include <vector>
 #include <filesystem>
 #include <Eigen/Core>
+#include <array>
 #include <opencv2/core/types.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/persistence.hpp>
 #include "serialisation.hpp"
 #include "Pose.hpp"
+
+namespace CamDefaults {
+    inline int BorderMarginPx = 15;   // <-- change once here
+}
 
 struct Chessboard
 {
@@ -75,6 +80,18 @@ struct Camera
     void calcFieldOfView();
     void write(cv::FileStorage &) const;                    // OpenCV serialisation
     void read(const cv::FileNode &);                        // OpenCV serialisation
+
+    // Conservative, pixel-space bounds checks (default = CamDefaults::BorderMarginPx)
+    bool isPixelInside(const cv::Point2f& uv, int margin = -1) const;
+    bool isPixelInside(const cv::Point2d& uv, int margin = -1) const;
+    bool isPixelInside(const Eigen::Vector2d& uv, int margin = -1) const;
+
+    // Convenience for ArUco-style 4-corner checks
+    bool areCornersInside(const std::array<cv::Point2f,4>& corners, int margin = -1) const;
+    bool areCornersInside(const Eigen::Matrix<double,8,1>& uv8, int margin = -1) const;
+
+    // FOV + pixel-margin gate for a 3D ray in camera coords
+    bool isVectorWithinFOVConservative(const cv::Vec3d& rPCc, int margin = -1) const;
 
     cv::Mat cameraMatrix;                                   // Camera matrix
     cv::Mat distCoeffs;                                     // Lens distortion coefficients
@@ -152,6 +169,7 @@ Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc
     // iii) Auto diff ONLY ----------------------------------------------------------------
     return rQOi;
 }
+
 
 #endif
 

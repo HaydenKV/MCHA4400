@@ -47,6 +47,24 @@ void {\bfseries write} (cv\+::\+File\+Storage \&) const
 \item 
 \Hypertarget{structCamera_a261725ec873eaf1df71f4a1b4e47391e}\label{structCamera_a261725ec873eaf1df71f4a1b4e47391e} 
 void {\bfseries read} (const cv\+::\+File\+Node \&)
+\item 
+\Hypertarget{structCamera_a58d48ec5e1d976978819582ef371a592}\label{structCamera_a58d48ec5e1d976978819582ef371a592} 
+bool {\bfseries is\+Pixel\+Inside} (const cv\+::\+Point2f \&uv, int margin=-\/1) const
+\item 
+\Hypertarget{structCamera_a2cbb56e746fa3fe7d0afdcd07647537f}\label{structCamera_a2cbb56e746fa3fe7d0afdcd07647537f} 
+bool {\bfseries is\+Pixel\+Inside} (const cv\+::\+Point2d \&uv, int margin=-\/1) const
+\item 
+\Hypertarget{structCamera_a4fb23ad8ea60eaa60ce1f2c9266e4377}\label{structCamera_a4fb23ad8ea60eaa60ce1f2c9266e4377} 
+bool {\bfseries is\+Pixel\+Inside} (const Eigen\+::\+Vector2d \&uv, int margin=-\/1) const
+\item 
+\Hypertarget{structCamera_a7776bc68ac658d0dc81dce83bd50cab0}\label{structCamera_a7776bc68ac658d0dc81dce83bd50cab0} 
+bool {\bfseries are\+Corners\+Inside} (const std\+::array$<$ cv\+::\+Point2f, 4 $>$ \&corners, int margin=-\/1) const
+\item 
+\Hypertarget{structCamera_a41afe59465244e9c9752838ab6b210e2}\label{structCamera_a41afe59465244e9c9752838ab6b210e2} 
+bool {\bfseries are\+Corners\+Inside} (const Eigen\+::\+Matrix$<$ double, 8, 1 $>$ \&uv8, int margin=-\/1) const
+\item 
+\Hypertarget{structCamera_a55977a51ad98c62336adaae8c73ad396}\label{structCamera_a55977a51ad98c62336adaae8c73ad396} 
+bool {\bfseries is\+Vector\+Within\+FOVConservative} (const cv\+::\+Vec3d \&r\+PCc, int margin=-\/1) const
 \end{DoxyCompactItemize}
 \doxysubsubsection*{Public Attributes}
 \begin{DoxyCompactItemize}

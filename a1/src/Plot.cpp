@@ -11,7 +11,6 @@
 #include <Eigen/QR>
 #include <Eigen/Eigenvalues>
 
-
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -93,13 +92,6 @@
 static void hsv2rgb(const double & h, const double & s, const double & v, double & r, double & g, double & b);
 static void plotGaussianConfidenceEllipse(cv::Mat & img, const GaussianInfo<double> & prQOi, const Eigen::Vector3d & color);
 static void openCV2VTK(const cv::Mat & viewCVRGB, vtkImageData * viewVTK);
-
-// NEW: project 3D landmark position covariance to 2D pixel covariance (3σ ellipse source)
-static GaussianInfo<double>
-projectLandmarkPosToPixel(const GaussianInfo<double>& posDen,
-                          const Camera& camera,
-                          const Eigen::Vector3d& rCNn,
-                          const Eigen::Matrix3d& Rnc);
 
 // -------------------------------------------------------
 // Bounds
@@ -206,16 +198,16 @@ void QuadricPlot::update(const GaussianInfo<double> & positionDensity)
     const Eigen::Vector3d  eta = -Q.topRightCorner<3,1>(); // since Q stores -η
     const double d = Q(3,3);
     
-    a0 = L(0,0);     // TODO: Lab 8
-    a1 = L(1,1);     // TODO: Lab 8
-    a2 = L(2,2);     // TODO: Lab 8
-    a3 = 2.0 * L(0,1);     // TODO: Lab 8
-    a4 = 2.0 * L(1,2);     // TODO: Lab 8
-    a5 = 2.0 * L(0,2);     // TODO: Lab 8
-    a6 = -2.0 * eta(0);     // TODO: Lab 8
-    a7 = -2.0 * eta(1);     // TODO: Lab 8
-    a8 = -2.0 * eta(2);     // TODO: Lab 8
-    a9 = d;     // TODO: Lab 8
+    a0 = L(0,0);
+    a1 = L(1,1);
+    a2 = L(2,2);
+    a3 = 2.0 * L(0,1);
+    a4 = 2.0 * L(1,2);
+    a5 = 2.0 * L(0,2);
+    a6 = -2.0 * eta(0);
+    a7 = -2.0 * eta(1);
+    a8 = -2.0 * eta(2);
+    a9 = d;
 
     quadric->SetCoefficients(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
 
@@ -580,11 +572,11 @@ Plot::Plot(const Camera & camera)
 
 void Plot::render()
 {
-    double r,g,b;   
+    double r, g, b;   
     hsv2rgb(330, 1., 1., r, g, b);
     qpCamera.update(pSystem->cameraPositionDensity(camera));
     qpCamera.getActor()->GetProperty()->SetOpacity(0.1);
-    qpCamera.getActor()->GetProperty()->SetColor(r,g,b);
+    qpCamera.getActor()->GetProperty()->SetColor(r, g, b);
 
     Bounds globalBounds;
     qpCamera.bounds.setExtremity(globalBounds); 
@@ -609,94 +601,110 @@ void Plot::render()
     const Eigen::Matrix3d Rnc     = rpy2rot(Thetanc);
     const Eigen::Matrix3d Rcn     = Rnc.transpose();
 
-    // Get association data
-    const auto* pBundle = dynamic_cast<const MeasurementPointBundle*>(pMeasurement.get());
-    const std::vector<int>* assocPtr = nullptr;
-    if (pBundle) assocPtr = &pBundle->idxFeatures();
-
-    // Visibility helper (geometric check only)
-    auto isVisibleStrict = [&](const Eigen::Vector3d& rPNn)->bool
-    {
-        const Eigen::Vector3d rPCc = Rcn * (rPNn - rCNn);
-        if (!std::isfinite(rPCc.x()) || !std::isfinite(rPCc.y()) || !std::isfinite(rPCc.z()))
-            return false;
-        if (rPCc.z() <= 1e-6) return false;
-
-        const Eigen::Vector2d pix = camera.vectorToPixel(rPCc);
-        if (!std::isfinite(pix.x()) || !std::isfinite(pix.y())) return false;
-
-        return (pix.x() >= 0.0 && pix.x() < camera.imageSize.width &&
-                pix.y() >= 0.0 && pix.y() < camera.imageSize.height);
+    // ============================================================================
+    // VISIBILITY HELPER: Geometric check for tag CENTER visibility
+    // - Checks if landmark center is in front of camera (z > 0)
+    // - Checks if it projects to valid pixel coordinates inside image bounds
+    // - Used to prevent drawing ellipses for landmarks behind the camera
+    // ============================================================================
+    auto isLandmarkCenterVisible = [&](const Eigen::Vector3d& rLNn) -> bool {
+        const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn);
+        return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()));
     };
 
-    const int ELLIPSE_SAFE_MARGIN = 15;
-    const double MAX_STD_DEV = 100.0;
-
+    // ============================================================================
+    // MAIN LANDMARK LOOP
+    // ============================================================================
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
+        const Eigen::Vector3d rLNn = posDen.mean();  // Landmark center position
 
-        bool inFOV = false;
-        bool isDetected = false;  // Actually detected by ArUco this frame
+        // Get association/visibility status from measurement
+        bool centerInFOV = isLandmarkCenterVisible(rLNn);
+        bool isDetected = false;
         bool hasTagId = false;
         
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-            inFOV = (i < tagMeas->isVisible().size()) && tagMeas->isVisible()[i];
-            isDetected = tagMeas->isEffectivelyAssociated(i);  // Detected + passed checks
+            isDetected = tagMeas->isEffectivelyAssociated(i);
             hasTagId = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
         }
 
-        // Color for LEFT pane (detection status)
+        // ========================================================================
+        // LEFT PANE COLOR (Detection status)
+        // ========================================================================
         double cr_left, cg_left, cb_left;
         if (hasTagId && isDetected) {
-            cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;  // Blue: detected
+            // Blue: successfully detected and associated this frame
+            cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;
         } else if (hasTagId) {
-            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;  // Red: not detected
+            // Red: has tag ID but not detected/associated this frame
+            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
         } else {
-            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;  // Red: no ID
+            // Red: no tag ID assigned yet
+            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
         }
 
-        // Color for RIGHT pane (visibility status)
+        // ========================================================================
+        // RIGHT PANE COLOR (Visibility status)
+        // ========================================================================
         double cr_right, cg_right, cb_right;
-        if (inFOV && hasTagId && isDetected) {
-            cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;  // Blue: visible + detected
-        } else if (hasTagId && !inFOV) {
-            cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;  // Yellow: not visible
+        if (centerInFOV && hasTagId && isDetected) {
+            // Blue: visible in FOV and successfully detected
+            cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;
+        } else if (hasTagId && !centerInFOV) {
+            // Yellow: has tag ID but not visible in current FOV
+            cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;
         } else if (hasTagId) {
-            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;  // Red: visible but not detected
+            // Red: visible in FOV but not detected
+            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
         } else {
-            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;  // Red: no ID
+            // Red: no tag ID assigned
+            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
         }
 
-        // ===== LEFT PANE - Draw ALL landmarks with tag IDs =====
-        if (hasTagId && inFOV) {
+        // ========================================================================
+        // LEFT PANE: Draw 3σ ellipses for landmarks with tag IDs
+        // CRITICAL FIX: Only draw if landmark CENTER is visible (not behind camera)
+        // ========================================================================
+        if (hasTagId && centerInFOV) {
             try {
+                // Note: For pose landmarks, predictFeatureDensity() projects only the
+                // position part (first 3 states) to image coordinates, giving tag center.
+                // The try-catch handles edge cases where projection may fail.
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
                 Eigen::Vector2d pixMean = prQOi.mean();
                 
-                bool pixelSafe = (pixMean.x() > ELLIPSE_SAFE_MARGIN && 
-                                  pixMean.x() < camera.imageSize.width - ELLIPSE_SAFE_MARGIN &&
-                                  pixMean.y() > ELLIPSE_SAFE_MARGIN && 
-                                  pixMean.y() < camera.imageSize.height - ELLIPSE_SAFE_MARGIN);
+                // Safety margin: don't draw ellipses too close to image edges
+                bool pixelSafe = camera.isPixelInside(Eigen::Vector2d(pixMean.x(), pixMean.y()));
                 
                 if (pixelSafe) {
                     Eigen::Matrix2d S = prQOi.sqrtCov();
-                    if (S.allFinite() && S.diagonal().maxCoeff() < MAX_STD_DEV) {
+                    
+                    // Guard against degenerate ellipses. Can add a max STD here to guard against massive ellsipes
+                    if (S.allFinite()) {
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
                         
+                        // Draw tag ID label
                         auto* tagMeas = static_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
                         std::string label = std::to_string(tagMeas->idByLandmark()[i]);
                         cv::putText(pSystem->view(), label,
-                                   cv::Point(pixMean.x() + 10, pixMean.y() - 10),
+                                   cv::Point(static_cast<int>(pixMean.x() + 10), 
+                                            static_cast<int>(pixMean.y() - 10)),
                                    cv::FONT_HERSHEY_SIMPLEX, 0.4,
                                    cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                     }
                 }
-            } catch (...) {}
+            } catch (...) {
+                // Silently skip landmarks where projection fails
+                // (e.g., numerical issues, edge cases)
+            }
         }
 
-        // ===== RIGHT PANE =====
+        // ========================================================================
+        // RIGHT PANE: 3D position uncertainty ellipsoid
+        // ========================================================================
         QuadricPlot & qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
@@ -704,6 +712,7 @@ void Plot::render()
         qp.bounds.setExtremity(globalBounds);
     }
 
+    // Update global elements
     ap.update(globalBounds);
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);
@@ -795,6 +804,7 @@ void plotGaussianConfidenceEllipse(cv::Mat & img, const GaussianInfo<double> & p
         return;  // Don't draw anything if center is outside
     }
 
+    // Generate 3σ confidence ellipse with 100 points
     Eigen::MatrixXd rQOi_ellipse = prQOi.confidenceEllipse(3, 100);
 
     cv::Scalar bgr(color(2), color(1), color(0));
@@ -825,53 +835,3 @@ void plotGaussianConfidenceEllipse(cv::Mat & img, const GaussianInfo<double> & p
     }
 }
 
-// static void plotGaussianConfidenceEllipse(cv::Mat & img,
-//                                           const GaussianInfo<double> & prQOi,
-//                                           const Eigen::Vector3d & color)
-// {
-//     assert(prQOi.dim() == 2);
-
-//     // k-sigma ellipse
-//     const double k = 3.0;
-//     const int N = 100;
-
-//     // Recover covariance: Σ = S Sᵀ
-//     const Eigen::Matrix2d S = prQOi.sqrtCov();
-//     Eigen::Matrix2d Sigma = S * S.transpose();
-
-//     // Numerical guard (in case of near-singular)
-//     Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> es(Sigma);
-//     Eigen::Vector2d evals = es.eigenvalues().cwiseMax(1e-12).cwiseSqrt(); // std devs
-//     Eigen::Matrix2d U = es.eigenvectors();
-
-//     const Eigen::Vector2d mu = prQOi.mean();
-
-//     // Build polyline points
-//     std::vector<cv::Point> pts;
-//     pts.reserve(N);
-//     for (int i = 0; i < N; ++i) {
-//         const double th = 2.0 * M_PI * (static_cast<double>(i) / (N - 1));
-//         const Eigen::Vector2d unit(std::cos(th), std::sin(th));
-//         const Eigen::Vector2d xy = mu + k * (U * evals.asDiagonal() * unit);
-//         pts.emplace_back(cvRound(xy.x()), cvRound(xy.y()));
-//     }
-
-//     // Color (BGR)
-//     const cv::Scalar bgr(color(2), color(1), color(0));
-
-//     // Draw center
-//     cv::drawMarker(img, cv::Point(cvRound(mu.x()), cvRound(mu.y())),
-//                    bgr, cv::MARKER_CROSS, 24, 2);
-
-//     // Draw ellipse as a polyline (clip by bounds to avoid wrap artifacts)
-//     for (int i = 0; i < N - 1; ++i) {
-//         const cv::Point p1 = pts[i];
-//         const cv::Point p2 = pts[i + 1];
-
-//         const bool in1 = (0 <= p1.x && p1.x < img.cols && 0 <= p1.y && p1.y < img.rows);
-//         const bool in2 = (0 <= p2.x && p2.x < img.cols && 0 <= p2.y && p2.y < img.rows);
-//         if (in1 && in2) {
-//             cv::line(img, p1, p2, bgr, 2, cv::LINE_AA);
-//         }
-//     }
-// }

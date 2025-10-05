@@ -301,7 +301,7 @@ ArucoDetections detectArUcoPOSE(
         ? cv::aruco::CORNER_REFINE_SUBPIX
         : cv::aruco::CORNER_REFINE_NONE;
 
-    params.minMarkerPerimeterRate = 0.03f;
+    params.minMarkerPerimeterRate = 0.015f;
     params.maxMarkerPerimeterRate = 4.0f;
 
     params.adaptiveThreshWinSizeMin = 5;
@@ -311,7 +311,7 @@ ArucoDetections detectArUcoPOSE(
 
     params.minCornerDistanceRate = 0.05f;
     params.minDistanceToBorder   = 3;
-    params.polygonalApproxAccuracyRate = 0.05f;
+    params.polygonalApproxAccuracyRate = 0.02f;
 
     params.cornerRefinementWinSize       = 5;
     params.cornerRefinementMaxIterations = 50;

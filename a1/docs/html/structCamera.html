@@ -148,6 +148,18 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>calcFieldOfView</b> (
 void&#160;</td><td class="memItemRight" valign="bottom"><b>write</b> (cv::FileStorage &amp;) const</td></tr>
 <tr class="memitem:a261725ec873eaf1df71f4a1b4e47391e" id="r_a261725ec873eaf1df71f4a1b4e47391e"><td class="memItemLeft" align="right" valign="top"><a id="a261725ec873eaf1df71f4a1b4e47391e" name="a261725ec873eaf1df71f4a1b4e47391e"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>read</b> (const cv::FileNode &amp;)</td></tr>
+<tr class="memitem:a58d48ec5e1d976978819582ef371a592" id="r_a58d48ec5e1d976978819582ef371a592"><td class="memItemLeft" align="right" valign="top"><a id="a58d48ec5e1d976978819582ef371a592" name="a58d48ec5e1d976978819582ef371a592"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>isPixelInside</b> (const cv::Point2f &amp;uv, int margin=-1) const</td></tr>
+<tr class="memitem:a2cbb56e746fa3fe7d0afdcd07647537f" id="r_a2cbb56e746fa3fe7d0afdcd07647537f"><td class="memItemLeft" align="right" valign="top"><a id="a2cbb56e746fa3fe7d0afdcd07647537f" name="a2cbb56e746fa3fe7d0afdcd07647537f"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>isPixelInside</b> (const cv::Point2d &amp;uv, int margin=-1) const</td></tr>
+<tr class="memitem:a4fb23ad8ea60eaa60ce1f2c9266e4377" id="r_a4fb23ad8ea60eaa60ce1f2c9266e4377"><td class="memItemLeft" align="right" valign="top"><a id="a4fb23ad8ea60eaa60ce1f2c9266e4377" name="a4fb23ad8ea60eaa60ce1f2c9266e4377"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>isPixelInside</b> (const Eigen::Vector2d &amp;uv, int margin=-1) const</td></tr>
+<tr class="memitem:a7776bc68ac658d0dc81dce83bd50cab0" id="r_a7776bc68ac658d0dc81dce83bd50cab0"><td class="memItemLeft" align="right" valign="top"><a id="a7776bc68ac658d0dc81dce83bd50cab0" name="a7776bc68ac658d0dc81dce83bd50cab0"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>areCornersInside</b> (const std::array&lt; cv::Point2f, 4 &gt; &amp;corners, int margin=-1) const</td></tr>
+<tr class="memitem:a41afe59465244e9c9752838ab6b210e2" id="r_a41afe59465244e9c9752838ab6b210e2"><td class="memItemLeft" align="right" valign="top"><a id="a41afe59465244e9c9752838ab6b210e2" name="a41afe59465244e9c9752838ab6b210e2"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>areCornersInside</b> (const Eigen::Matrix&lt; double, 8, 1 &gt; &amp;uv8, int margin=-1) const</td></tr>
+<tr class="memitem:a55977a51ad98c62336adaae8c73ad396" id="r_a55977a51ad98c62336adaae8c73ad396"><td class="memItemLeft" align="right" valign="top"><a id="a55977a51ad98c62336adaae8c73ad396" name="a55977a51ad98c62336adaae8c73ad396"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>isVectorWithinFOVConservative</b> (const cv::Vec3d &amp;rPCc, int margin=-1) const</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>

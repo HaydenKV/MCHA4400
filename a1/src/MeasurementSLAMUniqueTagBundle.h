@@ -93,5 +93,4 @@ private:
     std::vector<bool> is_effectively_associated_; // In FOV + passed BORDER_MARGIN + detected
     
     static constexpr double TAG_SIZE = 0.166;        ///< Tag edge length (meters)
-    static constexpr int BORDER_MARGIN = 15;         ///< Conservative FOV margin (pixels) ← FIXED: Now consistent!
 };

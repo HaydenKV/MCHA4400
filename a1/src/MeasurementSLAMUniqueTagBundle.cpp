@@ -1,21 +1,25 @@
-#include "MeasurementSLAMUniqueTagBundle.h"
-#include "SystemSLAMPoseLandmarks.h"
-#include "rotation.hpp"
-#include "Pose.hpp"
-
-#include <Eigen/Core>
-#include <unordered_map>
-#include <vector>
-#include <numeric>
 #include <cstddef>
-#include <cmath>
-#include <iostream>
-
+#include <numeric>
+#include <vector>
+#include <unordered_map>
+#include <Eigen/Core>
+#include "GaussianInfo.hpp"
+#include "SystemBase.h"
+#include "SystemEstimator.h"
+#include "SystemSLAM.h"
+#include "SystemSLAMPoseLandmarks.h"
+#include "Camera.h"
+#include "Measurement.h"
+#include "MeasurementSLAM.h"
+#include "MeasurementSLAMPointBundle.h"
+#include "MeasurementSLAMUniqueTagBundle.h"
+#include "rotation.hpp"
 #include <autodiff/forward/dual.hpp>
 #include <autodiff/forward/dual/eigen.hpp>
 
 namespace {
-    // Thread-local scratch for consistent value/grad/hessian evaluation
+
+    // Thread-local scratch for the current evaluation chain
     thread_local bool tl_assoc_ready = false;
     thread_local std::vector<std::size_t> tl_idxUseLandmarks;
     thread_local std::vector<int>         tl_idxUseFeatures;
@@ -25,18 +29,22 @@ namespace {
                                      const std::vector<int>& idxFeatures)
     {
         if (tl_assoc_ready) return;
+
         tl_idxUseLandmarks.clear();
         tl_idxUseFeatures.clear();
         tl_idxUseLandmarks.reserve(sys.numberLandmarks());
         tl_idxUseFeatures.reserve(sys.numberLandmarks());
+
+        // CRITICAL FIX: Bounds check using N (number of tags), not Y.cols() (4N)
+        const int N = static_cast<int>(Y.cols()) / 4;
+        assert(Y.cols() % 4 == 0 && "Y must have 4 columns per tag");  // Guard
 
         const std::size_t nL = sys.numberLandmarks();
         for (std::size_t j = 0; j < nL; ++j)
         {
             if (j < idxFeatures.size()) {
                 const int fi = idxFeatures[j];
-                // Only keep truly associated features inside measurement bounds
-                if (fi >= 0 && 4*fi + 3 < Y.cols()) {
+                if (fi >= 0 && fi < N) {  // FIX: Use N, not Y.cols()
                     tl_idxUseLandmarks.push_back(j);
                     tl_idxUseFeatures.push_back(fi);
                 }
@@ -61,36 +69,30 @@ MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle(
 , ids_(ids)
 , id_by_landmark_()
 {
-    // Measurement noise: ArUco corner detection with subpixel refinement
-    // Conservative estimate: 1.5 pixels standard deviation
-    sigma_ = 2;
+    // GUARD: Y must have 4 columns per tag
+    assert(Y_.cols() % 4 == 0 && 
+           "Y packing error: must have 4 columns per tag detection");
+    
+    sigma_ = 1.5;
     updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
 MeasurementSLAM* MeasurementSLAMUniqueTagBundle::clone() const
 {
-    // CRITICAL: Must preserve derived type for dynamic_cast in Plot
     auto* copy = new MeasurementSLAMUniqueTagBundle(time_, Y_, camera_, ids_);
-
-    // Copy persistent state
     copy->id_by_landmark_ = this->id_by_landmark_;
     copy->idxFeatures_ = this->idxFeatures_;
     copy->is_visible_ = this->is_visible_;
     copy->is_effectively_associated_ = this->is_effectively_associated_;
     copy->sigma_ = this->sigma_;
-
     return copy;
 }
 
 bool MeasurementSLAMUniqueTagBundle::isEffectivelyAssociated(std::size_t landmarkIdx) const
 {
-    // Returns true if: has ID + in FOV + passed BORDER_MARGIN + detected
-    // This determines BLUE (true) vs YELLOW (false) for landmarks in FOV
-    
     if (landmarkIdx >= is_effectively_associated_.size()) {
         return false;
     }
-    
     return is_effectively_associated_[landmarkIdx];
 }
 
@@ -105,7 +107,6 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
         id_by_landmark_.resize(nL, -1);
     }
 
-    // Initialize
     is_visible_.assign(nL, false);
     is_effectively_associated_.assign(nL, false);
     idxFeatures_.assign(nL, -1);
@@ -116,67 +117,26 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
     }
 
     const Eigen::VectorXd xmean = sysPose.density.mean();
-    const int W = camera_.imageSize.width;
-    const int H = camera_.imageSize.height;
-    
-    // Get body pose for Camera::isWorldWithinFOV
-    Posed Tnb;
-    Tnb.translationVector = xmean.segment<3>(6);
-    Tnb.rotationMatrix = rpy2rot(xmean.segment<3>(9));
 
     for (std::size_t j = 0; j < nL; ++j)
     {
         const int tagId = id_by_landmark_[j];
-        if (tagId < 0) {
-            // No tag ID → RED (not visible, not associated)
-            continue;
-        }
+        if (tagId < 0) continue;
 
-        // Get landmark 3D position
-        const GaussianInfo<double> posDen = sysPose.landmarkPositionDensity(j);
-        const Eigen::Vector3d rPNn_eigen = posDen.mean();
-        cv::Vec3d rPNn(rPNn_eigen.x(), rPNn_eigen.y(), rPNn_eigen.z());
+        // CRITICAL FIX: "Visible" means ALL 4 corners are inside bounds
+        auto corners = predictTagCorners(xmean, sysPose, j);
+        const bool allCornersVisible = camera_.areCornersInside(corners);
         
-        // Check FOV visibility using Camera function
-        const bool visible = camera_.isWorldWithinFOV(rPNn, Tnb);
-        is_visible_[j] = visible;
+        is_visible_[j] = allCornersVisible;  // FIX: Use corner-based visibility
         
-        if (!visible) {
-            // Has ID but not in FOV → YELLOW in 3D, not drawn in image
-            continue;
-        }
-
-        // At this point: has ID + in FOV
-        // Now check if detected + within BORDER_MARGIN
+        if (!allCornersVisible) continue;
 
         auto it = id2feat.find(tagId);
-        if (it == id2feat.end()) {
-            // Has ID + in FOV but not detected → YELLOW in both panes
-            continue;
-        }
+        if (it == id2feat.end()) continue;
 
         const int featIdx = it->second;
-        auto predictedCorners = predictTagCorners(xmean, sysPose, j);
-
-        // Check all corners within BORDER_MARGIN
-        bool allCornersGood = true;
-        for (int c = 0; c < 4; ++c) {
-            const double u = predictedCorners(2*c);
-            const double v = predictedCorners(2*c + 1);
-
-            if (u < BORDER_MARGIN || u > (W - 1 - BORDER_MARGIN) ||
-                v < BORDER_MARGIN || v > (H - 1 - BORDER_MARGIN)) {
-                allCornersGood = false;
-                break;
-            }
-        }
-
-        if (allCornersGood) {
-            // Passed all checks: BLUE
-            idxFeatures_[j] = featIdx;
-            is_effectively_associated_[j] = true;
-        }
-        // else: has ID + in FOV + detected but corners too close → YELLOW
+        idxFeatures_[j] = featIdx;
+        is_effectively_associated_[j] = true;
     }
 
     return idxFeatures_;
@@ -186,16 +146,14 @@ void MeasurementSLAMUniqueTagBundle::update(SystemBase& system)
 {
     SystemSLAMPoseLandmarks& systemSLAM = dynamic_cast<SystemSLAMPoseLandmarks&>(system);
 
-    // 1) ID-based data association with conservative FOV checking
+    // ID-based data association
     std::vector<std::size_t> idxLandmarks(systemSLAM.numberLandmarks());
     std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
     associate(systemSLAM, idxLandmarks);
 
-    // 2) SCENARIO 1: NO DELETION OF LANDMARKS
-    //    Tags have unique IDs - we want loop closure to work!
-    //    Landmarks persist even if not detected for many frames.
-
-    // 3) Perform measurement update (Kalman update) for associated landmarks
+    // SCENARIO 1: NO DELETION (tags persist for loop closure)
+    
+    // Perform measurement update
     Measurement::update(system);
 }
 
@@ -226,8 +184,7 @@ Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
     Tnb.translationVector = SystemSLAM::cameraPosition(camera_, x);
     Tnb.rotationMatrix    = SystemSLAM::cameraOrientation(camera_, x);
 
-    // Define 4 corners in tag's local frame (centered at tag origin)
-    // Order: TL, TR, BR, BL (matches ArUco detection order)
+    // Define 4 corners in tag's local frame (TL, TR, BR, BL)
     const Scalar half = TAG_SIZE / 2.0;
     Eigen::Matrix<Scalar,3,4> cornersL;
     cornersL.col(0) << -half,  half, Scalar(0);  // Top-Left
@@ -245,11 +202,9 @@ Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
     for (int c = 0; c < 4; ++c)
     {
         // 1) Corner position in WORLD frame
-        //    r^n_P/N = r^n_L/N + R^n_L * r^L_corner
         Eigen::Vector3<Scalar> rPNn = rLNn + RnL * cornersL.col(c);
 
         // 2) Corner position in CAMERA frame
-        //    r^c_P/C = R^c_n * (r^n_P/N - r^n_C/N)
         Eigen::Vector3<Scalar> rPCc = Rcn * (rPNn - rCNn);
 
         // 3) Project to image using vectorToPixel
@@ -261,6 +216,10 @@ Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
 
     return h;
 }
+
+// ============================================================================
+// LOG-LIKELIHOOD: PROPER BUILD-ON-TOP PATTERN (Following Lab8/9)
+// ============================================================================
 
 double MeasurementSLAMUniqueTagBundle::logLikelihood(
     const Eigen::VectorXd& x,
@@ -280,52 +239,55 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 
     double logL = 0.0;
 
+    // Sum log-likelihoods for associated landmarks
     for (std::size_t i = 0; i < k; ++i)
     {
         const std::size_t j = tl_idxUseLandmarks[i];
         const int fi = tl_idxUseFeatures[i];
 
-        // Measured corners y_i (8x1)
         Eigen::Matrix<double,8,1> yi;
         for (int c = 0; c < 4; ++c)
             yi.segment<2>(2*c) = Y_.col(4*fi + c);
 
-        // Predicted corners h_i (8x1)
         Eigen::Matrix<double,8,1> hi = predictTagCorners(x, sys, j);
-
-        // Residual
         Eigen::Matrix<double,8,1> ri = yi - hi;
 
-        // Log-likelihood contribution (Gaussian)
         logL += -0.5 * inv_R * ri.squaredNorm();
     }
 
-    // ---- Assignment penalty: visible but unassociated tags ----
-    // |Y| = image area (pixels); U = set of visible landmarks without a detection this frame.
-    // Visible := all 4 predicted corners inside image bounds (conservative margin).
+    // CRITICAL FIX: Penalty for VISIBLE but UNASSOCIATED landmarks
+    // NOTE: Penalty term −4|U|log|Y| is piecewise-constant in state.
+    // Its derivative is undefined at visibility transitions and zero elsewhere.
+    // Therefore, it is CORRECTLY omitted from gradient/Hessian computations.
     {
-        const int W = camera_.imageSize.width;
-        const int H = camera_.imageSize.height;
-        const double imgArea = static_cast<double>(W) * static_cast<double>(H);
+        const double imgArea =
+            static_cast<double>(camera_.imageSize.width) *
+            static_cast<double>(camera_.imageSize.height);
+        
         int Ucount = 0;
         const std::size_t nL = sys.numberLandmarks();
+        
         for (std::size_t j = 0; j < nL; ++j)
         {
-            // only consider landmarks with known IDs and not associated this frame
-            if (j < idxFeatures_.size() && idxFeatures_[j] < 0 && id_by_landmark_.size() > j && id_by_landmark_[j] >= 0)
-            {
-                Eigen::Matrix<double,8,1> pj = predictTagCorners(x, sys, j);
-                bool inView = true;
-                for (int c = 0; c < 4; ++c) {
-                    const double u = pj(2*c), v = pj(2*c+1);
-                    if (u < BORDER_MARGIN || u > (W - 1 - BORDER_MARGIN) ||
-                        v < BORDER_MARGIN || v > (H - 1 - BORDER_MARGIN)) { inView = false; break; }
-                }
-                if (inView) ++Ucount;
+            // Skip if associated this frame
+            if (j < idxFeatures_.size() && idxFeatures_[j] >= 0) {
+                continue;
+            }
+            
+            // Skip if no tag ID assigned yet
+            if (j >= id_by_landmark_.size() || id_by_landmark_[j] < 0) {
+                continue;
+            }
+            
+            // FIX: Check if ALL 4 corners are visible (not just center)
+            Eigen::Matrix<double,8,1> pj = predictTagCorners(x, sys, j);
+            if (camera_.areCornersInside(pj)) {
+                ++Ucount;
             }
         }
+        
         if (Ucount > 0 && imgArea > 0.0) {
-            logL += -4.0 * static_cast<double>(Ucount) * std::log(imgArea);
+            logL -= 4.0 * static_cast<double>(Ucount) * std::log(imgArea);
         }
     }
 
@@ -333,6 +295,7 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
     return logL;
 }
 
+// GRADIENT VERSION: Adds gradient, then delegates to scalar
 double MeasurementSLAMUniqueTagBundle::logLikelihood(
     const Eigen::VectorXd& x,
     const SystemEstimator& system,
@@ -340,57 +303,57 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 {
     const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
 
+    // Build selection once per evaluation chain (no-op if already done)
     ensureAssociatedOnce(sys, Y_, idxFeatures_);
 
     g.resize(x.size());
     g.setZero();
 
-    if (tl_idxUseLandmarks.empty()) {
-        // No associated pairs: just return scalar value (will clear scratch).
-        return logLikelihood(x, system);
-    }
-
-    const std::size_t k = tl_idxUseLandmarks.size();
-    const double inv_R = 1.0 / (sigma_ * sigma_);
-
-    for (std::size_t i = 0; i < k; ++i)
+    if (!tl_idxUseLandmarks.empty())
     {
-        const std::size_t j = tl_idxUseLandmarks[i];
-        const int fi = tl_idxUseFeatures[i];
+        const std::size_t k = tl_idxUseLandmarks.size();
+        const double inv_R = 1.0 / (sigma_ * sigma_);
 
-        // Measured corners y_i (8x1)
-        Eigen::Matrix<double,8,1> yi;
-        for (int c = 0; c < 4; ++c)
-            yi.segment<2>(2*c) = Y_.col(4*fi + c);
+        for (std::size_t i = 0; i < k; ++i)
+        {
+            const std::size_t j = tl_idxUseLandmarks[i];
+            const int fi = tl_idxUseFeatures[i];
 
-        // Autodiff for h_i and J_i
-        using autodiff::dual;
-        using autodiff::jacobian;
-        using autodiff::wrt;
-        using autodiff::at;
-        using autodiff::val;
+            // Measured corners y_i (8x1)
+            Eigen::Matrix<double,8,1> yi;
+            for (int c = 0; c < 4; ++c)
+                yi.segment<2>(2*c) = Y_.col(4*fi + c);
 
-        Eigen::VectorX<dual> xdual = x.cast<dual>();
-        auto hfun = [&](const Eigen::VectorX<dual>& xad)->Eigen::Matrix<dual,8,1> {
-            return predictTagCornersT<dual>(xad, sys, j);
-        };
+            // Autodiff for h_i and J_i
+            using autodiff::dual;
+            using autodiff::jacobian;
+            using autodiff::wrt;
+            using autodiff::at;
+            using autodiff::val;
 
-        Eigen::Matrix<dual,8,1> hdual;
-        Eigen::MatrixXd Ji = jacobian(hfun, wrt(xdual), at(xdual), hdual);
+            Eigen::VectorX<dual> xdual = x.cast<dual>();
+            auto hfun = [&](const Eigen::VectorX<dual>& xad)->Eigen::Matrix<dual,8,1> {
+                return predictTagCornersT<dual>(xad, sys, j);
+            };
 
-        Eigen::Matrix<double,8,1> hi;
-        for (int t = 0; t < 8; ++t) hi(t) = val(hdual(t));
+            Eigen::Matrix<dual,8,1> hdual;
+            Eigen::MatrixXd Ji = jacobian(hfun, wrt(xdual), at(xdual), hdual);
 
-        const Eigen::Matrix<double,8,1> ri = yi - hi;
+            Eigen::Matrix<double,8,1> hi;
+            for (int t = 0; t < 8; ++t) hi(t) = val(hdual(t));
 
-        // Gradient: ∇ℓ = J^T * R^(-1) * r
-        g.noalias() += inv_R * (Ji.transpose() * ri);
+            const Eigen::Matrix<double,8,1> ri = yi - hi;
+
+            // Gradient contribution: g += J^T * R^{-1} * r
+            g.noalias() += inv_R * (Ji.transpose() * ri);
+        }
     }
 
-    // Return scalar value via scalar-only overload (clears scratch and includes penalty term).
+    // Build-on style: return via scalar-only overload (will reuse selection and clear it)
     return logLikelihood(x, system);
 }
 
+// HESSIAN VERSION: Adds Hessian, then delegates to gradient
 double MeasurementSLAMUniqueTagBundle::logLikelihood(
     const Eigen::VectorXd& x,
     const SystemEstimator& system,
@@ -399,54 +362,58 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 {
     const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
 
+    // Build selection once per evaluation chain (no-op if already done)
     ensureAssociatedOnce(sys, Y_, idxFeatures_);
 
-    g.resize(x.size());   g.setZero();
-    H.resize(x.size(), x.size());     H.setZero();
+    g.resize(x.size());       g.setZero();
+    H.resize(x.size(), x.size());   H.setZero();
 
-    if (tl_idxUseLandmarks.empty()) {
-        // No associations: skip derivatives; return scalar (clears scratch, adds penalty).
-        return logLikelihood(x, system);
-    }
-
-    const std::size_t k = tl_idxUseLandmarks.size();
-    const double inv_R = 1.0 / (sigma_ * sigma_);
-
-    for (std::size_t i = 0; i < k; ++i)
+    if (!tl_idxUseLandmarks.empty())
     {
-        const std::size_t j = tl_idxUseLandmarks[i];
-        const int fi = tl_idxUseFeatures[i];
+        const std::size_t k = tl_idxUseLandmarks.size();
+        const double inv_R = 1.0 / (sigma_ * sigma_);
 
-        // Measured corners y_i (8x1)
-        Eigen::Matrix<double,8,1> yi;
-        for (int c = 0; c < 4; ++c)
-            yi.segment<2>(2*c) = Y_.col(4*fi + c);
+        for (std::size_t i = 0; i < k; ++i)
+        {
+            const std::size_t j = tl_idxUseLandmarks[i];
+            const int fi = tl_idxUseFeatures[i];
 
-        // Autodiff for h_i and J_i
-        using autodiff::dual;
-        using autodiff::jacobian;
-        using autodiff::wrt;
-        using autodiff::at;
-        using autodiff::val;
+            // Measured corners y_i (8x1)
+            Eigen::Matrix<double,8,1> yi;
+            for (int c = 0; c < 4; ++c)
+                yi.segment<2>(2*c) = Y_.col(4*fi + c);
 
-        Eigen::VectorX<dual> xdual = x.cast<dual>();
-        auto hfun = [&](const Eigen::VectorX<dual>& xad)->Eigen::Matrix<dual,8,1> {
-            return predictTagCornersT<dual>(xad, sys, j);
-        };
+            // Autodiff for h_i and J_i
+            using autodiff::dual;
+            using autodiff::jacobian;
+            using autodiff::wrt;
+            using autodiff::at;
+            using autodiff::val;
 
-        Eigen::Matrix<dual,8,1> hdual;
-        Eigen::MatrixXd Ji = jacobian(hfun, wrt(xdual), at(xdual), hdual);
+            Eigen::VectorX<dual> xdual = x.cast<dual>();
+            auto hfun = [&](const Eigen::VectorX<dual>& xad)->Eigen::Matrix<dual,8,1> {
+                return predictTagCornersT<dual>(xad, sys, j);
+            };
 
-        Eigen::Matrix<double,8,1> hi;
-        for (int t = 0; t < 8; ++t) hi(t) = val(hdual(t));
+            Eigen::Matrix<dual,8,1> hdual;
+            Eigen::MatrixXd Ji = jacobian(hfun, wrt(xdual), at(xdual), hdual);
 
-        const Eigen::Matrix<double,8,1> ri = yi - hi;
+            Eigen::Matrix<double,8,1> hi;
+            for (int t = 0; t < 8; ++t) hi(t) = val(hdual(t));
 
-        // Gauss–Newton gradient and Hessian
-        g.noalias() += inv_R * (Ji.transpose() * ri);
-        H.noalias() += -inv_R * (Ji.transpose() * Ji);
+            const Eigen::Matrix<double,8,1> ri = yi - hi;
+
+            // Gauss-Newton Hessian approximation: H += -J^T * R^{-1} * J
+            H.noalias() += -inv_R * (Ji.transpose() * Ji);
+        }
     }
 
-    // Finish via scalar-only overload to include penalty once and clear scratch.
-    return logLikelihood(x, system);
+    // Build-on style: return via gradient overload (which calls scalar, reuses selection and clears)
+    return logLikelihood(x, system, g);
 }
+
+// Explicit template instantiation
+template Eigen::Matrix<double,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT<double>(
+    const Eigen::VectorXd&, const SystemSLAM&, std::size_t) const;
+template Eigen::Matrix<autodiff::dual,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT<autodiff::dual>(
+    const Eigen::VectorX<autodiff::dual>&, const SystemSLAM&, std::size_t) const;

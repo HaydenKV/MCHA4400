@@ -637,6 +637,55 @@ bool Camera::isWorldWithinFOV(const cv::Vec3d & rPNn, const Posed & Tnb) const
     return isVectorWithinFOV(worldToVector(rPNn, Tnb));
 }
 
+
+bool Camera::isPixelInside(const cv::Point2f& uv, int margin) const {
+    const int m = (margin < 0 ? CamDefaults::BorderMarginPx : margin);
+    const int W = imageSize.width;
+    const int H = imageSize.height;
+    if (!std::isfinite(uv.x) || !std::isfinite(uv.y)) return false;
+    return (uv.x >= m && uv.x <= (W - 1 - m) &&
+            uv.y >= m && uv.y <= (H - 1 - m));
+}
+
+bool Camera::isPixelInside(const cv::Point2d& uv, int margin) const {
+    return isPixelInside(cv::Point2f(static_cast<float>(uv.x),
+                                     static_cast<float>(uv.y)), margin);
+}
+
+bool Camera::isPixelInside(const Eigen::Vector2d& uv, int margin) const {
+    return isPixelInside(cv::Point2f(static_cast<float>(uv.x()),
+                                     static_cast<float>(uv.y())), margin);
+}
+
+bool Camera::areCornersInside(const std::array<cv::Point2f,4>& c, int margin) const {
+    for (int k = 0; k < 4; ++k) {
+        if (!isPixelInside(c[k], margin)) return false;
+    }
+    return true;
+}
+
+bool Camera::areCornersInside(const Eigen::Matrix<double,8,1>& uv8, int margin) const {
+    for (int k = 0; k < 4; ++k) {
+        const double u = uv8(2*k);
+        const double v = uv8(2*k + 1);
+        if (!isPixelInside(cv::Point2f(static_cast<float>(u), static_cast<float>(v)), margin))
+            return false;
+    }
+    return true;
+}
+
+bool Camera::isVectorWithinFOVConservative(const cv::Vec3d& rPCc, int margin) const {
+    if (!isVectorWithinFOV(rPCc)) return false;  // front + LUT + pixel project (no margin)
+
+    // add pixel-margin gate (same projection path)
+    if (rPCc[2] <= 1e-9) return false;
+    cv::Vec3d P(rPCc[0]/rPCc[2], rPCc[1]/rPCc[2], 1.0);
+    cv::Vec2d px = vectorToPixel(P);
+    return isPixelInside(cv::Point2f(static_cast<float>(px[0]),
+                                     static_cast<float>(px[1])), margin);
+}
+
+
 void Camera::write(cv::FileStorage & fs) const
 {
     fs << "{"
@@ -646,6 +695,7 @@ void Camera::write(cv::FileStorage & fs) const
        << "imageSize"               << imageSize
        << "}";
 }
+
 
 void Camera::read(const cv::FileNode & node)
 {

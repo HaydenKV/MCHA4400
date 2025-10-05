@@ -74,9 +74,6 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
 // Evaluate f(x) and its Jacobian J = df/fx from the SDE dx = f(x)*dt + dw
 Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u, Eigen::MatrixXd & J) const
 {
-    // Keep the forward model EXACTLY as you already wrote it
-    // Eigen::VectorXd f = dynamics(t, x, u);
-
     //
     //  Jacobian J = df/dx
     //    
@@ -86,55 +83,74 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     //
     // where JK(eta) = blkdiag(Rnb(Theta), T(Theta))
     //
+
+    assert(density.dim() == x.size());
+    
     using autodiff::dual;
     using autodiff::jacobian;
     using autodiff::wrt;
     using autodiff::at;
     using autodiff::val;
 
-    // Cast state to dual numbers
-    Eigen::VectorX<dual> x_dual = x.cast<dual>();
-
-    // Define dynamics function for autodiff
+    // OPTIMIZATION: f(x) only depends on [ν, η] (first 12 states), not landmarks
+    // Therefore ∂f/∂mj = 0 for all landmarks (mathematically exact by Eq 4)
+    
+    const Eigen::Index nx = x.size();          // Total state dimension
+    const Eigen::Index nVelPose = 12;          // [ν, η] dimension (6 + 6)
+    
+    // Extract ONLY the velocity and pose states for differentiation
+    Eigen::VectorX<dual> x_vel_pose_dual = x.head(nVelPose).cast<dual>();
+    
+    // Define dynamics function for autodiff (operates only on first 12 states)
     auto f_dual = [&](const Eigen::VectorX<dual>& xd) -> Eigen::VectorX<dual> {
-        Eigen::VectorX<dual> fd(xd.size());
+        // xd has dimension 12: [vBNb (3), omegaBNb (3), rBNn (3), Thetanb (3)]
+        Eigen::VectorX<dual> fd(nx);  // Output has full dimension (including landmarks)
         fd.setZero();
-
+        
         // Extract states
-        Eigen::Vector3<dual> vBNb = xd.segment<3>(0);
-        Eigen::Vector3<dual> omegaBNb = xd.segment<3>(3);
-        Eigen::Vector3<dual> Thetanb = xd.segment<3>(9);
-
+        Eigen::Vector3<dual> vBNb    = xd.segment<3>(0);  // Body translational velocity
+        Eigen::Vector3<dual> omegaBNb = xd.segment<3>(3);  // Body angular velocity
+        Eigen::Vector3<dual> Thetanb  = xd.segment<3>(9);  // RPY Euler angles
+        
         // Rotation matrix (autodiff-compatible)
         Eigen::Matrix3<dual> Rnb = rpy2rot(Thetanb);
-
-        // Position dynamics
+        
+        // Position dynamics: ṙ = Rnb · vBNb
         fd.segment<3>(6) = Rnb * vBNb;
-
-        // Orientation dynamics
+        
+        // Orientation dynamics: Θ̇ = TK(Θ) · ωBNb
         const dual phi = Thetanb(0);
         const dual theta = Thetanb(1);
-
+        
         Eigen::Matrix3<dual> T;
-        T << dual(1.0), sin(phi)*tan(theta), cos(phi)*tan(theta),
-             dual(0.0), cos(phi), -sin(phi),
-             dual(0.0), sin(phi)/cos(theta), cos(phi)/cos(theta);
-
+        T << dual(1.0), sin(phi)*tan(theta),  cos(phi)*tan(theta),
+             dual(0.0), cos(phi),             -sin(phi),
+             dual(0.0), sin(phi)/cos(theta),  cos(phi)/cos(theta);
+        
         fd.segment<3>(9) = T * omegaBNb;
-
+        
+        // Landmark dynamics: ṁj = 0 (already zero from setZero())
+        
         return fd;
     };
-
-    // Compute Jacobian via autodiff
+    
+    // Compute Jacobian ONLY w.r.t. first 12 states
     Eigen::VectorX<dual> f_dual_out;
-    J = jacobian(f_dual, wrt(x_dual), at(x_dual), f_dual_out);
-
-    // Return function value as double
-    Eigen::VectorXd f(x.size());
-    for (int i = 0; i < f.size(); ++i) {
+    Eigen::MatrixXd J_vel_pose = jacobian(f_dual, wrt(x_vel_pose_dual), at(x_vel_pose_dual), f_dual_out);
+    // J_vel_pose is (nx × 12)
+    
+    // Construct full Jacobian by appending zero columns for landmarks
+    J.resize(nx, nx);
+    J.setZero();
+    J.leftCols(nVelPose) = J_vel_pose;  // First 12 columns from autodiff
+    // Remaining columns are zero (landmarks don't affect dynamics)
+    
+    // Extract function value as double
+    Eigen::VectorXd f(nx);
+    for (Eigen::Index i = 0; i < nx; ++i) {
         f(i) = val(f_dual_out(i));
     }
-
+    
     return f;
 }
 

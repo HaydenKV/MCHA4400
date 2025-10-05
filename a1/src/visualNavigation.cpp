@@ -4,7 +4,6 @@
 #include <cassert>
 #include <unordered_map>
 #include <array>
-
 #include <opencv2/core/mat.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/aruco.hpp>
@@ -13,21 +12,28 @@
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
-
-// === Assignment code you already have ===
 #include "Camera.h"
 #include "Pose.hpp"
-
-// === Lab 8 visualisation scaffold ===
 #include "Plot.h"
 #include "SystemSLAMPointLandmarks.h"
 #include "SystemSLAMPoseLandmarks.h"
 #include "MeasurementSLAMPointBundle.h"
 #include "MeasurementSLAMUniqueTagBundle.h"
 #include "GaussianInfo.hpp"
-
 #include "imagefeatures.h"
 #include "rotation.hpp"
+
+// ============================================================================
+// SCENARIO 1 CONSTANTS (Shared across the file)
+// ============================================================================
+namespace {
+    constexpr float  TAG_SIZE_METERS = 0.166f;       // ArUco tag edge length (166mm)
+    constexpr double REPROJ_ERR_THRESH_PX = 4.0;     // IPPE reprojection gate (pixels)
+    
+    // Initial landmark uncertainty (moderate values for robustness)
+    constexpr double INIT_POS_SIGMA = 0.4;           // ~40 cm position uncertainty
+    constexpr double INIT_ANG_SIGMA = 20.0 * M_PI / 180.0;  // ~20° orientation uncertainty
+}
 
 // Helper: convert Rodrigues rvec to rotation matrix
 static inline Eigen::Matrix3d rodriguesToRot(const cv::Vec3d& rvec)
@@ -41,24 +47,13 @@ static inline Eigen::Matrix3d rodriguesToRot(const cv::Vec3d& rvec)
     return R;
 }
 
-// Helper: ensure a matrix is upper-triangular (safeguard for Sj)
-static inline Eigen::Matrix<double,6,6> makeUpper(const Eigen::Matrix<double,6,6>& M)
-{
-    Eigen::Matrix<double,6,6> U = M;
-    for (int r = 0; r < 6; ++r)
-        for (int c = 0; c < r; ++c)
-            U(r,c) = 0.0;
-    return U;
-}
-
-// Optional helper: Eigen::Vector3d -> cv::Vec3d
-static inline cv::Vec3d toCv(const Eigen::Vector3d& v) { return cv::Vec3d(v.x(), v.y(), v.z()); }
-
-void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
-                                  const std::filesystem::path & cameraPath,
-                                  int scenario, int interactive,
-                                  const std::filesystem::path & outputDirectory,
-                                  int max_frames)
+void runVisualNavigationFromVideo(
+    const std::filesystem::path& videoPath,
+    const std::filesystem::path& cameraPath,
+    int scenario,
+    int interactive,
+    const std::filesystem::path& outputDirectory,
+    int max_frames)
 {
     assert(!videoPath.empty());
 
@@ -163,24 +158,29 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
     static std::unordered_map<int, std::size_t> id2lm;      // tag id -> landmark idx
     id_by_landmark.clear();
     id2lm.clear();
-
-    const float tagSizeMeters = 0.166f; // your printed tag edge length
-
-    // ------------------ Main loop ---------------------
+    
+    // Main loop
     int frameIdx = 0;
     while (true)
     {
-        if (max_frames > 0 && frameIdx >= max_frames) break;  // <- early-out
-        cv::Mat imgin = bufferedVideoReader.read();
-        if (imgin.empty()) break;
+        // ArUco detection
+        // Landmark initialization
+        // Build measurement
+        // Time update (via Event::process)
+        // Measurement update (via Event::process)
+        // Visualization
 
         // std::cout << "Frame " << frameIdx << " - Start" << std::endl;
+
+        if (max_frames > 0 && frameIdx >= max_frames) break;
+        cv::Mat imgin = bufferedVideoReader.read();
+        if (imgin.empty()) break;
 
         const double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
 
         if (scenario == 1)
         {
-            // Detect + pose (IPPE) + light gating in the detector itself
+            // Detect + pose (IPPE) + reprojection gating
             std::vector<cv::Vec3d> rvecs, tvecs;
             std::vector<double> meanErrs;
             ArucoDetections dets = detectArUcoPOSE(
@@ -189,9 +189,9 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 /*doCornerRefine*/ true,
                 camera.cameraMatrix,
                 camera.distCoeffs,
-                tagSizeMeters,
+                TAG_SIZE_METERS,
                 &rvecs, &tvecs, &meanErrs,
-                /*reprojErrThreshPx*/ 6.0,   // slightly more permissive
+                REPROJ_ERR_THRESH_PX,
                 /*drawRejected*/ false
             );
 
@@ -206,56 +206,34 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             const Eigen::Vector3d rCNn  = SystemSLAM::cameraPosition(camera, xmean);
             const Eigen::Matrix3d Rnc   = SystemSLAM::cameraOrientation(camera, xmean);
 
-            // --- Conservative image-border gating for NEW landmark init ---
-            const int W = camera.imageSize.width;
-            const int H = camera.imageSize.height;
-            const int BORDER_MARGIN = 15; // ~10–15 px as discussed
-
-            auto nearBorder = [&](const std::array<cv::Point2f,4>& c)->bool {
-                for (int k = 0; k < 4; ++k) {
-                    const float u = c[k].x, v = c[k].y;
-                    if (u < BORDER_MARGIN || u > (W-1-BORDER_MARGIN) ||
-                        v < BORDER_MARGIN || v > (H-1-BORDER_MARGIN)) {
-                        return true;
-                    }
-                }
-                return false;
-            };
-
-            // Initialize new landmarks for any unseen tag IDs (ID → landmark)
+            // Initialize new landmarks for any unseen tag IDs
             for (std::size_t i = 0; i < dets.ids.size(); ++i)
             {
                 const int tagId = dets.ids[i];
                 if (id2lm.find(tagId) != id2lm.end())
-                    continue; // already known
+                    continue; // Already known
 
-                // Skip if detection too close to the image border (unreliable geometry)
-                if (nearBorder(dets.corners[i]))
+                // Skip if detection too close to image border
+                if (!camera.areCornersInside(dets.corners[i]))
                     continue;
 
-                // Camera->Marker (from IPPE), then World<-Marker
-                cv::Mat Rcv;
-                cv::Rodrigues(rvecs[i], Rcv);
-                Eigen::Matrix3d Rcj;
-                for (int r = 0; r < 3; ++r)
-                    for (int c = 0; c < 3; ++c)
-                        Rcj(r,c) = Rcv.at<double>(r,c);
+                // Skip the tag CENTER ray is inside FOV after distortion (with the same margin)
+                const cv::Vec3d rCj(tvecs[i][0], tvecs[i][1], tvecs[i][2]); // camera->tag
+                if (!camera.isVectorWithinFOVConservative(rCj))
+                    continue;
 
+                // Convert IPPE pose (camera→tag) to world coordinates
+                const Eigen::Matrix3d Rcj = rodriguesToRot(rvecs[i]);
                 const Eigen::Vector3d rCj(tvecs[i][0], tvecs[i][1], tvecs[i][2]);
-
+                
                 const Eigen::Matrix3d Rnj = Rnc * Rcj;
-                const Eigen::Vector3d rnj = rCNn + Rnc * rCj;
+                const Eigen::Vector3d rnj = rCNn + Rnc * Eigen::Vector3d(rCj[0], rCj[1], rCj[2]);
                 const Eigen::Vector3d Thetanj = rot2rpy(Rnj);
 
-                // Moderate init sqrt-covariance (position meters, Euler radians)
+                // Initial uncertainty (moderate for robustness)
                 Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
-                // 0.1 5° Small Fast but may lock onto wrong solution
-                // 0.4 20° Medium Moderate
-                // 1.0 45° Large Slow
-                const double pos_sigma = 0.15;                 // ~40 cm
-                const double ang_sigma = 5.0 * M_PI/180.0;    // ~20°
-                Sj(0,0) = pos_sigma;  Sj(1,1) = pos_sigma;  Sj(2,2) = pos_sigma;
-                Sj(3,3) = ang_sigma;  Sj(4,4) = ang_sigma;  Sj(5,5) = ang_sigma;
+                Sj(0,0) = INIT_POS_SIGMA;  Sj(1,1) = INIT_POS_SIGMA;  Sj(2,2) = INIT_POS_SIGMA;
+                Sj(3,3) = INIT_ANG_SIGMA;  Sj(4,4) = INIT_ANG_SIGMA;  Sj(5,5) = INIT_ANG_SIGMA;
 
                 const std::size_t j = sysPose->appendLandmark(rnj, Thetanj, Sj);
                 if (j >= id_by_landmark.size()) id_by_landmark.resize(j+1, -1);
@@ -263,7 +241,7 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 id2lm[tagId] = j;
             }
 
-            // Build measurement matrix Y (2 x 4N) with OpenCV order (TL,TR,BR,BL)
+            // Build measurement matrix Y (2 × 4N) with OpenCV order (TL,TR,BR,BL)
             const std::size_t N = dets.ids.size();
             Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*N);
             for (std::size_t i = 0; i < N; ++i) {
@@ -274,17 +252,21 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 }
             }
 
-            // std::cout << "Frame " << frameIdx << " - After measurement" << std::endl;
+            // GUARD: Verify Y packing is correct (4 columns per detection)
+            assert(Y.cols() == 4 * static_cast<int>(N) && 
+                   "Y packing error: should have 4 columns per tag detection");
 
             // Display
-            system.view() = dets.annotated.empty() ? imgin.clone() : dets.annotated.clone();
+            system.view() = dets.annotated.empty() ? imgin : dets.annotated;
 
-            // NOTE: prediction is done inside Event::process() (Measurement::process)
+            // Create measurement event
             MeasurementSLAMUniqueTagBundle meas(t, Y, camera, dets.ids);
             meas.setIdByLandmark(id_by_landmark);
-            // (we intentionally do NOT do any pruning or grace-based coloring)
+
+            // Process (time update + measurement update)
             meas.process(system);
-            // std::cout << "Frame " << frameIdx << " - After update" << std::endl;
+
+            // Update persistent state
             id_by_landmark = meas.idByLandmark();
 
             // Diagnostics
@@ -307,11 +289,11 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
                 }
             }
 
-            // Render / export
+
+            // Visualization
             plot.setData(system, meas);
-            plot.render();
-            if (doExport) bufferedVideoWriter.write(plot.getFrame());
         }
+        // ... [Other scenarios] ...
         else
         {
             // Other scenarios unchanged
@@ -319,17 +301,16 @@ void runVisualNavigationFromVideo(const std::filesystem::path & videoPath,
             Eigen::Matrix<double,2,Eigen::Dynamic> Ynow(2,0);
             MeasurementPointBundle meas(t, Ynow, camera);
             plot.setData(system, meas);
-            plot.render();
-            if (doExport) bufferedVideoWriter.write(plot.getFrame());
         }
+
+        plot.render();
+        if (doExport) bufferedVideoWriter.write(plot.getFrame());
 
         if (interactive == 2 || (interactive == 1 && (--nFrames == 0)))
             plot.start();
 
-        ++frameIdx;
+        frameIdx++;
     }
-
     if (doExport) bufferedVideoWriter.stop();
     bufferedVideoReader.stop();
 }
-
