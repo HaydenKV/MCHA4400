@@ -560,9 +560,9 @@ Plot::Plot(const Camera & camera)
     // rFNn
     threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,0);
     // rCNn
-    double sc = 10; // Scale factor - increase to intially zoom out (was originally on 2)
-    threeDimRenderer->GetActiveCamera()->SetPosition(-0*sc,-0*sc,-1*sc);
-    threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
+    double sc = 5; // Scale factor - increase to intially zoom out (was originally on 2)
+    threeDimRenderer->GetActiveCamera()->SetPosition(-0.75*sc,-0.75*sc,-0.5*sc);
+    threeDimRenderer->GetActiveCamera()->SetViewUp(0,0,-1); // (0,0,-1)
 
     vtkNew<vtkInteractorStyleTrackballCamera> interactorStyle;
     interactor->SetInteractorStyle(interactorStyle);

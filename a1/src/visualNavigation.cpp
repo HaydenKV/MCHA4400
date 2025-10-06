@@ -38,8 +38,8 @@ namespace {
     // At 2-3m distance, solvePnP with IPPE typically achieves:
     // - Position accuracy: ~5-10cm
     // - Orientation accuracy: ~3-5 degrees
-    constexpr double INIT_POS_SIGMA = 0.5;          // 10cm position uncertainty (was 40cm!)
-    constexpr double INIT_ANG_SIGMA = 0.5; //3.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
+    constexpr double INIT_POS_SIGMA = 0.01;          // 10cm position uncertainty (was 40cm!)
+    constexpr double INIT_ANG_SIGMA = 1.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
     
     // Small offset to avoid perfect initialization (per MCHA4400 lecture slide 21)
     // "Don't initialise landmarks exactly at known solution" to ensure enough
@@ -161,10 +161,11 @@ void runVisualNavigationFromVideo(
         mu_body.segment<3>(9) << 0.0, 0.0, 0.0;  // Orientation (rpy)
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12); // tight prior on body
-        S_body.block<6,6>(0,0) *= 1e-2;               // velocity
+        S_body.block<3,3>(0,0) *= 1e0;               // linear velocity
+        S_body.block<3,3>(3,3) *= 5e-1;               // linear velocity
         const double d2r = M_PI / 180.0;
-        S_body.block<3,3>(6,6) *= 1e-2;               // Position: 1cm
-        S_body.block<3,3>(9,9) *= (1.0 * d2r);        // Orientation: 5°
+        S_body.block<3,3>(6,6) *= 0.01;               // Position: 1cm
+        S_body.block<3,3>(9,9) *= (1 * d2r);        // Orientation: 5°
 
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPoseLandmarks>(SystemSLAMPoseLandmarks(p0));
