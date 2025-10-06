@@ -556,12 +556,12 @@ Plot::Plot(const Camera & camera)
 
     // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
     threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    threeDimRenderer->GetActiveCamera()->Elevation(200);
+    threeDimRenderer->GetActiveCamera()->Elevation(0);
     // rFNn
-    threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
+    threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,0);
     // rCNn
     double sc = 10; // Scale factor - increase to intially zoom out (was originally on 2)
-    threeDimRenderer->GetActiveCamera()->SetPosition(0.15*sc,-0.15*sc,-0.6*sc);
+    threeDimRenderer->GetActiveCamera()->SetPosition(-0*sc,-0*sc,-1*sc);
     threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
 
     vtkNew<vtkInteractorStyleTrackballCamera> interactorStyle;

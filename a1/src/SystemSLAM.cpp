@@ -145,6 +145,19 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     J.leftCols(nVelPose) = J_vel_pose;  // First 12 columns from autodiff
     // Remaining columns are zero (landmarks don't affect dynamics)
     
+    // DIAGNOSTIC: Verify cross-derivatives are non-zero
+    if (x.size() == 12) {  // Only for body-only state (no landmarks yet)
+        std::cout << "J(6,9) [∂ṙx/∂roll] = " << J(6,9) << std::endl;
+        std::cout << "J(9,9) [∂φ̇/∂roll] = " << J(9,9) << std::endl;
+        
+        double cross_deriv_norm = J.block<3,3>(6,9).norm();  // Position w.r.t. orientation
+        std::cout << "Cross-derivative ∂ṙ/∂θ norm: " << cross_deriv_norm << std::endl;
+        
+        if (cross_deriv_norm < 1e-10) {
+            std::cerr << "WARNING: Cross-derivatives are zero! Autodiff may not be working!" << std::endl;
+        }
+    }
+
     // Extract function value as double
     Eigen::VectorXd f(nx);
     for (Eigen::Index i = 0; i < nx; ++i) {
@@ -225,17 +238,17 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
 
     // Process noise parameters (TUNABLE - start here and adjust based on drift)
     // These control how much the filter trusts the process model vs measurements
-    const double qv = 0.0005;  // Translational velocity noise (m/s^1.5)
-    const double qw = 0.001;  // Angular velocity noise (rad/s^1.5)
+    const double qv = 0.1;  // Translational velocity noise (m/s^1.5)
+    const double qw = 0.1;  // Angular velocity noise (rad/s^1.5)
     
     // TODO: Assignment(s)
     // Diagonal noise (independent noise on each velocity component)
-    SQ(0,0) = std::sqrt(qv);  // x-velocity noise
-    SQ(1,1) = std::sqrt(qv);  // y-velocity noise
-    SQ(2,2) = std::sqrt(qv);  // z-velocity noise
-    SQ(3,3) = std::sqrt(qw);  // roll rate noise
-    SQ(4,4) = std::sqrt(qw);  // pitch rate noise
-    SQ(5,5) = std::sqrt(qw);  // yaw rate noise
+    SQ(0,0) = qv;  // x-velocity noise
+    SQ(1,1) = qv;  // y-velocity noise
+    SQ(2,2) = qv;  // z-velocity noise
+    SQ(3,3) = qw;  // roll rate noise
+    SQ(4,4) = qw;  // pitch rate noise
+    SQ(5,5) = qw;  // yaw rate noise
 
     // Distribution of noise increment dw ~ N(0, Q*dt) for time increment dt
     return GaussianInfo<double>::fromSqrtMoment(SQ*std::sqrt(dt));

@@ -11,6 +11,8 @@
 #include <opencv2/imgproc.hpp>
 #include <iomanip>
 #include <ctime>
+#include <csignal>
+#include <atomic>
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -30,19 +32,31 @@
 // ============================================================================
 namespace {
     constexpr float  TAG_SIZE_METERS = 0.166f;       // ArUco tag edge length (166mm)
-    constexpr double REPROJ_ERR_THRESH_PX = 1.0;     // IPPE reprojection gate (pixels)
+    constexpr double REPROJ_ERR_THRESH_PX = 3.0;     // IPPE reprojection gate (pixels)
     
     // CRITICAL FIX: More realistic initial uncertainties based on typical PnP accuracy
     // At 2-3m distance, solvePnP with IPPE typically achieves:
     // - Position accuracy: ~5-10cm
     // - Orientation accuracy: ~3-5 degrees
-    constexpr double INIT_POS_SIGMA = 0.05;          // 10cm position uncertainty (was 40cm!)
-    constexpr double INIT_ANG_SIGMA = 3.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
+    constexpr double INIT_POS_SIGMA = 0.5;          // 10cm position uncertainty (was 40cm!)
+    constexpr double INIT_ANG_SIGMA = 0.5; //3.0 * M_PI / 180.0;  // 5° orientation uncertainty (was 20°!)
     
     // Small offset to avoid perfect initialization (per MCHA4400 lecture slide 21)
     // "Don't initialise landmarks exactly at known solution" to ensure enough
     // quasi-Newton iterations for good Hessian approximation
     constexpr double INIT_POS_OFFSET = 0.02;  // 2cm random offset from PnP solution
+}
+
+// ============================================================================
+// Async-signal-safe shutdown flag + handler
+//   - We ONLY set an atomic bool in the handler (no I/O)
+//   - Main loop polls this flag and exits cleanly
+// ============================================================================
+static std::atomic<bool> g_stop{false};
+
+// Minimal, async-signal-safe handler: just set a flag.
+static void onSignal(int) {
+    g_stop.store(true, std::memory_order_relaxed);
 }
 
 // Helper: convert Rodrigues rvec to rotation matrix
@@ -66,6 +80,13 @@ void runVisualNavigationFromVideo(
     int max_frames)
 {
     assert(!videoPath.empty());
+
+    // =========================================================================
+    // Register Ctrl-C / SIGTERM handlers and reset flag for this invocation
+    // =========================================================================
+    g_stop.store(false, std::memory_order_relaxed);
+    std::signal(SIGINT,  onSignal);   // Ctrl-C in terminal
+    std::signal(SIGTERM, onSignal);   // Graceful stop from OS/supervisor
 
     // ------------------ Output setup ------------------
     std::filesystem::path outputPath;
@@ -119,11 +140,15 @@ void runVisualNavigationFromVideo(
 
     cv::VideoWriter videoOut;
     BufferedVideoWriter bufferedVideoWriter(3);
-    if (doExport)
-    {
+
+    if (doExport) {
         const int codec = cv::VideoWriter::fourcc('m','p','4','v');
-        videoOut.open(outputPath.string(), codec, fps, plotSize);
-        bufferedVideoWriter.start(videoOut);
+        if (!videoOut.open(outputPath.string(), codec, fps, plotSize)) {
+            std::cerr << "Failed to open video for writing: " << outputPath << "\n";
+            // Continue without export if desired
+        } else {
+            bufferedVideoWriter.start(videoOut);
+        }
     }
 
     // ------------------ Build system ------------------
@@ -132,9 +157,11 @@ void runVisualNavigationFromVideo(
     {
         Eigen::VectorXd mu_body(12);
         mu_body.setZero(); // Start at origin, zero velocity
+        mu_body.segment<3>(6) << 0.0, 0.0, 0.0; // Position
+        mu_body.segment<3>(9) << 0.0, 0.0, 0.0;  // Orientation (rpy)
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12); // tight prior on body
-        S_body.block<6,6>(0,0) *= 1e-4;               // velocity
+        S_body.block<6,6>(0,0) *= 1e-2;               // velocity
         const double d2r = M_PI / 180.0;
         S_body.block<3,3>(6,6) *= 1e-2;               // Position: 1cm
         S_body.block<3,3>(9,9) *= (1.0 * d2r);        // Orientation: 5°
@@ -173,6 +200,18 @@ void runVisualNavigationFromVideo(
     int frameIdx = 0;
     while (true)
     {
+        // === Graceful shutdown on Ctrl-C / SIGTERM ===
+        if (g_stop.load(std::memory_order_relaxed)) {
+            std::cout << "\n[INFO] Caught shutdown signal — finishing and closing video...\n";
+            break;  // Cleanup runs below to finalize the MP4
+        }
+
+        // === Optional cap by max_frames (handles “stop early and export”) ===
+        if (max_frames > 0 && frameIdx >= max_frames) {
+            std::cout << "[INFO] Reached max_frames=" << max_frames << " — stopping.\n";
+            break;  // Cleanup runs below to finalize the MP4
+        }
+
         // ArUco detection
         // Landmark initialization
         // Build measurement
@@ -182,9 +221,12 @@ void runVisualNavigationFromVideo(
 
         // std::cout << "Frame " << frameIdx << " - Start" << std::endl;
 
-        if (max_frames > 0 && frameIdx >= max_frames) break;
         cv::Mat imgin = bufferedVideoReader.read();
-        if (imgin.empty()) break;
+        if (imgin.empty()) {
+            // Natural end-of-video or read failure
+            std::cout << "[INFO] End of video stream — stopping.\n";
+            break;  // Cleanup runs below to finalize the MP4
+        }
 
         const double t = (fps > 0.0) ? (frameIdx / fps) : frameIdx;
 
@@ -277,10 +319,11 @@ void runVisualNavigationFromVideo(
                 // CRITICAL: Add small random offset to avoid perfect initialization
                 // Per MCHA4400 lecture slide 21 - ensures enough optimization iterations
                 // for quasi-Newton methods to build accurate Hessian approximation
-                std::srand(static_cast<unsigned>(std::time(nullptr)) + i);
-                rnj(0) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
-                rnj(1) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
-                rnj(2) += INIT_POS_OFFSET * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0);
+                std::srand(static_cast<unsigned>(std::time(nullptr)) + static_cast<unsigned>(i));
+                auto jitter = [](double off){ return off * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0); };
+                rnj(0) += jitter(INIT_POS_OFFSET);
+                rnj(1) += jitter(INIT_POS_OFFSET);
+                rnj(2) += jitter(INIT_POS_OFFSET);
 
                 // Initial uncertainty (diagonal covariance)
                 Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
@@ -408,7 +451,7 @@ void runVisualNavigationFromVideo(
                                 << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(0) << ","
                                 << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(1) << ","
                                 << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(2) << "]m  ";
-                        std::cout << "σ:[" 
+                        std::cout << "σ:["
                                 << std::setw(5) << std::fixed << std::setprecision(3) << std_x << ","
                                 << std::setw(5) << std::fixed << std::setprecision(3) << std_y << ","
                                 << std::setw(5) << std::fixed << std::setprecision(3) << std_z << "]m ║\n";
@@ -439,6 +482,12 @@ void runVisualNavigationFromVideo(
 
         frameIdx++;
     }
-    if (doExport) bufferedVideoWriter.stop();
+
+    // ------------------ Clean shutdown (all exit paths) ------------------
+    // Important order: stop buffered writer FIRST (flush queue), then release MP4
+    if (doExport) {
+        bufferedVideoWriter.stop();   // MUST run to finalize video (flush + join)
+        videoOut.release();           // finalize MP4 container
+    }
     bufferedVideoReader.stop();
 }
