@@ -246,9 +246,9 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
     SQ(0,0) = qv;  // x-velocity noise
     SQ(1,1) = qv;  // y-velocity noise
     SQ(2,2) = qv;  // z-velocity noise
-    SQ(3,3) = qw;  // roll rate noise
-    SQ(4,4) = qw;  // pitch rate noise
-    SQ(5,5) = qw;  // yaw rate noise
+    SQ(3,3) = 0.01;  // roll rate noise
+    SQ(4,4) = 0.1;  // pitch rate noise
+    SQ(5,5) = 1.0;  // yaw rate noise
 
     // Distribution of noise increment dw ~ N(0, Q*dt) for time increment dt
     return GaussianInfo<double>::fromSqrtMoment(SQ*std::sqrt(dt));

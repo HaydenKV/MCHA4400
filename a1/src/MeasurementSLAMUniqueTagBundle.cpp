@@ -73,7 +73,7 @@ MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle(
     assert(Y_.cols() % 4 == 0 && 
            "Y packing error: must have 4 columns per tag detection");
     
-    sigma_ = 0.8;
+    sigma_ = 2.0;
     updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
@@ -103,10 +103,12 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
     const SystemSLAMPoseLandmarks& sysPose = dynamic_cast<const SystemSLAMPoseLandmarks&>(system);
     const std::size_t nL = sysPose.numberLandmarks();
 
+    // Ensure persistent state vectors are sized correctly
     if (id_by_landmark_.size() < nL) {
         id_by_landmark_.resize(nL, -1);
     }
 
+    // Reset per-frame state
     is_visible_.assign(nL, false);
     is_effectively_associated_.assign(nL, false);
     idxFeatures_.assign(nL, -1);
@@ -117,6 +119,7 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
         id2feat[ids_[i]] = static_cast<int>(i);
     }
 
+    // Use PRIOR MEAN for visibility checks
     const Eigen::VectorXd xmean = sysPose.density.mean();
 
     for (std::size_t j = 0; j < nL; ++j)
@@ -125,14 +128,12 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
         if (tagId < 0) continue;  // No tag ID assigned to this landmark
 
         // ====================================================================
-        // CRITICAL FIX: Decouple detection-based association from visibility
+        // STEP 1: ID-based Detection Association
         // ====================================================================
+        // If a tag was detected (ID found in measurement), associate it.
+        // Detection already passed all quality gates in detectArUcoPOSE,
+        // so we trust the measurement regardless of our state estimate accuracy.
         
-        // STEP 1: Check if tag was DETECTED (ID-based association)
-        // If a tag was detected, it already passed all quality gates in
-        // detectArUcoPOSE, so we should associate it regardless of whether
-        // the predicted corners from our (possibly slightly inaccurate) state
-        // estimate are perfectly aligned.
         auto it = id2feat.find(tagId);
         if (it != id2feat.end()) {
             const int featIdx = it->second;
@@ -140,24 +141,30 @@ const std::vector<int>& MeasurementSLAMUniqueTagBundle::associate(
             is_effectively_associated_[j] = true;
         }
 
-        // STEP 2: SEPARATELY check predicted visibility (for |U| penalty)
-        // This determines if the landmark SHOULD be visible based on the
-        // current state estimate, regardless of whether it was detected.
-        // 
-        // Used for the |U| penalty term in the log-likelihood, which penalizes
-        // landmarks that are predicted to be visible but were not detected.
-        // This correctly includes:
-        // - Landmarks behind walls (geometrically visible but occluded)
-        // - Landmarks with detection dropout
-        // - Landmarks just outside the reliable detection region
-        auto corners = predictTagCorners(xmean, sysPose, j);
+        // ====================================================================
+        // STEP 2: Predicted Visibility (for |U| penalty)
+        // ====================================================================
+        // Check if landmark SHOULD be visible based on current state estimate.
+        // This is used for the |U| penalty term in log-likelihood.
+        //
+        // IMPORTANT: Must use xmean (prior mean), not the optimization variable!
+        // This ensures the |U| penalty remains piecewise-constant during optimization.
+        //
+        // A landmark contributes to |U| if:
+        // - It has a tag ID (initialized)
+        // - Predicted to be visible (all 4 corners in FOV)
+        // - NOT associated with a detection this frame
+        
+        Eigen::Matrix<double,8,1> corners = predictTagCorners(xmean, sysPose, j);
+        
+        // Conservative visibility check: ALL 4 corners must be safely inside image
+        // Use areCornersInside() which includes a safety margin
         const bool allCornersVisible = camera_.areCornersInside(corners);
         is_visible_[j] = allCornersVisible;
         
-        // Note: is_visible_ is used for |U| penalty regardless of association.
-        // A landmark can be:
-        // - is_visible_=true, is_effectively_associated_=true  → Blue (detected)
-        // - is_visible_=true, is_effectively_associated_=false → Red (visible but not detected)
+        // Note: A landmark can be:
+        // - is_visible_=true,  is_effectively_associated_=true  → Blue (detected & tracked)
+        // - is_visible_=true,  is_effectively_associated_=false → Red (visible but missed)
         // - is_visible_=false, is_effectively_associated_=false → Yellow (out of FOV)
     }
 
@@ -201,10 +208,17 @@ Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
     // Convert Euler angles to rotation matrix
     Eigen::Matrix3<Scalar> RnL = rpy2rot(ThetaLn);
 
-    // Get camera pose from state
+    // Get BODY pose from state (NOT camera pose!)
     Pose<Scalar> Tnb;
-    Tnb.translationVector = SystemSLAM::cameraPosition(camera_, x);
-    Tnb.rotationMatrix    = SystemSLAM::cameraOrientation(camera_, x);
+    Tnb.translationVector = SystemSLAM::cameraPosition(camera_, x);  // r^n_B/N
+    Tnb.rotationMatrix    = SystemSLAM::cameraOrientation(camera_, x); // R^n_b
+
+    // T^n_c = T^n_b * T^b_c
+    Pose<Scalar> Tnc = camera_.bodyToCamera(Tnb);
+    
+    // Camera orientation and position in world frame
+    Eigen::Matrix3<Scalar> Rcn = Tnc.rotationMatrix.transpose(); // R^c_n = (R^n_c)^T
+    Eigen::Vector3<Scalar> rCNn = Tnc.translationVector;         // r^n_C/N
 
     // Define 4 corners in tag's local frame (TL, TR, BR, BL)
     const Scalar half = TAG_SIZE / 2.0;
@@ -214,23 +228,19 @@ Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
     cornersL.col(2) <<  half, -half, Scalar(0);  // Bottom-Right
     cornersL.col(3) << -half, -half, Scalar(0);  // Bottom-Left
 
-    // Camera orientation and position in world frame
-    Eigen::Matrix3<Scalar> Rcn = Tnb.rotationMatrix.transpose(); // R^c_n
-    Eigen::Vector3<Scalar> rCNn = Tnb.translationVector;         // r^n_C/N
-
     // Project each corner to image
     Eigen::Matrix<Scalar,8,1> h; // Output: [u1,v1, u2,v2, u3,v3, u4,v4]^T
 
     for (int c = 0; c < 4; ++c)
     {
-        // 1) Corner position in WORLD frame
-        Eigen::Vector3<Scalar> rPNn = rLNn + RnL * cornersL.col(c);
+        // 1) Corner position in WORLD frame: r^n_{jc}/N = R^n_L * r^L_{jc}/L + r^n_L/N
+        Eigen::Vector3<Scalar> rJcNn = rLNn + RnL * cornersL.col(c);
 
-        // 2) Corner position in CAMERA frame
-        Eigen::Vector3<Scalar> rPCc = Rcn * (rPNn - rCNn);
+        // 2) Corner position in CAMERA frame: r^c_{jc}/C = R^c_n * (r^n_{jc}/N - r^n_C/N)
+        Eigen::Vector3<Scalar> rJcCc = Rcn * (rJcNn - rCNn);
 
         // 3) Project to image using vectorToPixel
-        Eigen::Vector2<Scalar> uv = camera_.vectorToPixel(rPCc);
+        Eigen::Vector2<Scalar> uv = camera_.vectorToPixel(rJcCc);
 
         h(2*c)     = uv(0);  // u
         h(2*c + 1) = uv(1);  // v
@@ -249,6 +259,7 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 {
     const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
 
+    // Build selection once per evaluation chain
     ensureAssociatedOnce(sys, Y_, idxFeatures_);
 
     if (tl_idxUseLandmarks.empty()) {
@@ -262,24 +273,38 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
     double logL = 0.0;
 
     // Sum log-likelihoods for associated landmarks
+    // Σ_{(i,j)∈A} Σ_{c=1}^{4} log p_A(y_{ic}|η, m_j)
     for (std::size_t i = 0; i < k; ++i)
     {
         const std::size_t j = tl_idxUseLandmarks[i];
         const int fi = tl_idxUseFeatures[i];
 
+        // Measured corners y_i (8x1): [u1,v1, u2,v2, u3,v3, u4,v4]^T
         Eigen::Matrix<double,8,1> yi;
         for (int c = 0; c < 4; ++c)
             yi.segment<2>(2*c) = Y_.col(4*fi + c);
 
+        // Predicted corners h_i(x)
         Eigen::Matrix<double,8,1> hi = predictTagCorners(x, sys, j);
+        
+        // Residual
         Eigen::Matrix<double,8,1> ri = yi - hi;
 
+        // Add Gaussian log-likelihood (drop constants)
+        // log N(y; h, σ²I) = -0.5 * (1/σ²) * ||r||²
         logL += -0.5 * inv_R * ri.squaredNorm();
     }
 
-    // CRITICAL FIX: Penalty for VISIBLE but UNASSOCIATED landmarks
-    // NOTE: Penalty term −4|U|log|Y| is piecewise-constant in state.
-    // Its derivative is undefined at visibility transitions and zero elsewhere.
+    // CRITICAL FIX: |U| penalty term - MUST use is_visible_ from associate()
+    // which was computed using the PRIOR MEAN, not the optimization variable x!
+    // 
+    // The penalty is: -4|U| log|Y|
+    // where |U| is the number of visible but unassociated landmarks
+    // and |Y| is the image area in pixels.
+    //
+    // IMPORTANT: This term is piecewise-constant w.r.t. x, so it has:
+    // - Zero gradient everywhere (except at discontinuities where it's undefined)
+    // - Zero Hessian everywhere
     // Therefore, it is CORRECTLY omitted from gradient/Hessian computations.
     {
         const double imgArea =
@@ -289,6 +314,7 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
         int Ucount = 0;
         const std::size_t nL = sys.numberLandmarks();
         
+        // Count visible but unassociated landmarks
         for (std::size_t j = 0; j < nL; ++j)
         {
             // Skip if associated this frame
@@ -301,13 +327,15 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
                 continue;
             }
             
-            // FIX: Check if ALL 4 corners are visible (not just center)
-            Eigen::Matrix<double,8,1> pj = predictTagCorners(x, sys, j);
-            if (camera_.areCornersInside(pj)) {
+            // CRITICAL: Use is_visible_ flag set in associate() using PRIOR MEAN
+            // NOT the optimization variable x!
+            if (j < is_visible_.size() && is_visible_[j]) {
                 ++Ucount;
             }
         }
         
+        // Apply penalty: -4|U| log|Y|
+        // Factor of 4 because each tag has 4 corners
         if (Ucount > 0 && imgArea > 0.0) {
             logL -= 4.0 * static_cast<double>(Ucount) * std::log(imgArea);
         }
@@ -366,16 +394,18 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 
             const Eigen::Matrix<double,8,1> ri = yi - hi;
 
-            // Gradient contribution: g += J^T * R^{-1} * r
+            // Gradient contribution: g += (1/σ²) * J^T * r
             g.noalias() += inv_R * (Ji.transpose() * ri);
         }
     }
+
+    // NOTE: |U| penalty has zero gradient everywhere (piecewise-constant in x)
+    // so it is correctly omitted from gradient computation.
 
     // Build-on style: return via scalar-only overload (will reuse selection and clear it)
     return logLikelihood(x, system);
 }
 
-// HESSIAN VERSION: Adds Hessian, then delegates to gradient
 double MeasurementSLAMUniqueTagBundle::logLikelihood(
     const Eigen::VectorXd& x,
     const SystemEstimator& system,
@@ -425,10 +455,13 @@ double MeasurementSLAMUniqueTagBundle::logLikelihood(
 
             const Eigen::Matrix<double,8,1> ri = yi - hi;
 
-            // Gauss-Newton Hessian approximation: H += -J^T * R^{-1} * J
+            // Gauss-Newton Hessian approximation: H += -(1/σ²) * J^T * J
             H.noalias() += -inv_R * (Ji.transpose() * Ji);
         }
     }
+
+    // NOTE: |U| penalty has zero Hessian everywhere (piecewise-constant in x)
+    // so it is correctly omitted from Hessian computation.
 
     // Build-on style: return via gradient overload (which calls scalar, reuses selection and clears)
     return logLikelihood(x, system, g);

@@ -112,7 +112,7 @@ void runVisualNavigationFromVideo(
         fs.release();
     }
     camera.printCalibration();
-
+    
     // ------------------ Open video --------------------
     cv::VideoCapture cap(videoPath.string());
     assert(cap.isOpened());
