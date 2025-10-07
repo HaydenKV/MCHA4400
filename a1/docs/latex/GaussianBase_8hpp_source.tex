@@ -60,7 +60,7 @@
 \DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ assert(p\ >=\ 0);}
 \DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ assert(p\ <\ 1);}
 \DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ assert(nu\ >\ 0.0);\ \textcolor{comment}{//\ added}}
-\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ }
 \DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Handle\ a\ couple\ of\ trivial\ edges}}
 \DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (p\ ==\ 0.0)\ \textcolor{keywordflow}{return}\ 0.0;\ \textcolor{comment}{//\ F\string^\{-\/1\}(0)=0\ for\ chi-\/square}}
 \DoxyCodeLine{00117\ }
@@ -74,7 +74,7 @@
 \DoxyCodeLine{00125\ }
 \DoxyCodeLine{00131\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(\textcolor{keywordtype}{double}\ w)}
 \DoxyCodeLine{00132\ \ \ \ \ \{}
-\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ }
 \DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Phi(w)\ =\ 0.5\ *\ erfc(-\/w\ /\ sqrt(2))}}
 \DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Branch\ by\ sign\ for\ a\ touch\ more\ numerical\ stability\ in\ the\ tails,\ can\ just\ use\ 'return\ 0.5\ *\ std::erfc(-\/w\ /\ s2);'}}
 \DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ s2\ =\ std::numbers::sqrt2;}
@@ -172,7 +172,7 @@
 \DoxyCodeLine{00256\ }
 \DoxyCodeLine{00257\ \ \ \ \ \ \ \ \ Eigen::Matrix<Scalar,\ 2,\ Eigen::Dynamic>\ X(2,\ nSamples);}
 \DoxyCodeLine{00258\ }
-\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ }
 \DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Probability\ that\ corresponds\ to\ "{}±\ nSigma"{}\ in\ 1D}}
 \DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ p\ \ \ =\ 2.0\ *\ \mbox{\hyperlink{classGaussianBase_a8437c8ae7f2d45391fc68d0e18e3e5e9}{normcdf}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(nSigma))\ -\/\ 1.0;}
 \DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Chi-\/square\ threshold\ for\ 2\ DoF,\ then\ radius\ in\ whitened\ coordinates}}

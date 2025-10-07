@@ -8,6 +8,6 @@ var classMeasurementSLAMUniqueTagBundle =
     [ "logLikelihood", "classMeasurementSLAMUniqueTagBundle.html#a0b739a11c73f4dd3f15bb56df770adf5", null ],
     [ "logLikelihood", "classMeasurementSLAMUniqueTagBundle.html#ae9105df00cf1c9a233721082f429c94b", null ],
     [ "predictTagCorners", "classMeasurementSLAMUniqueTagBundle.html#a78fa7cdc85fe0c072e9796a0a9fb9546", null ],
-    [ "predictTagCornersT", "classMeasurementSLAMUniqueTagBundle.html#a9d8d9fee3eef8c7f2b93f29499dccd40", null ],
+    [ "predictTagCornersT", "classMeasurementSLAMUniqueTagBundle.html#a88ab3c883cabc0c3ecb48b1cff3349ba", null ],
     [ "update", "classMeasurementSLAMUniqueTagBundle.html#a78197c8e25dc7f4624ea5b0efc550f86", null ]
 ];

@@ -115,67 +115,70 @@
 \DoxyCodeLine{00111\ \textcolor{preprocessor}{\#include\ <cmath>}}
 \DoxyCodeLine{00112\ \textcolor{preprocessor}{\#include\ <opencv2/calib3d.hpp>}}
 \DoxyCodeLine{00113\ }
-\DoxyCodeLine{00114\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
-\DoxyCodeLine{00115\ Eigen::Vector2<Scalar>\ Camera::vectorToPixel(\textcolor{keyword}{const}\ Eigen::Vector3<Scalar>\ \&\ rPCc)\textcolor{keyword}{\ const}}
-\DoxyCodeLine{00116\ \textcolor{keyword}{}\{}
-\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordtype}{bool}\ isRationalModel\ \ \ \ =\ (flags\ \&\ cv::CALIB\_RATIONAL\_MODEL)\ ==\ cv::CALIB\_RATIONAL\_MODEL;}
-\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordtype}{bool}\ isThinPrismModel\ \ \ =\ (flags\ \&\ cv::CALIB\_THIN\_PRISM\_MODEL)\ ==\ cv::CALIB\_THIN\_PRISM\_MODEL;}
-\DoxyCodeLine{00119\ \ \ \ \ assert(isRationalModel\ \&\&\ isThinPrismModel);}
-\DoxyCodeLine{00120\ }
-\DoxyCodeLine{00121\ \ \ \ \ Eigen::Vector2<Scalar>\ rQOi;}
-\DoxyCodeLine{00122\ \ \ \ \ \textcolor{comment}{//\ TODO:\ Lab\ 8\ (optional)}}
-\DoxyCodeLine{00123\ \ \ \ \ \textcolor{comment}{//\ iii)\ Auto\ diff\ ONLY\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
-\DoxyCodeLine{00124\ \ \ \ \ \textcolor{comment}{//\ Normalised\ image\ coords}}
-\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ X\ =\ rPCc(0),\ Y\ =\ rPCc(1),\ Z\ =\ rPCc(2);}
-\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ invZ\ =\ Scalar(1)\ /\ Z;}
-\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\ =\ X\ *\ invZ;}
-\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\ =\ Y\ *\ invZ;}
-\DoxyCodeLine{00129\ }
-\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r2\ =\ x*x\ +\ y*y;}
-\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r4\ =\ r2*r2;}
-\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r6\ =\ r4*r2;}
+\DoxyCodeLine{00114\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00115\ \textcolor{comment}{Template\ projection\ π(K,dist):}}
+\DoxyCodeLine{00116\ \textcolor{comment}{Given\ r\string^c\_\{P/C\}\ =\ (X,Y,Z),\ compute\ normalised\ (x,y)\ =\ (X/Z,Y/Z),}}
+\DoxyCodeLine{00117\ \textcolor{comment}{apply\ rational\ radial\ +\ tangential\ +\ thin-\/prism\ distortion,\ then\ map\ to\ pixels}}
+\DoxyCodeLine{00118\ \textcolor{comment}{[u,v]\string^T\ =\ [fx*xd\ +\ cx,\ fy*yd\ +\ cy]\string^T.\ Used\ by\ autodiff\ paths\ in\ measurement\ models.}}
+\DoxyCodeLine{00119\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00120\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00121\ Eigen::Vector2<Scalar>\ Camera::vectorToPixel(\textcolor{keyword}{const}\ Eigen::Vector3<Scalar>\ \&\ rPCc)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00122\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordtype}{bool}\ isRationalModel\ \ \ \ =\ (flags\ \&\ cv::CALIB\_RATIONAL\_MODEL)\ ==\ cv::CALIB\_RATIONAL\_MODEL;}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordtype}{bool}\ isThinPrismModel\ \ \ =\ (flags\ \&\ cv::CALIB\_THIN\_PRISM\_MODEL)\ ==\ cv::CALIB\_THIN\_PRISM\_MODEL;}
+\DoxyCodeLine{00125\ \ \ \ \ assert(isRationalModel\ \&\&\ isThinPrismModel);}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ Eigen::Vector2<Scalar>\ rQOi;}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ Normalised\ image\ coords}}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ X\ =\ rPCc(0),\ Y\ =\ rPCc(1),\ Z\ =\ rPCc(2);}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ invZ\ =\ Scalar(1)\ /\ Z;}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\ =\ X\ *\ invZ;}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\ =\ Y\ *\ invZ;}
 \DoxyCodeLine{00133\ }
-\DoxyCodeLine{00134\ \ \ \ \ \textcolor{comment}{//\ Intrinsics\ (double\ -\/>\ Scalar)}}
-\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ fx\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(0,0));}
-\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ fy\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(1,1));}
-\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cx\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(0,2));}
-\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cy\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(1,2));}
-\DoxyCodeLine{00139\ }
-\DoxyCodeLine{00140\ \ \ \ \ \textcolor{comment}{//\ Distortion\ coeff\ access}}
-\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keyword}{auto}\ dc\ =\ [\&](\textcolor{keywordtype}{int}\ i)-\/>Scalar\ \{}
-\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (i\ <\ distCoeffs.rows\ *\ distCoeffs.cols)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(distCoeffs.at<\textcolor{keywordtype}{double}>(i,0));}
-\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(0);}
-\DoxyCodeLine{00144\ \ \ \ \ \};}
-\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ k1\ =\ dc(0),\ \ k2\ =\ dc(1),\ \ p1\ =\ dc(2),\ \ p2\ =\ dc(3),\ \ k3\ =\ dc(4);}
-\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ k4\ =\ dc(5),\ \ k5\ =\ dc(6),\ \ k6\ =\ dc(7),\ \ s1\ =\ dc(8),\ \ s2\ =\ dc(9);}
-\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ s3\ =\ dc(10),\ s4\ =\ dc(11);}
-\DoxyCodeLine{00148\ \ \ \ \ \textcolor{comment}{//\ If\ you\ later\ enable\ TILTED\_MODEL\ with\ 14\ coeffs,\ add\ tauX,tauY\ here.}}
-\DoxyCodeLine{00149\ }
-\DoxyCodeLine{00150\ \ \ \ \ \textcolor{comment}{//\ Rational\ radial}}
-\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ num\ \ \ =\ Scalar(1)\ +\ k1*r2\ +\ k2*r4\ +\ k3*r6;}
-\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ den\ \ \ =\ Scalar(1)\ +\ k4*r2\ +\ k5*r4\ +\ k6*r6;}
-\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cdist\ =\ num\ /\ den;}
-\DoxyCodeLine{00154\ }
-\DoxyCodeLine{00155\ \ \ \ \ \textcolor{comment}{//\ Tangential}}
-\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\_tan\ =\ Scalar(2)*p1*x*y\ +\ p2*(r2\ +\ Scalar(2)*x*x);}
-\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\_tan\ =\ p1*(r2\ +\ Scalar(2)*y*y)\ +\ Scalar(2)*p2*x*y;}
-\DoxyCodeLine{00158\ }
-\DoxyCodeLine{00159\ \ \ \ \ \textcolor{comment}{//\ Thin-\/prism}}
-\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\_pr\ \ =\ s1*r2\ +\ s2*r4;}
-\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\_pr\ \ =\ s3*r2\ +\ s4*r4;}
-\DoxyCodeLine{00162\ }
-\DoxyCodeLine{00163\ \ \ \ \ \textcolor{comment}{//\ Distorted\ normalised}}
-\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ xd\ =\ x*cdist\ +\ x\_tan\ +\ x\_pr;}
-\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ yd\ =\ y*cdist\ +\ y\_tan\ +\ y\_pr;}
-\DoxyCodeLine{00166\ }
-\DoxyCodeLine{00167\ \ \ \ \ \textcolor{comment}{//\ Pixels}}
-\DoxyCodeLine{00168\ \ \ \ \ rQOi\ <<\ fx*xd\ +\ cx,\ fy*yd\ +\ cy;}
-\DoxyCodeLine{00169\ \ \ \ \ \textcolor{comment}{//\ iii)\ Auto\ diff\ ONLY\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
-\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordflow}{return}\ rQOi;}
-\DoxyCodeLine{00171\ \}}
-\DoxyCodeLine{00172\ }
-\DoxyCodeLine{00173\ }
-\DoxyCodeLine{00174\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r2\ =\ x*x\ +\ y*y;}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r4\ =\ r2*r2;}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ r6\ =\ r4*r2;}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{comment}{//\ Intrinsics\ (double\ -\/>\ Scalar)}}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ fx\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(0,0));}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ fy\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(1,1));}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cx\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(0,2));}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cy\ =\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(cameraMatrix.at<\textcolor{keywordtype}{double}>(1,2));}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{comment}{//\ Distortion\ coeff\ access}}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keyword}{auto}\ dc\ =\ [\&](\textcolor{keywordtype}{int}\ i)-\/>Scalar\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (i\ <\ distCoeffs.rows\ *\ distCoeffs.cols)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}Scalar\textcolor{keyword}{>}(distCoeffs.at<\textcolor{keywordtype}{double}>(i,0));}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(0);}
+\DoxyCodeLine{00148\ \ \ \ \ \};}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ k1\ =\ dc(0),\ \ k2\ =\ dc(1),\ \ p1\ =\ dc(2),\ \ p2\ =\ dc(3),\ \ k3\ =\ dc(4);}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ k4\ =\ dc(5),\ \ k5\ =\ dc(6),\ \ k6\ =\ dc(7),\ \ s1\ =\ dc(8),\ \ s2\ =\ dc(9);}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ s3\ =\ dc(10),\ s4\ =\ dc(11);}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{comment}{//\ Rational\ radial}}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ num\ \ \ =\ Scalar(1)\ +\ k1*r2\ +\ k2*r4\ +\ k3*r6;}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ den\ \ \ =\ Scalar(1)\ +\ k4*r2\ +\ k5*r4\ +\ k6*r6;}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ cdist\ =\ num\ /\ den;}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{comment}{//\ Tangential}}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\_tan\ =\ Scalar(2)*p1*x*y\ +\ p2*(r2\ +\ Scalar(2)*x*x);}
+\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\_tan\ =\ p1*(r2\ +\ Scalar(2)*y*y)\ +\ Scalar(2)*p2*x*y;}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{comment}{//\ Thin-\/prism}}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ x\_pr\ \ =\ s1*r2\ +\ s2*r4;}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ y\_pr\ \ =\ s3*r2\ +\ s4*r4;}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{comment}{//\ Distorted\ normalised}}
+\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ xd\ =\ x*cdist\ +\ x\_tan\ +\ x\_pr;}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ yd\ =\ y*cdist\ +\ y\_tan\ +\ y\_pr;}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{comment}{//\ Pixels}}
+\DoxyCodeLine{00171\ \ \ \ \ rQOi\ <<\ fx*xd\ +\ cx,\ fy*yd\ +\ cy;}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordflow}{return}\ rQOi;}
+\DoxyCodeLine{00173\ \}}
+\DoxyCodeLine{00174\ }
 \DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00178\ }
 
 \end{DoxyCode}

@@ -125,7 +125,7 @@ $(function() {
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="preprocessor">#include &lt;Eigen/SVD&gt;</span></div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="preprocessor">#include &lt;Eigen/QR&gt;</span></div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="preprocessor">#include &lt;Eigen/Cholesky&gt;</span></div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment">//#include &lt;Eigen/LU&gt; // TODO: Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment">//#include &lt;Eigen/LU&gt; : Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests</span></div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="preprocessor">#include &quot;<a class="code" href="GaussianBase_8hpp.html">GaussianBase.hpp</a>&quot;</span></div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span></div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Scalar = <span class="keywordtype">double</span>&gt;</div>
@@ -389,7 +389,7 @@ $(function() {
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>        assert(n == <a class="code hl_function" href="classGaussianInfo.html#ac726ca2019576d3297070b77607acb83">dim</a>());</div>
 <div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span> </div>
 <div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>        <span class="comment">// Form [Xi(:, idxNot), Xi(:, idx), nu]</span></div>
-<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>        </div>
 <div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span>        Eigen::MatrixX&lt;Scalar&gt; RR(n, n + 1);</div>
 <div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>        RR &lt;&lt; <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a>(Eigen::all, idxNot),      <span class="comment">// columns to eliminate first</span></div>
 <div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>            <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a>(Eigen::all, idx),         <span class="comment">// columns we keep (marginal variables)</span></div>
@@ -398,12 +398,12 @@ $(function() {
 <div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span>        <span class="comment">// Q-less QR yields</span></div>
 <div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>        <span class="comment">// [R1, R2, nu1;</span></div>
 <div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>        <span class="comment">//   0, R3, nu2]</span></div>
-<div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span>        </div>
 <div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(RR);</div>
 <div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span> </div>
 <div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span>        <span class="comment">// p(x(idx)) = N^-0.5(x(idx); nu2, R3)</span></div>
 <div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span>        <a class="code hl_friend" href="classGaussianInfo.html#ae54baf9bb8cc663c7effd9bb3ab4ae25">GaussianInfo</a> out(nI);</div>
-<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span>        </div>
 <div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>        out.<a class="code hl_variable" href="classGaussianInfo.html#a909812a8835af12e6b58d62558b0b386">nu_</a> = RR.block(nNotI, n,     nI, 1);                                          <span class="comment">// nu2</span></div>
 <div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>        out.<a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a> = RR.block(nNotI, nNotI, nI, nI).template triangularView&lt;Eigen::Upper&gt;(); <span class="comment">// R3</span></div>
 <div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>        <span class="keywordflow">return</span> out;</div>
@@ -448,7 +448,7 @@ $(function() {
 <div class="line"><a id="l00496" name="l00496"></a><span class="lineno">  496</span>        <span class="comment">// assert(xB.size() == static_cast&lt;Eigen::Index&gt;(nB));</span></div>
 <div class="line"><a id="l00497" name="l00497"></a><span class="lineno">  497</span> </div>
 <div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span>        <span class="comment">// Form [Xi(:, idxA), Xi(:, idxB), nu]</span></div>
-<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span>        </div>
 <div class="line"><a id="l00500" name="l00500"></a><span class="lineno">  500</span>        Eigen::MatrixX&lt;Scalar&gt; RR(n, n + 1);</div>
 <div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span>        RR &lt;&lt; <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a>(Eigen::all, idxA),     <span class="comment">// columns for variables A (kept)</span></div>
 <div class="line"><a id="l00502" name="l00502"></a><span class="lineno">  502</span>            <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a>(Eigen::all, idxB),     <span class="comment">// columns for variables B (conditioned on)</span></div>
@@ -457,12 +457,12 @@ $(function() {
 <div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span>        <span class="comment">// Q-less QR yields</span></div>
 <div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span>        <span class="comment">// [R1, R2, nu1;</span></div>
 <div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span>        <span class="comment">//   0, R3, nu2]</span></div>
-<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span>        </div>
 <div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span>        Eigen::HouseholderQR&lt;Eigen::Ref&lt;Eigen::MatrixX&lt;Scalar&gt;&gt;&gt; qr(RR);</div>
 <div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span> </div>
 <div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span>        <span class="comment">// p(x(idxA) | x(idxB) = xB) = N^-0.5(x(idxA); nu1 - R2*xB, R1)</span></div>
 <div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span>        <a class="code hl_friend" href="classGaussianInfo.html#ae54baf9bb8cc663c7effd9bb3ab4ae25">GaussianInfo</a> out(nA);</div>
-<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span>        </div>
 <div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span>        <span class="keyword">const</span> Eigen::MatrixX&lt;Scalar&gt; R1  = RR.topLeftCorner(nA, nA).template triangularView&lt;Eigen::Upper&gt;();</div>
 <div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span>        <span class="keyword">const</span> Eigen::MatrixX&lt;Scalar&gt; R2  = RR.block(0, nA, nA, nB);</div>
 <div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; nu1 = RR.block(0, n,  nA, 1);</div>
@@ -664,7 +664,7 @@ $(function() {
 <div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span>        assert(x.size() == <a class="code hl_function" href="classGaussianInfo.html#ac726ca2019576d3297070b77607acb83">dim</a>());</div>
 <div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span> </div>
 <div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span>        <span class="keyword">static</span> <span class="keyword">const</span> Scalar halflog2pi = std::log(2*std::numbers::pi)/2.0;</div>
-<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>        </div>
 <div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span>        <span class="keyword">const</span> Eigen::Index n = <a class="code hl_function" href="classGaussianInfo.html#ac726ca2019576d3297070b77607acb83">dim</a>();</div>
 <div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; r = <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a> * x - <a class="code hl_variable" href="classGaussianInfo.html#a909812a8835af12e6b58d62558b0b386">nu_</a>; <span class="comment">// r = Xi x - nu</span></div>
 <div class="line"><a id="l00746" name="l00746"></a><span class="lineno">  746</span> </div>
@@ -684,7 +684,7 @@ $(function() {
 <div class="line"><a id="l00769" name="l00769"></a><span class="lineno"><a class="line" href="classGaussianInfo.html#a8faeb2e0ddf9335569f070d671b57ead">  769</a></span>    Scalar <a class="code hl_function" href="classGaussianInfo.html#a8faeb2e0ddf9335569f070d671b57ead">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00771" name="l00771"></a><span class="lineno">  771</span>        <span class="comment">// Compute gradient g</span></div>
-<div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span>        </div>
 <div class="line"><a id="l00773" name="l00773"></a><span class="lineno">  773</span>        <span class="comment">// ∇ℓ(x) = −Ξᵀ(Ξx − ν)</span></div>
 <div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span>        <span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; r = <a class="code hl_variable" href="classGaussianInfo.html#a0722b5d1e1e2d3fe11d8eb3bc6017316">Xi_</a> * x - <a class="code hl_variable" href="classGaussianInfo.html#a909812a8835af12e6b58d62558b0b386">nu_</a>;</div>
 <div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span> </div>
@@ -700,7 +700,7 @@ $(function() {
 <div class="line"><a id="l00795" name="l00795"></a><span class="lineno"><a class="line" href="classGaussianInfo.html#a2a6b01e811020154eebe56068d3f84e1">  795</a></span>    Scalar <a class="code hl_function" href="classGaussianInfo.html#a2a6b01e811020154eebe56068d3f84e1">log</a>(<span class="keyword">const</span> Eigen::VectorX&lt;Scalar&gt; &amp; x, Eigen::VectorX&lt;Scalar&gt; &amp; g, Eigen::MatrixX&lt;Scalar&gt; &amp; H)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00796" name="l00796"></a><span class="lineno">  796</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00797" name="l00797"></a><span class="lineno">  797</span>        <span class="comment">// Compute Hessian H</span></div>
-<div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>        </div>
 <div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span>        <span class="comment">// ∇²ℓ(x) = −ΞᵀΞ (constant)</span></div>
 <div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span> </div>
 <div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span>        <span class="comment">// Resize optional, eigen should auto size it</span></div>
@@ -749,7 +749,7 @@ $(function() {
 <div class="line"><a id="l00877" name="l00877"></a><span class="lineno">  877</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00878" name="l00878"></a><span class="lineno">  878</span>        <span class="keyword">const</span> Eigen::Index &amp; n = <a class="code hl_function" href="classGaussianInfo.html#ac726ca2019576d3297070b77607acb83">dim</a>();</div>
 <div class="line"><a id="l00879" name="l00879"></a><span class="lineno">  879</span>        assert(x.size() == n);</div>
-<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>        </div>
 <div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span>        <span class="comment">// Probability mass enclosed by ±nSigma in 1D, extended to nD via chi-square</span></div>
 <div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>        <span class="comment">// c = 2*Phi(nSigma) - 1  (same as Phi(nSigma) - Phi(-nSigma))</span></div>
 <div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> c  = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(nSigma)) - 1.0;</div>
@@ -791,7 +791,7 @@ $(function() {
 <div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span>        <span class="comment">//     [ −ηᵀ  d  ]</span></div>
 <div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span> </div>
 <div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span>        Eigen::Matrix4&lt;Scalar&gt; Q;</div>
-<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span>        </div>
 <div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span>        Q.template topLeftCorner&lt;3,3&gt;() = Lambda;</div>
 <div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span>        Q.template topRightCorner&lt;3,1&gt;() = -eta;</div>
 <div class="line"><a id="l00935" name="l00935"></a><span class="lineno">  935</span>        Q.template bottomLeftCorner&lt;1,3&gt;() = -eta.transpose();</div>

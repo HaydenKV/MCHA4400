@@ -3,39 +3,55 @@
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ IMAGEFEATURES\_H}}
-\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ IMAGEFEATURES\_H\ }}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ IMAGEFEATURES\_H}}
 \DoxyCodeLine{00003\ }
-\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <opencv2/core.hpp>}}
-\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <array>}}
-\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
-\DoxyCodeLine{00007\ }
-\DoxyCodeLine{00008\ cv::Mat\ detectAndDrawHarris(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
-\DoxyCodeLine{00009\ cv::Mat\ detectAndDrawShiAndTomasi(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
-\DoxyCodeLine{00010\ cv::Mat\ detectAndDrawFAST(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
-\DoxyCodeLine{00011\ cv::Mat\ detectAndDrawArUco(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <vector>}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ std::vector\ for\ ArucoDetections}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <array>}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ std::array\ for\ 4-\/corner\ storage}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <opencv2/core.hpp>}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Harris:\ R\ =\ det(M)\ −\ k·tr(M)\string^2,\ with\ M\ =\ Σ\ w·[Ix\ Iy]\string^T[Ix\ Iy]}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Returns\ BGR\ image\ with\ all\ detected\ corners\ (orange),\ top-\/N\ highlighted.}}
+\DoxyCodeLine{00011\ cv::Mat\ detectAndDrawHarris(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
 \DoxyCodeLine{00012\ }
-\DoxyCodeLine{00013\ }
-\DoxyCodeLine{00014\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structArucoDetections}{ArucoDetections}}}
-\DoxyCodeLine{00015\ \{}
-\DoxyCodeLine{00016\ \ \ \ \ std::vector<int>\ ids;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ tag\ IDs}}
-\DoxyCodeLine{00017\ \ \ \ \ std::vector<std::array<cv::Point2f,4>>\ corners;\ \ \ \ \ \ \textcolor{comment}{//\ TL,TR,BR,BL\ per\ tag}}
-\DoxyCodeLine{00018\ \ \ \ \ cv::Mat\ annotated;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ input\ image\ with\ markers\ drawn}}
-\DoxyCodeLine{00019\ \};}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ Shi–Tomasi:\ score\ =\ λ\_min(M),\ λ\_min\ is\ the\ smallest\ eigenvalue\ of\ M}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ Returns\ BGR\ image\ with\ all\ detected\ corners\ (orange),\ top-\/N\ highlighted.}}
+\DoxyCodeLine{00015\ cv::Mat\ detectAndDrawShiAndTomasi(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ FAST:\ segment\ test\ on\ a\ Bresenham\ circle;\ nonmax\ suppression\ applied}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Returns\ BGR\ image\ with\ all\ detected\ keypoints\ (orange),\ top-\/N\ highlighted.}}
+\DoxyCodeLine{00019\ cv::Mat\ detectAndDrawFAST(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
 \DoxyCodeLine{00020\ }
-\DoxyCodeLine{00021\ \mbox{\hyperlink{structArucoDetections}{ArucoDetections}}\ detectArUcoPOSE(}
-\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ imgBGR,}
-\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{int}\ dictionary,}
-\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{bool}\ doCornerRefine,}
-\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ cameraMatrix,}
-\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ distCoeffs,}
-\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keywordtype}{float}\ tagSizeMeters,}
-\DoxyCodeLine{00028\ \ \ \ \ std::vector<cv::Vec3d>*\ outRvecs\ =\ \textcolor{keyword}{nullptr},}
-\DoxyCodeLine{00029\ \ \ \ \ std::vector<cv::Vec3d>*\ outTvecs\ =\ \textcolor{keyword}{nullptr},}
-\DoxyCodeLine{00030\ \ \ \ \ std::vector<double>*\ outMeanReprojErr\ =\ \textcolor{keyword}{nullptr},}
-\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordtype}{double}\ reprojErrThreshPx\ =\ 4.0,}
-\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordtype}{bool}\ drawRejected\ =\ \textcolor{keyword}{false}}
-\DoxyCodeLine{00033\ );}
-\DoxyCodeLine{00034\ }
-\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ ArUco:\ dictionary-\/based\ square\ fiducials;\ draws\ boxes/IDs\ for\ all\ detections}}
+\DoxyCodeLine{00022\ cv::Mat\ detectAndDrawArUco(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ \textcolor{keywordtype}{int}\ maxNumFeatures);}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Grouped\ ArUco\ outputs\ for\ downstream\ SLAM/visualization}}
+\DoxyCodeLine{00025\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structArucoDetections}{ArucoDetections}}}
+\DoxyCodeLine{00026\ \{}
+\DoxyCodeLine{00027\ \ \ \ \ std::vector<int>\ ids;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Marker\ IDs}}
+\DoxyCodeLine{00028\ \ \ \ \ std::vector<std::array<cv::Point2f,4>>\ corners;\ \ \ \ \ \ \textcolor{comment}{//\ TL,TR,BR,BL\ per\ marker\ (image\ px)}}
+\DoxyCodeLine{00029\ \ \ \ \ cv::Mat\ annotated;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Input\ image\ with\ overlays}}
+\DoxyCodeLine{00030\ \};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ ArUco\ +\ pose\ (IPPE\_SQUARE):}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Solves\ PnP\ for\ each\ tag\ using\ corner\ correspondences}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ \ \ u\ \string~\ π(K\ [R|t]\ X),\ reprojection\ error\ e\ =\ (1/4)Σ||u\_meas\ -\/\ u\_proj||\_2}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Rejects\ detections\ with\ mean\ reprojection\ error\ >\ reprojErrThreshPx.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Optionally\ returns\ \{rvec,tvec\}\ (Rodrigues)\ and\ mean\ reprojection\ error\ per\ tag.}}
+\DoxyCodeLine{00037\ \mbox{\hyperlink{structArucoDetections}{ArucoDetections}}\ detectArUcoPOSE(}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ imgBGR,}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{int}\ dictionary,}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordtype}{bool}\ doCornerRefine,}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ cameraMatrix,}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{const}\ cv::Mat\&\ distCoeffs,}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{float}\ tagSizeMeters,}
+\DoxyCodeLine{00044\ \ \ \ \ std::vector<cv::Vec3d>*\ outRvecs\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00045\ \ \ \ \ std::vector<cv::Vec3d>*\ outTvecs\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00046\ \ \ \ \ std::vector<double>*\ outMeanReprojErr\ =\ \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{double}\ reprojErrThreshPx\ =\ 4.0,}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{bool}\ drawRejected\ =\ \textcolor{keyword}{false}}
+\DoxyCodeLine{00049\ );}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

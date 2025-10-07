@@ -174,7 +174,7 @@ $(function() {
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>        assert(p &gt;= 0);</div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>        assert(p &lt; 1);</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>        assert(nu &gt; 0.0); <span class="comment">// added</span></div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>        </div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>        <span class="comment">// Handle a couple of trivial edges</span></div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>        <span class="keywordflow">if</span> (p == 0.0) <span class="keywordflow">return</span> 0.0; <span class="comment">// F^{-1}(0)=0 for chi-square</span></div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
@@ -190,7 +190,7 @@ $(function() {
 <div class="foldopen" id="foldopen00131" data-start="{" data-end="}">
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno"><a class="line" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">  131</a></span>    <span class="keyword">static</span> <span class="keywordtype">double</span> <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keywordtype">double</span> w)</div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    {</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        </div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>        <span class="comment">// Phi(w) = 0.5 * erfc(-w / sqrt(2))</span></div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>        <span class="comment">// Branch by sign for a touch more numerical stability in the tails, can just use &#39;return 0.5 * std::erfc(-w / s2);&#39;</span></div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> s2 = std::numbers::sqrt2;</div>
@@ -294,7 +294,7 @@ $(function() {
 <div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>        Eigen::Matrix&lt;Scalar, 2, Eigen::Dynamic&gt; X(2, nSamples);</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        <span class="comment">// TODO</span></div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        </div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>        <span class="comment">// Probability that corresponds to &quot;± nSigma&quot; in 1D</span></div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>        <span class="keyword">const</span> <span class="keywordtype">double</span> p   = 2.0 * <a class="code hl_function" href="classGaussianBase.html#a8437c8ae7f2d45391fc68d0e18e3e5e9">normcdf</a>(<span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(nSigma)) - 1.0;</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>        <span class="comment">// Chi-square threshold for 2 DoF, then radius in whitened coordinates</span></div>

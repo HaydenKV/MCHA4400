@@ -1,14 +1,5 @@
 \doxysection{Measurement\+SLAMUnique\+Tag\+Bundle Class Reference}
 \hypertarget{classMeasurementSLAMUniqueTagBundle}{}\label{classMeasurementSLAMUniqueTagBundle}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
-
-
-\doxylink{classMeasurement}{Measurement} class for Ar\+Uco tag SLAM with unique IDs (Scenario 1)  
-
-
-
-
-{\ttfamily \#include $<$Measurement\+SLAMUnique\+Tag\+Bundle.\+h$>$}
-
 Inheritance diagram for Measurement\+SLAMUnique\+Tag\+Bundle\+:\begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -21,7 +12,7 @@ Inheritance diagram for Measurement\+SLAMUnique\+Tag\+Bundle\+:\begin{figure}[H]
 \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{Measurement\+SLAMUnique\+Tag\+Bundle}} (double time, const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \&Y, const \mbox{\hyperlink{structCamera}{Camera}} \&camera, const std\+::vector$<$ int $>$ \&ids)
 \item 
 \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_abb703d706a191b323666bc74798ef8fc}{clone}} () const override
-\begin{DoxyCompactList}\small\item\em Clone this measurement (must preserve derived type for \doxylink{structPlot}{Plot}) \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Clone preserving dynamic type (required by plotting/estimation pipeline). \end{DoxyCompactList}\item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00}\label{classMeasurementSLAMUniqueTagBundle_a01e32a3cc6fab9242d691a347373eb00} 
 void {\bfseries set\+Id\+By\+Landmark} (const std\+::vector$<$ int $>$ \&m)
 \item 
@@ -30,16 +21,16 @@ const std\+::vector$<$ int $>$ \& {\bfseries id\+By\+Landmark} () const
 \item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a6117b0994eb8219ece7cc5e2fb404a70}\label{classMeasurementSLAMUniqueTagBundle_a6117b0994eb8219ece7cc5e2fb404a70} 
 bool {\bfseries is\+Effectively\+Associated} (std\+::size\+\_\+t landmark\+Idx) const
-\begin{DoxyCompactList}\small\item\em Check if landmark was effectively associated this frame Used by \doxylink{structPlot}{Plot} to color ellipses (blue=associated, red=unassociated) \end{DoxyCompactList}\item 
-virtual const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
-\begin{DoxyCompactList}\small\item\em ID-\/based data association. \end{DoxyCompactList}\item 
-virtual void \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
-\begin{DoxyCompactList}\small\item\em \doxylink{classMeasurement}{Measurement} update WITHOUT deletion (Scenario 1) \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const override
+\begin{DoxyCompactList}\small\item\em True iff landmark j was associated to a detection this frame (blue in plot). \end{DoxyCompactList}\item 
+const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
+\item 
+void \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
+\item 
+double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system) const override
 \begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood of a measurement. \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a0b739a11c73f4dd3f15bb56df770adf5}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const override
+double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a0b739a11c73f4dd3f15bb56df770adf5}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g) const override
 \begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood and its gradient. \end{DoxyCompactList}\item 
-virtual double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ae9105df00cf1c9a233721082f429c94b}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const override
+double \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ae9105df00cf1c9a233721082f429c94b}{log\+Likelihood}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemEstimator}{System\+Estimator}} \&system, Eigen\+::\+Vector\+Xd \&g, Eigen\+::\+Matrix\+Xd \&H) const override
 \begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood, its gradient, and Hessian. \end{DoxyCompactList}\item 
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_a1050c5b9e4aef97f3ff65402b8a59f63}\label{classMeasurementSLAMUniqueTagBundle_a1050c5b9e4aef97f3ff65402b8a59f63} 
 const std\+::vector$<$ bool $>$ \& {\bfseries is\+Visible} () const
@@ -96,10 +87,10 @@ void \mbox{\hyperlink{classEvent_a0a4e814f472c519ace0a22f1a23acb0a}{process}} (\
 \begin{DoxyCompactItemize}
 \item 
 Eigen\+::\+Matrix$<$ double, 8, 1 $>$ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}{predict\+Tag\+Corners}} (const Eigen\+::\+Vector\+Xd \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\begin{DoxyCompactList}\small\item\em Predict 4 corner pixel locations for a tag landmark. \end{DoxyCompactList}\item 
-\Hypertarget{classMeasurementSLAMUniqueTagBundle_a9d8d9fee3eef8c7f2b93f29499dccd40}\label{classMeasurementSLAMUniqueTagBundle_a9d8d9fee3eef8c7f2b93f29499dccd40} 
-{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 8, 1 $>$ {\bfseries predict\+Tag\+CornersT} (const Eigen\+::\+VectorX$<$ Scalar $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\begin{DoxyCompactList}\small\item\em Templated version for autodiff. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\item 
+\Hypertarget{classMeasurementSLAMUniqueTagBundle_a88ab3c883cabc0c3ecb48b1cff3349ba}\label{classMeasurementSLAMUniqueTagBundle_a88ab3c883cabc0c3ecb48b1cff3349ba} 
+{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 8, 1 $>$ {\bfseries predict\+Tag\+CornersT} (const Eigen\+::\+Matrix$<$ Scalar, Eigen\+::\+Dynamic, 1 $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\begin{DoxyCompactList}\small\item\em Autodiff-\/friendly overload; Scalar ∈ \{double, autodiff\+::dual\}. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
 \item 
@@ -158,24 +149,6 @@ int {\bfseries verbosity\+\_\+}
 \begin{DoxyCompactList}\small\item\em Verbosity level. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\doxysubsection{Detailed Description}
-\doxylink{classMeasurement}{Measurement} class for Ar\+Uco tag SLAM with unique IDs (Scenario 1) 
-
-Key features for Scenario 1\+:
-\begin{DoxyItemize}
-\item ID-\/based data association (trivial since tags have unique IDs)
-\item 4-\/corner measurement model per tag
-\item NO DELETION of landmarks (tags persist for loop closure)
-\item Visual distinction\+: blue=associated, red=unassociated
-\end{DoxyItemize}
-
-IMPORTANT\+: Left pane ellipses show TAG CENTER (not corners!)
-\begin{DoxyItemize}
-\item Base class predict\+Feature() reads only position part of pose landmark
-\item For pose landmarks\+: state = \mbox{[}r\+LNn(3), Theta\+Ln(3)\mbox{]}
-\item predict\+Feature() reads only first 3 elements → tag center position 
-\end{DoxyItemize}
-
 \label{doc-constructors}
 \Hypertarget{classMeasurementSLAMUniqueTagBundle_doc-constructors}
 \doxysubsection{Constructor \& Destructor Documentation}
@@ -189,11 +162,11 @@ Measurement\+SLAMUnique\+Tag\+Bundle\+::\+Measurement\+SLAMUnique\+Tag\+Bundle (
 \begin{DoxyParams}{Parameters}
 {\em time} & \doxylink{classMeasurement}{Measurement} timestamp \\
 \hline
-{\em Y} & \doxylink{classMeasurement}{Measurement} matrix (2 × 4N) -\/ all 4 corners of all detected tags \\
+{\em Y} & Corner bundle, shape 2×(4\+N)\+: columns \mbox{[}u1 v1 u2 v2 u3 v3 u4 v4\mbox{]}ᵀ per tag \\
 \hline
-{\em camera} & \doxylink{structCamera}{Camera} calibration \\
+{\em camera} & \doxylink{structCamera}{Camera} model (intrinsics + distortion + body↔camera extrinsics) \\
 \hline
-{\em ids} & Tag IDs corresponding to measurements \\
+{\em ids} & Tag IDs (size N), used for trivial data association \\
 \hline
 \end{DoxyParams}
 
@@ -207,11 +180,11 @@ Measurement\+SLAMUnique\+Tag\+Bundle\+::\+Measurement\+SLAMUnique\+Tag\+Bundle (
 {\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354} 
 const std\+::vector$<$ int $>$ \& Measurement\+SLAMUnique\+Tag\+Bundle\+::associate (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
-
-
-ID-\/based data association. 
-
-Matches detected tags with map landmarks using unique IDs. Conservative FOV checking to reject measurements near image borders. 
+ID-\/based association + visibility tagging.
+\begin{DoxyItemize}
+\item Association\+: tag ID → feature index (trivial, unique IDs).
+\item Visibility (\texorpdfstring{$\vert$}{|}\+U\texorpdfstring{$\vert$}{|} term in (7))\+: uses PRIOR MEAN state to decide if all 4 corners would fall strictly inside the image (conservative check). 
+\end{DoxyItemize}
 
 Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}.
 
@@ -223,7 +196,7 @@ Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Po
 
 
 
-Clone this measurement (must preserve derived type for \doxylink{structPlot}{Plot}) 
+Clone preserving dynamic type (required by plotting/estimation pipeline). 
 
 
 
@@ -313,24 +286,13 @@ Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_ae2b8fad7d79ec97
 {\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546} 
 Eigen\+::\+Matrix$<$ double, 8, 1 $>$ Measurement\+SLAMUnique\+Tag\+Bundle\+::predict\+Tag\+Corners (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{x}{, }\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{std\+::size\+\_\+t}]{idx\+Landmark}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [protected]}}
 
-
-
-Predict 4 corner pixel locations for a tag landmark. 
-
-\begin{DoxyReturn}{Returns}
-8×1 vector \mbox{[}u1,v1, u2,v2, u3,v3, u4,v4\mbox{]}\texorpdfstring{$^\wedge$}{\string^}T 
-\end{DoxyReturn}
-\Hypertarget{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!update@{update}}
+Predicts the 4 tag-\/corner pixel locations for landmark j\+: 1) Tag corners in tag frame from (9) with ℓ = TAG\+\_\+\+SIZE. 2) World corners r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+\{jc\} = R\texorpdfstring{$^\wedge$}{\string^}n\+\_\+L r\texorpdfstring{$^\wedge$}{\string^}\+L\+\_\+\{jc\} + r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+L (from (8)). 3) \doxylink{structCamera}{Camera} frame r\texorpdfstring{$^\wedge$}{\string^}c\+\_\+\{jc\} = R\texorpdfstring{$^\wedge$}{\string^}c\+\_\+n (r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+\{jc\} − r\texorpdfstring{$^\wedge$}{\string^}n\+\_\+C). 4) Projection u = π(K,R,t,r\texorpdfstring{$^\wedge$}{\string^}c\+\_\+\{jc\}) via Camera\+::vector\+To\+Pixel. Returns h\+\_\+j(x) = \mbox{[}u1,v1, u2,v2, u3,v3, u4,v4\mbox{]}\texorpdfstring{$^\wedge$}{\string^}T. \Hypertarget{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}\index{MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}!update@{update}}
 \index{update@{update}!MeasurementSLAMUniqueTagBundle@{MeasurementSLAMUniqueTagBundle}}
 \doxysubsubsection{\texorpdfstring{update()}{update()}}
 {\footnotesize\ttfamily \label{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86} 
 void Measurement\+SLAMUnique\+Tag\+Bundle\+::update (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classSystemBase}{System\+Base}} \&}]{system}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
-
-
-\doxylink{classMeasurement}{Measurement} update WITHOUT deletion (Scenario 1) 
-
-Performs Kalman update for associated landmarks. DOES NOT delete landmarks -\/ tags persist for loop closure. 
+\doxylink{classMeasurement}{Measurement} update for Scenario 1. Applies the Kalman/optimizer update; no landmark deletion (loop-\/closure). 
 
 Reimplemented from \mbox{\hyperlink{classMeasurementPointBundle_a4d7ec2ad6e6fe05ffffe8e537f551365}{Measurement\+Point\+Bundle}}.
 

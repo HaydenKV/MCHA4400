@@ -3,54 +3,67 @@
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
-\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <vector>}}
-\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ "{}MeasurementSLAMPointBundle.h"{}}}
-\DoxyCodeLine{00004\ }
-\DoxyCodeLine{00019\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{MeasurementSLAMUniqueTagBundle}}\ :\ \textcolor{keyword}{public}\ MeasurementPointBundle}
-\DoxyCodeLine{00020\ \{}
-\DoxyCodeLine{00021\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00028\ \ \ \ \ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{MeasurementSLAMUniqueTagBundle}}(\textcolor{keywordtype}{double}\ time,}
-\DoxyCodeLine{00029\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Y,}
-\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
-\DoxyCodeLine{00031\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ ids);}
-\DoxyCodeLine{00032\ }
-\DoxyCodeLine{00036\ \ \ \ \ MeasurementSLAM*\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_abb703d706a191b323666bc74798ef8fc}{clone}}()\ \textcolor{keyword}{const\ override};}
-\DoxyCodeLine{00037\ \ \ \ \ }
-\DoxyCodeLine{00038\ \ \ \ \ \textcolor{comment}{//\ Persistent\ state\ management\ (survives\ across\ frames)}}
-\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{void}\ setIdByLandmark(\textcolor{keyword}{const}\ std::vector<int>\&\ m)\ \{\ id\_by\_landmark\_\ =\ m;\ \}}
-\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ idByLandmark()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ id\_by\_landmark\_;\ \}}
-\DoxyCodeLine{00041\ }
-\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a6117b0994eb8219ece7cc5e2fb404a70}{isEffectivelyAssociated}}(std::size\_t\ landmarkIdx)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00047\ \ \ \ \ }
-\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keyword}{const}\ std::vector<int>\&\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{override};}
-\DoxyCodeLine{00056\ \ \ \ \ }
-\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
-\DoxyCodeLine{00064\ \ \ \ \ }
-\DoxyCodeLine{00065\ \ \ \ \ \textcolor{comment}{//\ Log-\/likelihood\ overrides\ for\ optimization}}
-\DoxyCodeLine{00066\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system)\ \textcolor{keyword}{const\ override};}
-\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g)\ \textcolor{keyword}{const\ override};}
-\DoxyCodeLine{00068\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g,\ Eigen::MatrixXd\&\ H)\ \textcolor{keyword}{const\ override};}
-\DoxyCodeLine{00069\ }
-\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<bool>\&\ isVisible()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ is\_visible\_;\ \}}
-\DoxyCodeLine{00071\ }
-\DoxyCodeLine{00072\ \textcolor{keyword}{protected}:}
-\DoxyCodeLine{00077\ \ \ \ \ Eigen::Matrix<double,8,1>\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}{predictTagCorners}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ }
-\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ }
-\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00080\ \ \ \ \ }
-\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Scalar>}
-\DoxyCodeLine{00085\ \ \ \ \ Eigen::Matrix<Scalar,8,1>\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9d8d9fee3eef8c7f2b93f29499dccd40}{predictTagCornersT}}(\textcolor{keyword}{const}\ Eigen::VectorX<Scalar>\&\ x,}
-\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ "{}MeasurementSLAMPointBundle.h"{}}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00008\ \textcolor{comment}{Scenario\ 1:\ Unique\ ArUco\ tags\ as\ pose\ landmarks.}}
+\DoxyCodeLine{00009\ \textcolor{comment}{State\ per\ landmark\ j:\ m\_j\ =\ [\ r\string^n\_\{j/N\}\ (3),\ Θ\string^n\_j\ (3)\ ]\string^T\ \ \ (assignment\ Eq.\ (6)).}}
+\DoxyCodeLine{00010\ \textcolor{comment}{Each\ measurement\ aggregates\ the\ 4\ image-\/plane\ corners\ of\ a\ detected\ tag}}
+\DoxyCodeLine{00011\ \textcolor{comment}{y\_i\ =\ [u1,v1,\ u2,v2,\ u3,v3,\ u4,v4]\string^T,\ with\ object-\/space\ corners\ from\ (8)-\/(9)}}
+\DoxyCodeLine{00012\ \textcolor{comment}{using\ edge\ length\ ℓ\ =\ 0.166\ m.\ Log-\/likelihood\ uses\ per-\/corner\ Gaussian\ terms}}
+\DoxyCodeLine{00013\ \textcolor{comment}{and\ a\ missed-\/detection\ penalty\ −4|U|\ log|Y|\ (Eq.\ (7)).}}
+\DoxyCodeLine{00014\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00015\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{MeasurementSLAMUniqueTagBundle}}\ :\ \textcolor{keyword}{public}\ MeasurementPointBundle}
+\DoxyCodeLine{00016\ \{}
+\DoxyCodeLine{00017\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00024\ \ \ \ \ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9664b84d0ecb7b8c8d956814ddcd6f49}{MeasurementSLAMUniqueTagBundle}}(\textcolor{keywordtype}{double}\ time,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Y,}
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
+\DoxyCodeLine{00027\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ ids);}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00030\ \ \ \ \ MeasurementSLAM*\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_abb703d706a191b323666bc74798ef8fc}{clone}}()\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ Persistent\ ID\ mapping:\ landmark\ index\ →\ tag\ ID\ (−1\ if\ uninitialized)}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{void}\ setIdByLandmark(\textcolor{keyword}{const}\ std::vector<int>\&\ m)\ \{\ id\_by\_landmark\_\ =\ m;\ \}}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ idByLandmark()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ id\_by\_landmark\_;\ \}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a6117b0994eb8219ece7cc5e2fb404a70}{isEffectivelyAssociated}}(std::size\_t\ landmarkIdx)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a9b15d929706870c1b47cc6b3c8abb354}{associate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78197c8e25dc7f4624ea5b0efc550f86}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{comment}{//\ Log-\/likelihood\ overloads:}}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{comment}{//\ \ \ scalar:\ \ \ \ \ \ −½\ σ⁻²\ ∑‖y−h(x)‖²\ −\ 4|U|\ log|Y|}}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{//\ \ \ +\ gradient:\ \ \ ∑\ σ⁻²\ Jᵀ\ r}}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{comment}{//\ \ \ +\ Hessian:\ \ \ −∑\ σ⁻²\ Jᵀ\ J\ \ (Gauss–Newton);\ |U|\ term\ has\ zero\ ∇,\ zero\ H.}}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_ab1e228bf6421d3cd253044d138f34013}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g,\ Eigen::MatrixXd\&\ H)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<bool>\&\ isVisible()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ is\_visible\_;\ \}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00073\ \ \ \ \ Eigen::Matrix<double,8,1>\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a78fa7cdc85fe0c072e9796a0a9fb9546}{predictTagCorners}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00079\ \ \ \ \ Eigen::Matrix<Scalar,8,1>\ \mbox{\hyperlink{classMeasurementSLAMUniqueTagBundle_a88ab3c883cabc0c3ecb48b1cff3349ba}{predictTagCornersT}}(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,\ Eigen::Dynamic,\ 1>\&\ x,}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00084\ \ \ \ \ std::vector<int>\ \ ids\_;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Detected\ tag\ IDs\ (size\ N)}}
+\DoxyCodeLine{00085\ \ \ \ \ std::vector<int>\ \ id\_by\_landmark\_;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Persistent\ mapping\ landmark→ID}}
+\DoxyCodeLine{00086\ \ \ \ \ std::vector<bool>\ is\_visible\_;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Visibility\ at\ prior\ mean\ (|U|\ in\ (7))}}
+\DoxyCodeLine{00087\ \ \ \ \ std::vector<bool>\ is\_effectively\_associated\_;\ \textcolor{comment}{//\ Associated\ this\ frame}}
 \DoxyCodeLine{00088\ }
-\DoxyCodeLine{00089\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00090\ \ \ \ \ std::vector<int>\ ids\_;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00091\ \ \ \ \ std::vector<int>\ id\_by\_landmark\_;\ \ \ \ \ \ \ }
-\DoxyCodeLine{00092\ \ \ \ \ std::vector<bool>\ is\_visible\_;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ In\ FOV\ (geometric\ check)}}
-\DoxyCodeLine{00093\ \ \ \ \ std::vector<bool>\ is\_effectively\_associated\_;\ \textcolor{comment}{//\ In\ FOV\ +\ passed\ BORDER\_MARGIN\ +\ detected}}
-\DoxyCodeLine{00094\ \ \ \ \ }
-\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ TAG\_SIZE\ =\ 0.166;\ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00096\ \};}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ TAG\_SIZE\ =\ 0.166;\ \ \ \textcolor{comment}{//\ Tag\ edge\ length\ ℓ\ [m]\ (assignment)}}
+\DoxyCodeLine{00090\ \};}
 
 \end{DoxyCode}

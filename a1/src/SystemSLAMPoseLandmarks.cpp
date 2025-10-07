@@ -27,42 +27,51 @@ std::size_t SystemSLAMPoseLandmarks::landmarkPositionIndex(std::size_t idxLandma
     return 12 + 6*idxLandmark;    
 }
 
+/*
+Append a 6-DOF pose landmark m_j = [ r^n_{j/N}, Θ^n_j ]^T (assignment Eq. (6))
+to the SLAM state by expanding the mean and upper-triangular square-root
+covariance:
+
+    x_new = [ x_old; r^n_{j/N}; Θ^n_j ],
+    S_new = [ S_old     0;
+               0       S_j ].
+
+Landmark dynamics are static in (4)–(5), making zero initial cross-blocks
+consistent; cross-covariances are introduced by subsequent measurement updates.
+S_j must be upper-triangular so that S_new remains a valid square-root factor.
+Returns the 0-based index of the appended landmark.
+*/
 std::size_t SystemSLAMPoseLandmarks::appendLandmark(
     const Eigen::Vector3d& rnj,
     const Eigen::Vector3d& Thetanj,
     const Eigen::Matrix<double,6,6>& Sj
 )
 {
-    // Current state size
+    // Current state
     const Eigen::VectorXd mu_old = density.mean();
     const Eigen::MatrixXd S_old  = density.sqrtCov();
     const int n_old = static_cast<int>(mu_old.size());
 
-    // New sizes
+    // New sizes (+6 for pose landmark)
     const int n_new = n_old + 6;
 
-    // Build new mean
+    // New mean: append [r^n_{j/N}; Θ^n_j]
     Eigen::VectorXd mu_new(n_new);
     mu_new.head(n_old) = mu_old;
-    mu_new.segment<3>(n_old + 0) = rnj;      // position
-    mu_new.segment<3>(n_old + 3) = Thetanj;  // Euler rpy
+    mu_new.segment<3>(n_old + 0) = rnj;      // position (world frame)
+    mu_new.segment<3>(n_old + 3) = Thetanj;  // Euler rpy (Θ^n_j)
 
-    // Build new sqrt-cov (upper-triangular by construction)
+    // New sqrt-covariance (upper-triangular by construction)
     Eigen::MatrixXd S_new = Eigen::MatrixXd::Zero(n_new, n_new);
-    // existing block
-    S_new.topLeftCorner(n_old, n_old) = S_old;
-    // new landmark block (assumed upper-triangular)
-    S_new.block(n_old, n_old, 6, 6) = Sj;
+    S_new.topLeftCorner(n_old, n_old) = S_old;  // existing block
+    S_new.block(n_old, n_old, 6, 6) = Sj;       // landmark block
 
-    // IMPORTANT: We keep cross terms zero initially. If you want to inject camera
-    // pose uncertainty and PnP uncertainty as cross-terms, this is where you would
-    // compute them and fill the off-diagonal blocks.
+    // Cross blocks remain zero initially (static landmark model in (4)–(5)).
 
-    // Recreate the Gaussian from sqrt-moments
+    // Reconstruct density from sqrt moments
     density = GaussianInfo<double>::fromSqrtMoment(mu_new, S_new);
 
-    // Return index of this landmark (0-based among landmarks, not absolute in the vector)
-    // If landmarks are contiguous after 12 body states, landmark index is:
+    // Index among pose landmarks (contiguous after 12 body states)
     const std::size_t lm_index = static_cast<std::size_t>((n_new - 12) / 6 - 1);
     return lm_index;
 }

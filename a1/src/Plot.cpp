@@ -570,6 +570,27 @@ Plot::Plot(const Camera & camera)
     interactor->Initialize();
 }
 
+/*
+Render both panes according to the assignment specification.
+
+Left pane (image):
+  • Draw 3σ image-space ellipses for tag centers using prQOi from the measurement.
+  • Color mapping: blue = associated this frame; red = visible but missed/unknown.
+  • Visibility test is based on the camera prior mean pose and image-boundary
+    gating, consistent with the |U| definition in (7).
+
+Right pane (world):
+  • Draw 3σ ellipsoid for the camera (qpCamera) and for each landmark from the
+    corresponding marginal density.
+  • Color mapping: blue = visible + associated; red = visible but unassociated;
+    yellow = not visible.
+  • Frustum and axes use the current camera mean pose.
+
+Equations referenced:
+  – Process/visibility prediction via camera and landmark means aligns with (4)–(5).
+  – Association status derives from the unique tag IDs in Scenario 1 and the |U|
+    term in (7).
+*/
 void Plot::render()
 {
     double r, g, b;   
@@ -595,32 +616,25 @@ void Plot::render()
         qpLandmarks.pop_back();
     }    
 
-    // Current camera pose (means)
+    // Camera pose (means)
     const Eigen::Vector3d rCNn    = pSystem->cameraPositionDensity(camera).mean();
     const Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
     const Eigen::Matrix3d Rnc     = rpy2rot(Thetanc);
     const Eigen::Matrix3d Rcn     = Rnc.transpose();
 
-    // ============================================================================
-    // VISIBILITY HELPER: Geometric check for tag CENTER visibility
-    // - Checks if landmark center is in front of camera (z > 0)
-    // - Checks if it projects to valid pixel coordinates inside image bounds
-    // - Used to prevent drawing ellipses for landmarks behind the camera
-    // ============================================================================
+    // Visibility helper: test landmark center against FOV using current mean pose
     auto isLandmarkCenterVisible = [&](const Eigen::Vector3d& rLNn) -> bool {
-        const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn);
+        const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn); // camera frame
         return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()), CamDefaults::BorderMarginPx);
     };
 
-    // ============================================================================
-    // MAIN LANDMARK LOOP
-    // ============================================================================
+    // Landmark loop
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
-        const Eigen::Vector3d rLNn = posDen.mean();  // Landmark center position
+        const Eigen::Vector3d rLNn = posDen.mean();  // center position
 
-        // Get association/visibility status from measurement
+        // Association and ID from measurement (Scenario 1)
         bool centerInFOV = isLandmarkCenterVisible(rLNn);
         bool isDetected = false;
         bool hasTagId = false;
@@ -630,81 +644,54 @@ void Plot::render()
             hasTagId = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
         }
 
-        // ========================================================================
-        // LEFT PANE COLOR (Detection status)
-        // ========================================================================
+        // Left-pane color
         double cr_left, cg_left, cb_left;
-        if (hasTagId && isDetected) {
-            // Blue: successfully detected and associated this frame
+        if (hasTagId && isDetected) {            // blue
             cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;
-        } else if (hasTagId) {
-            // Red: has tag ID but not detected/associated this frame
-            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
-        } else {
-            // Red: no tag ID assigned yet
+        } else {                                  // red
             cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
         }
 
-        // ========================================================================
-        // RIGHT PANE COLOR (Visibility status)
-        // ========================================================================
+        // Right-pane color
         double cr_right, cg_right, cb_right;
-        if (centerInFOV && hasTagId && isDetected) {
-            // Blue: visible in FOV and successfully detected
+        if (centerInFOV && hasTagId && isDetected) {     // blue
             cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;
-        } else if (hasTagId && !centerInFOV) {
-            // Yellow: has tag ID but not visible in current FOV
+        } else if (hasTagId && !centerInFOV) {           // yellow
             cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;
-        } else if (hasTagId) {
-            // Red: visible in FOV but not detected
-            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
-        } else {
-            // Red: no tag ID assigned
+        } else {                                          // red
             cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
         }
 
-        // ========================================================================
-        // LEFT PANE: Draw 3σ ellipses for landmarks with tag IDs
-        // CRITICAL FIX: Only draw if landmark CENTER is visible (not behind camera)
-        // ========================================================================
+        // Left pane: draw 3σ ellipse at tag center when center is in FOV
         if (hasTagId && centerInFOV) {
             try {
-                // Note: For pose landmarks, predictFeatureDensity() projects only the
-                // position part (first 3 states) to image coordinates, giving tag center.
-                // The try-catch handles edge cases where projection may fail.
+                // For pose landmarks, predictFeatureDensity() projects the landmark center to pixels using the (8)–(9) mapping inside the measurement.
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
                 Eigen::Vector2d pixMean = prQOi.mean();
-                
-                // Safety margin: don't draw ellipses too close to image edges
-                bool pixelSafe = camera.isPixelInside(Eigen::Vector2d(pixMean.x(), pixMean.y()));
-                
-                if (pixelSafe) {
+
+                // Draw only when the mean is inside the image
+                if (camera.isPixelInside(Eigen::Vector2d(pixMean.x(), pixMean.y()))) {
                     Eigen::Matrix2d S = prQOi.sqrtCov();
-                    
-                    // Guard against degenerate ellipses. Can add a max STD here to guard against massive ellsipes
                     if (S.allFinite()) {
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
-                        
-                        // Draw tag ID label
+
+                        // Tag ID annotation near the center (BGR in OpenCV)
                         auto* tagMeas = static_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
                         std::string label = std::to_string(tagMeas->idByLandmark()[i]);
                         cv::putText(pSystem->view(), label,
-                                   cv::Point(static_cast<int>(pixMean.x() + 10), 
-                                            static_cast<int>(pixMean.y() - 10)),
-                                   cv::FONT_HERSHEY_SIMPLEX, 0.4,
-                                   cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
+                                    cv::Point(static_cast<int>(pixMean.x() + 10), 
+                                              static_cast<int>(pixMean.y() - 10)),
+                                    cv::FONT_HERSHEY_SIMPLEX, 0.4,
+                                    cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                     }
                 }
             } catch (...) {
-                // Silently skip landmarks where projection fails
-                // (e.g., numerical issues, edge cases)
+                // Skip pathological projections.
             }
         }
 
-        // ========================================================================
-        // RIGHT PANE: 3D position uncertainty ellipsoid
-        // ========================================================================
+        // Right pane: 3D 3σ ellipsoid from landmark position marginal
         QuadricPlot & qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
@@ -712,7 +699,7 @@ void Plot::render()
         qp.bounds.setExtremity(globalBounds);
     }
 
-    // Update global elements
+    // Global elements (axes, basis, frustum, image)
     ap.update(globalBounds);
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);

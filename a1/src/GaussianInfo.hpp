@@ -23,7 +23,7 @@
 #include <Eigen/SVD>
 #include <Eigen/QR>
 #include <Eigen/Cholesky>
-//#include <Eigen/LU> // TODO: Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests
+//#include <Eigen/LU> : Remove this header after fixing GaussianInfo::affineTransform to pass all unit tests
 #include "GaussianBase.hpp"
 
 /**
@@ -419,7 +419,7 @@ public:
         assert(n == dim());
 
         // Form [Xi(:, idxNot), Xi(:, idx), nu]
-        // TODO
+        
         Eigen::MatrixX<Scalar> RR(n, n + 1);
         RR << Xi_(Eigen::all, idxNot),      // columns to eliminate first
             Xi_(Eigen::all, idx),         // columns we keep (marginal variables)
@@ -428,12 +428,12 @@ public:
         // Q-less QR yields
         // [R1, R2, nu1;
         //   0, R3, nu2]
-        // TODO
+        
         Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);
 
         // p(x(idx)) = N^-0.5(x(idx); nu2, R3)
         GaussianInfo out(nI);
-        // TODO
+        
         out.nu_ = RR.block(nNotI, n,     nI, 1);                                          // nu2
         out.Xi_ = RR.block(nNotI, nNotI, nI, nI).template triangularView<Eigen::Upper>(); // R3
         return out;
@@ -496,7 +496,7 @@ public:
         // assert(xB.size() == static_cast<Eigen::Index>(nB));
 
         // Form [Xi(:, idxA), Xi(:, idxB), nu]
-        // TODO
+        
         Eigen::MatrixX<Scalar> RR(n, n + 1);
         RR << Xi_(Eigen::all, idxA),     // columns for variables A (kept)
             Xi_(Eigen::all, idxB),     // columns for variables B (conditioned on)
@@ -505,12 +505,12 @@ public:
         // Q-less QR yields
         // [R1, R2, nu1;
         //   0, R3, nu2]
-        // TODO
+        
         Eigen::HouseholderQR<Eigen::Ref<Eigen::MatrixX<Scalar>>> qr(RR);
 
         // p(x(idxA) | x(idxB) = xB) = N^-0.5(x(idxA); nu1 - R2*xB, R1)
         GaussianInfo out(nA);
-        // TODO
+        
         const Eigen::MatrixX<Scalar> R1  = RR.topLeftCorner(nA, nA).template triangularView<Eigen::Upper>();
         const Eigen::MatrixX<Scalar> R2  = RR.block(0, nA, nA, nB);
         const Eigen::VectorX<Scalar> nu1 = RR.block(0, n,  nA, 1);
@@ -740,7 +740,7 @@ public:
         assert(x.size() == dim());
 
         static const Scalar halflog2pi = std::log(2*std::numbers::pi)/2.0;
-        // TODO
+        
         const Eigen::Index n = dim();
         const Eigen::VectorX<Scalar> r = Xi_ * x - nu_; // r = Xi x - nu
 
@@ -769,7 +769,7 @@ public:
     Scalar log(const Eigen::VectorX<Scalar> & x, Eigen::VectorX<Scalar> & g) const
     {
         // Compute gradient g
-        // TODO
+        
         // ∇ℓ(x) = −Ξᵀ(Ξx − ν)
         const Eigen::VectorX<Scalar> r = Xi_ * x - nu_;
 
@@ -795,7 +795,7 @@ public:
     Scalar log(const Eigen::VectorX<Scalar> & x, Eigen::VectorX<Scalar> & g, Eigen::MatrixX<Scalar> & H) const
     {
         // Compute Hessian H
-        // TODO
+        
         // ∇²ℓ(x) = −ΞᵀΞ (constant)
 
         // Resize optional, eigen should auto size it
@@ -877,7 +877,7 @@ public:
     {
         const Eigen::Index & n = dim();
         assert(x.size() == n);
-        // TODO
+        
         // Probability mass enclosed by ±nSigma in 1D, extended to nD via chi-square
         // c = 2*Phi(nSigma) - 1  (same as Phi(nSigma) - Phi(-nSigma))
         const double c  = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
@@ -929,7 +929,7 @@ public:
         //     [ −ηᵀ  d  ]
 
         Eigen::Matrix4<Scalar> Q;
-        // TODO
+        
         Q.template topLeftCorner<3,3>() = Lambda;
         Q.template topRightCorner<3,1>() = -eta;
         Q.template bottomLeftCorner<1,3>() = -eta.transpose();

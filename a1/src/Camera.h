@@ -111,6 +111,12 @@ private:
 #include <cmath>
 #include <opencv2/calib3d.hpp>
 
+/*
+Template projection π(K,dist):
+Given r^c_{P/C} = (X,Y,Z), compute normalised (x,y) = (X/Z,Y/Z),
+apply rational radial + tangential + thin-prism distortion, then map to pixels
+[u,v]^T = [fx*xd + cx, fy*yd + cy]^T. Used by autodiff paths in measurement models.
+*/
 template <typename Scalar>
 Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc) const
 {
@@ -119,8 +125,6 @@ Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc
     assert(isRationalModel && isThinPrismModel);
 
     Eigen::Vector2<Scalar> rQOi;
-    // TODO: Lab 8 (optional)
-    // iii) Auto diff ONLY ----------------------------------------------------------------
     // Normalised image coords
     const Scalar X = rPCc(0), Y = rPCc(1), Z = rPCc(2);
     const Scalar invZ = Scalar(1) / Z;
@@ -145,7 +149,6 @@ Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc
     const Scalar k1 = dc(0),  k2 = dc(1),  p1 = dc(2),  p2 = dc(3),  k3 = dc(4);
     const Scalar k4 = dc(5),  k5 = dc(6),  k6 = dc(7),  s1 = dc(8),  s2 = dc(9);
     const Scalar s3 = dc(10), s4 = dc(11);
-    // If you later enable TILTED_MODEL with 14 coeffs, add tauX,tauY here.
 
     // Rational radial
     const Scalar num   = Scalar(1) + k1*r2 + k2*r4 + k3*r6;
@@ -166,9 +169,9 @@ Eigen::Vector2<Scalar> Camera::vectorToPixel(const Eigen::Vector3<Scalar> & rPCc
 
     // Pixels
     rQOi << fx*xd + cx, fy*yd + cy;
-    // iii) Auto diff ONLY ----------------------------------------------------------------
     return rQOi;
 }
+
 
 
 #endif

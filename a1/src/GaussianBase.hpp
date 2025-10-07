@@ -111,7 +111,7 @@ public:
         assert(p >= 0);
         assert(p < 1);
         assert(nu > 0.0); // added
-        // TODO
+        
         // Handle a couple of trivial edges
         if (p == 0.0) return 0.0; // F^{-1}(0)=0 for chi-square
 
@@ -130,7 +130,7 @@ public:
      */
     static double normcdf(double w)
     {
-        // TODO
+        
         // Phi(w) = 0.5 * erfc(-w / sqrt(2))
         // Branch by sign for a touch more numerical stability in the tails, can just use 'return 0.5 * std::erfc(-w / s2);'
         const double s2 = std::numbers::sqrt2;
@@ -256,7 +256,7 @@ public:
 
         Eigen::Matrix<Scalar, 2, Eigen::Dynamic> X(2, nSamples);
 
-        // TODO
+        
         // Probability that corresponds to "± nSigma" in 1D
         const double p   = 2.0 * normcdf(static_cast<double>(nSigma)) - 1.0;
         // Chi-square threshold for 2 DoF, then radius in whitened coordinates

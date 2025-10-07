@@ -1,6 +1,8 @@
 #include <cstddef>
 #include <cmath>
 #include <vector>
+#include <cassert>
+#include <iostream>
 #include <Eigen/Core>
 #include <opencv2/core/mat.hpp>
 #include "GaussianInfo.hpp"
@@ -16,7 +18,16 @@ SystemSLAM::SystemSLAM(const GaussianInfo<double> & density)
     : SystemEstimator(density)
 {}
 
+
 // Evaluate f(x) from the SDE dx = f(x)*dt + dw
+/*
+dynamics (no Jacobian):
+Implements the deterministic part of (4)–(5):
+  ṙ^n_{B/N} = R_nb(Θ) v^B_{N/B}
+  Θ̇        = T(Θ) ω^B_{N/B}
+  ṁ         = 0   (static landmarks)
+Only f(x) is returned; process noise dw is handled in the filter via Q.
+*/
 Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u) const
 {
     assert(density.dim() == x.size());
@@ -39,39 +50,47 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     //
     Eigen::VectorXd f(x.size());
     f.setZero();
-    // TODO: Implement in Assignment(s)
-    // Extract states
-    // Extract velocity states
-    Eigen::Vector3d vBNb = x.segment<3>(0);      // Body translational velocity
-    Eigen::Vector3d omegaBNb = x.segment<3>(3);  // Body angular velocity
-    
-    // Extract pose states (needed for kinematic transform)
-    Eigen::Vector3d Thetanb = x.segment<3>(9);   // RPY Euler angles
-    
-    // Convert Euler angles to rotation matrix
+
+    // Extract velocity states ν = [vBNb; ωBNb]
+    Eigen::Vector3d vBNb     = x.segment<3>(0);  // translational velocity (body)
+    Eigen::Vector3d omegaBNb = x.segment<3>(3);  // angular velocity (body)
+
+    // Pose subset η = [rBNn; Θ_nb]
+    Eigen::Vector3d Thetanb  = x.segment<3>(9);  // RPY angles
+
+    // R_nb(Θ) from Euler (assignment conventions)
     Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
-    
-    // Kinematic transformation: dposition/dt = Rnb * vBNb
+
+    // Position dynamics: ṙ = R_nb v (Eq. (4))
     f.segment<3>(6) = Rnb * vBNb;
-    
-    // Kinematic transformation: dTheta/dt = T * omegaBNb
+
+    // Orientation dynamics: Θ̇ = T(Θ) ω (Eq. (4))
     const double phi = Thetanb(0);
     const double theta = Thetanb(1);
-    
+
     Eigen::Matrix3d T;
     T << 1.0, std::sin(phi)*std::tan(theta),  std::cos(phi)*std::tan(theta),
          0.0, std::cos(phi),                 -std::sin(phi),
          0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
-    
+
     f.segment<3>(9) = T * omegaBNb;
 
-    // Landmark states: dm/dt = 0 (static landmarks)
-    // Already set to zero above
+    // Landmark dynamics: dm/dt = 0 (already zero)
 
     return f;
 }
 
+
 // Evaluate f(x) and its Jacobian J = df/fx from the SDE dx = f(x)*dt + dw
+/*
+dynamics with Jacobian:
+Returns f(x) and J = ∂f/∂x. By (4)–(5), J has structure
+    [ 0     0           0 ]
+J = [ d(Rv)/dν d(Rv)/dΘ  0 ]  with states ordered [ν(6), r(3), Θ(3), m(...)]
+    [ 0     T(Θ)    d(Tω)/dΘ ]
+Landmark columns are identically zero. We compute J wrt the first 12 states
+via autodiff to ensure analytic consistency in tests.
+*/
 Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u, Eigen::MatrixXd & J) const
 {
     //
@@ -85,145 +104,75 @@ Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const 
     //
 
     assert(density.dim() == x.size());
-    
+
     using autodiff::dual;
     using autodiff::jacobian;
     using autodiff::wrt;
     using autodiff::at;
     using autodiff::val;
 
-    // OPTIMIZATION: f(x) only depends on [ν, η] (first 12 states), not landmarks
-    // Therefore ∂f/∂mj = 0 for all landmarks (mathematically exact by Eq 4)
-    
-    const Eigen::Index nx = x.size();          // Total state dimension
-    const Eigen::Index nVelPose = 12;          // [ν, η] dimension (6 + 6)
-    
-    // Extract ONLY the velocity and pose states for differentiation
+    const Eigen::Index nx = x.size();   // full state (includes landmarks)
+    const Eigen::Index nVelPose = 12;   // [vBNb(3), ωBNb(3), rBNn(3), Θ(3)]
+
+    // Differentiate only wrt [ν, η]; landmark columns are zero by model (5)
     Eigen::VectorX<dual> x_vel_pose_dual = x.head(nVelPose).cast<dual>();
-    
-    // Define dynamics function for autodiff (operates only on first 12 states)
+
+    // f_dual builds full-dimension output but depends only on first 12 vars
     auto f_dual = [&](const Eigen::VectorX<dual>& xd) -> Eigen::VectorX<dual> {
-        // xd has dimension 12: [vBNb (3), omegaBNb (3), rBNn (3), Thetanb (3)]
-        Eigen::VectorX<dual> fd(nx);  // Output has full dimension (including landmarks)
+        Eigen::VectorX<dual> fd(nx);
         fd.setZero();
-        
-        // Extract states
-        Eigen::Vector3<dual> vBNb    = xd.segment<3>(0);  // Body translational velocity
-        Eigen::Vector3<dual> omegaBNb = xd.segment<3>(3);  // Body angular velocity
-        Eigen::Vector3<dual> Thetanb  = xd.segment<3>(9);  // RPY Euler angles
-        
-        // Rotation matrix (autodiff-compatible)
+
+        // Unpack ν, η from xd
+        Eigen::Vector3<dual> vBNb     = xd.segment<3>(0);
+        Eigen::Vector3<dual> omegaBNb = xd.segment<3>(3);
+        Eigen::Vector3<dual> Thetanb  = xd.segment<3>(9);
+
+        // R_nb(Θ) and T(Θ) (autodiff-safe)
         Eigen::Matrix3<dual> Rnb = rpy2rot(Thetanb);
-        
-        // Position dynamics: ṙ = Rnb · vBNb
-        fd.segment<3>(6) = Rnb * vBNb;
-        
-        // Orientation dynamics: Θ̇ = TK(Θ) · ωBNb
+
+        fd.segment<3>(6) = Rnb * vBNb; // ṙ = R v
+
         const dual phi = Thetanb(0);
         const dual theta = Thetanb(1);
-        
+
         Eigen::Matrix3<dual> T;
         T << dual(1.0), sin(phi)*tan(theta),  cos(phi)*tan(theta),
              dual(0.0), cos(phi),             -sin(phi),
              dual(0.0), sin(phi)/cos(theta),  cos(phi)/cos(theta);
-        
-        fd.segment<3>(9) = T * omegaBNb;
-        
-        // Landmark dynamics: ṁj = 0 (already zero from setZero())
-        
+
+        fd.segment<3>(9) = T * omegaBNb; // Θ̇ = T ω
+
         return fd;
     };
-    
-    // Compute Jacobian ONLY w.r.t. first 12 states
+
+    // J_vel_pose: (nx × 12); other columns are zero
     Eigen::VectorX<dual> f_dual_out;
     Eigen::MatrixXd J_vel_pose = jacobian(f_dual, wrt(x_vel_pose_dual), at(x_vel_pose_dual), f_dual_out);
-    // J_vel_pose is (nx × 12)
-    
-    // Construct full Jacobian by appending zero columns for landmarks
+
     J.resize(nx, nx);
     J.setZero();
-    J.leftCols(nVelPose) = J_vel_pose;  // First 12 columns from autodiff
-    // Remaining columns are zero (landmarks don't affect dynamics)
-    
-    // DIAGNOSTIC: Verify cross-derivatives are non-zero
-    if (x.size() == 12) {  // Only for body-only state (no landmarks yet)
+    J.leftCols(nVelPose) = J_vel_pose;
+
+    // Optional sanity prints for a 12-dim (no-landmark) state block:
+    if (x.size() == 12) {
         std::cout << "J(6,9) [∂ṙx/∂roll] = " << J(6,9) << std::endl;
-        std::cout << "J(9,9) [∂φ̇/∂roll] = " << J(9,9) << std::endl;
-        
-        double cross_deriv_norm = J.block<3,3>(6,9).norm();  // Position w.r.t. orientation
-        std::cout << "Cross-derivative ∂ṙ/∂θ norm: " << cross_deriv_norm << std::endl;
-        
+        std::cout << "J(9,9) [∂φ̇/∂roll]  = " << J(9,9) << std::endl;
+
+        double cross_deriv_norm = J.block<3,3>(6,9).norm();  // ∂ṙ/∂Θ
+        std::cout << "||∂ṙ/∂Θ||_F        = " << cross_deriv_norm << std::endl;
+
         if (cross_deriv_norm < 1e-10) {
-            std::cerr << "WARNING: Cross-derivatives are zero! Autodiff may not be working!" << std::endl;
+            std::cerr << "WARNING: Cross-derivatives near zero — check autodiff wiring.\n";
         }
     }
 
-    // Extract function value as double
+    // Extract f(x) values (strip dual → double)
     Eigen::VectorXd f(nx);
     for (Eigen::Index i = 0; i < nx; ++i) {
         f(i) = val(f_dual_out(i));
     }
-    
     return f;
 }
-
-// // Evaluate f(x) and its Jacobian J = df/fx from the SDE dx = f(x)*dt + dw
-// Eigen::VectorXd SystemSLAM::dynamics(double t, const Eigen::VectorXd & x, const Eigen::VectorXd & u, Eigen::MatrixXd & J) const
-// {
-//     Eigen::VectorXd f = dynamics(t, x, u);
-
-//     // Jacobian J = df/dx
-//     //    
-//     //     [  0                  0 0 ]
-//     // J = [ JK d(JK(eta)*nu)/deta 0 ]
-//     //     [  0                  0 0 ]
-//     //
-//     J.resize(f.size(), x.size());
-//     J.setZero();
-//     // TODO: Implement in Assignment(s)
-
-//     // Extract states
-//     Eigen::Vector3d vBNb = x.segment<3>(0);
-//     Eigen::Vector3d omegaBNb = x.segment<3>(3);
-//     Eigen::Vector3d Thetanb = x.segment<3>(9);
-    
-//     Eigen::Matrix3d Rnb = rpy2rot(Thetanb);
-    
-//     // J[6:8, 0:2] = Rnb (derivative of position w.r.t. velocity)
-//     J.block<3,3>(6,0) = Rnb;
-    
-//     // J[6:8, 9:11] = d(Rnb*vBNb)/dTheta (numerical differentiation for robustness)
-//     const double eps = 1e-7;
-//     for (int i = 0; i < 3; ++i) {
-//         Eigen::Vector3d Theta_plus = Thetanb;
-//         Theta_plus(i) += eps;
-//         Eigen::Matrix3d Rnb_plus = rpy2rot(Theta_plus);
-//         J.block<3,1>(6, 9+i) = (Rnb_plus * vBNb - Rnb * vBNb) / eps;
-//     }
-    
-//     // J[9:11, 3:5] = T (derivative of orientation w.r.t. angular velocity)
-//     const double phi = Thetanb(0);
-//     const double theta = Thetanb(1);
-//     Eigen::Matrix3d T;
-//     T << 1.0, std::sin(phi)*std::tan(theta),  std::cos(phi)*std::tan(theta),
-//          0.0, std::cos(phi),                 -std::sin(phi),
-//          0.0, std::sin(phi)/std::cos(theta),  std::cos(phi)/std::cos(theta);
-//     J.block<3,3>(9,3) = T;
-    
-//     // J[9:11, 9:11] = d(T*omega)/dTheta (numerical differentiation)
-//     for (int i = 0; i < 3; ++i) {
-//         Eigen::Vector3d Theta_plus = Thetanb;
-//         Theta_plus(i) += eps;
-//         const double phi_p = Theta_plus(0);
-//         const double theta_p = Theta_plus(1);
-//         Eigen::Matrix3d T_plus;
-//         T_plus << 1.0, std::sin(phi_p)*std::tan(theta_p),  std::cos(phi_p)*std::tan(theta_p),
-//                   0.0, std::cos(phi_p),                    -std::sin(phi_p),
-//                   0.0, std::sin(phi_p)/std::cos(theta_p),  std::cos(phi_p)/std::cos(theta_p);
-//         J.block<3,1>(9, 9+i) = (T_plus * omegaBNb - T * omegaBNb) / eps;
-//     }
-//     return f;
-// }
 
 Eigen::VectorXd SystemSLAM::input(double t, const Eigen::VectorXd & x) const
 {
@@ -236,12 +185,10 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
     Eigen::MatrixXd SQ(6, 6);
     SQ.setZero();
 
-    // Process noise parameters (TUNABLE - start here and adjust based on drift)
-    // These control how much the filter trusts the process model vs measurements
-    const double qv = 0.2;  // Translational velocity noise (m/s^1.5)
-    const double qw = 0.05;  // Angular velocity noise (rad/s^1.5)
+    // Tunable spectral densities (These control how much the filter trusts the process model vs measurements)
+    const double qv = 0.2;   // translational velocity drive (m·s^{-3/2})
+    const double qw = 0.05;  // angular velocity drive (rad·s^{-3/2})
     
-    // TODO: Assignment(s)
     // Diagonal noise (independent noise on each velocity component)
     SQ(0,0) = qv;  // x-velocity noise
     SQ(1,1) = qv;  // y-velocity noise
@@ -259,7 +206,6 @@ std::vector<Eigen::Index> SystemSLAM::processNoiseIndex() const
     // Indices of process model equations where process noise is injected
     // Noise only affects velocity states (indices 0-5)
     std::vector<Eigen::Index> idxQ{0, 1, 2, 3, 4, 5};
-    // TODO: Assignment(s)
     return idxQ;
 }
 

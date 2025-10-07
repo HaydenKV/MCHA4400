@@ -112,11 +112,6 @@ $(function() {
   <div class="headertitle"><div class="title">MeasurementSLAMUniqueTagBundle Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
-
-<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs (Scenario 1)  
- <a href="#details">More...</a></p>
-
-<p><code>#include &lt;<a class="el" href="MeasurementSLAMUniqueTagBundle_8h_source.html">MeasurementSLAMUniqueTagBundle.h</a>&gt;</code></p>
 <div class="dynheader">
 Inheritance diagram for MeasurementSLAMUniqueTagBundle:</div>
 <div class="dyncontent">
@@ -134,23 +129,21 @@ Inheritance diagram for MeasurementSLAMUniqueTagBundle:</div>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a9664b84d0ecb7b8c8d956814ddcd6f49" id="r_a9664b84d0ecb7b8c8d956814ddcd6f49"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9664b84d0ecb7b8c8d956814ddcd6f49">MeasurementSLAMUniqueTagBundle</a> (double time, const Eigen::Matrix&lt; double, 2, Eigen::Dynamic &gt; &amp;Y, const <a class="el" href="structCamera.html">Camera</a> &amp;camera, const std::vector&lt; int &gt; &amp;ids)</td></tr>
 <tr class="memitem:abb703d706a191b323666bc74798ef8fc" id="r_abb703d706a191b323666bc74798ef8fc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classMeasurementSLAM.html">MeasurementSLAM</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abb703d706a191b323666bc74798ef8fc">clone</a> () const override</td></tr>
-<tr class="memdesc:abb703d706a191b323666bc74798ef8fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clone this measurement (must preserve derived type for <a class="el" href="structPlot.html">Plot</a>)  <br /></td></tr>
+<tr class="memdesc:abb703d706a191b323666bc74798ef8fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clone preserving dynamic type (required by plotting/estimation pipeline).  <br /></td></tr>
 <tr class="memitem:a01e32a3cc6fab9242d691a347373eb00" id="r_a01e32a3cc6fab9242d691a347373eb00"><td class="memItemLeft" align="right" valign="top"><a id="a01e32a3cc6fab9242d691a347373eb00" name="a01e32a3cc6fab9242d691a347373eb00"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setIdByLandmark</b> (const std::vector&lt; int &gt; &amp;m)</td></tr>
 <tr class="memitem:ab0ff41f2014f768dafaf708460fff3d3" id="r_ab0ff41f2014f768dafaf708460fff3d3"><td class="memItemLeft" align="right" valign="top"><a id="ab0ff41f2014f768dafaf708460fff3d3" name="ab0ff41f2014f768dafaf708460fff3d3"></a>
 const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>idByLandmark</b> () const</td></tr>
 <tr class="memitem:a6117b0994eb8219ece7cc5e2fb404a70" id="r_a6117b0994eb8219ece7cc5e2fb404a70"><td class="memItemLeft" align="right" valign="top"><a id="a6117b0994eb8219ece7cc5e2fb404a70" name="a6117b0994eb8219ece7cc5e2fb404a70"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>isEffectivelyAssociated</b> (std::size_t landmarkIdx) const</td></tr>
-<tr class="memdesc:a6117b0994eb8219ece7cc5e2fb404a70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if landmark was effectively associated this frame Used by <a class="el" href="structPlot.html">Plot</a> to color ellipses (blue=associated, red=unassociated) <br /></td></tr>
-<tr class="memitem:a9b15d929706870c1b47cc6b3c8abb354" id="r_a9b15d929706870c1b47cc6b3c8abb354"><td class="memItemLeft" align="right" valign="top">virtual const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9b15d929706870c1b47cc6b3c8abb354">associate</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) override</td></tr>
-<tr class="memdesc:a9b15d929706870c1b47cc6b3c8abb354"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID-based data association.  <br /></td></tr>
-<tr class="memitem:a78197c8e25dc7f4624ea5b0efc550f86" id="r_a78197c8e25dc7f4624ea5b0efc550f86"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78197c8e25dc7f4624ea5b0efc550f86">update</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system) override</td></tr>
-<tr class="memdesc:a78197c8e25dc7f4624ea5b0efc550f86"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update WITHOUT deletion (Scenario 1)  <br /></td></tr>
-<tr class="memitem:ab1e228bf6421d3cd253044d138f34013" id="r_ab1e228bf6421d3cd253044d138f34013"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab1e228bf6421d3cd253044d138f34013">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const override</td></tr>
+<tr class="memdesc:a6117b0994eb8219ece7cc5e2fb404a70"><td class="mdescLeft">&#160;</td><td class="mdescRight">True iff landmark j was associated to a detection this frame (blue in plot). <br /></td></tr>
+<tr class="memitem:a9b15d929706870c1b47cc6b3c8abb354" id="r_a9b15d929706870c1b47cc6b3c8abb354"><td class="memItemLeft" align="right" valign="top">const std::vector&lt; int &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9b15d929706870c1b47cc6b3c8abb354">associate</a> (const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, const std::vector&lt; std::size_t &gt; &amp;idxLandmarks) override</td></tr>
+<tr class="memitem:a78197c8e25dc7f4624ea5b0efc550f86" id="r_a78197c8e25dc7f4624ea5b0efc550f86"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78197c8e25dc7f4624ea5b0efc550f86">update</a> (<a class="el" href="classSystemBase.html">SystemBase</a> &amp;system) override</td></tr>
+<tr class="memitem:ab1e228bf6421d3cd253044d138f34013" id="r_ab1e228bf6421d3cd253044d138f34013"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab1e228bf6421d3cd253044d138f34013">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const override</td></tr>
 <tr class="memdesc:ab1e228bf6421d3cd253044d138f34013"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the log-likelihood of a measurement.  <br /></td></tr>
-<tr class="memitem:a0b739a11c73f4dd3f15bb56df770adf5" id="r_a0b739a11c73f4dd3f15bb56df770adf5"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0b739a11c73f4dd3f15bb56df770adf5">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g) const override</td></tr>
+<tr class="memitem:a0b739a11c73f4dd3f15bb56df770adf5" id="r_a0b739a11c73f4dd3f15bb56df770adf5"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0b739a11c73f4dd3f15bb56df770adf5">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g) const override</td></tr>
 <tr class="memdesc:a0b739a11c73f4dd3f15bb56df770adf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the log-likelihood and its gradient.  <br /></td></tr>
-<tr class="memitem:ae9105df00cf1c9a233721082f429c94b" id="r_ae9105df00cf1c9a233721082f429c94b"><td class="memItemLeft" align="right" valign="top">virtual double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae9105df00cf1c9a233721082f429c94b">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g, Eigen::MatrixXd &amp;H) const override</td></tr>
+<tr class="memitem:ae9105df00cf1c9a233721082f429c94b" id="r_ae9105df00cf1c9a233721082f429c94b"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae9105df00cf1c9a233721082f429c94b">logLikelihood</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system, Eigen::VectorXd &amp;g, Eigen::MatrixXd &amp;H) const override</td></tr>
 <tr class="memdesc:ae9105df00cf1c9a233721082f429c94b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the log-likelihood, its gradient, and Hessian.  <br /></td></tr>
 <tr class="memitem:a1050c5b9e4aef97f3ff65402b8a59f63" id="r_a1050c5b9e4aef97f3ff65402b8a59f63"><td class="memItemLeft" align="right" valign="top"><a id="a1050c5b9e4aef97f3ff65402b8a59f63" name="a1050c5b9e4aef97f3ff65402b8a59f63"></a>
 const std::vector&lt; bool &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>isVisible</b> () const</td></tr>
@@ -200,11 +193,10 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><b>~Event</b> ()</td>
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:a78fa7cdc85fe0c072e9796a0a9fb9546" id="r_a78fa7cdc85fe0c072e9796a0a9fb9546"><td class="memItemLeft" align="right" valign="top">Eigen::Matrix&lt; double, 8, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78fa7cdc85fe0c072e9796a0a9fb9546">predictTagCorners</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, std::size_t idxLandmark) const</td></tr>
-<tr class="memdesc:a78fa7cdc85fe0c072e9796a0a9fb9546"><td class="mdescLeft">&#160;</td><td class="mdescRight">Predict 4 corner pixel locations for a tag landmark.  <br /></td></tr>
-<tr class="memitem:a9d8d9fee3eef8c7f2b93f29499dccd40" id="r_a9d8d9fee3eef8c7f2b93f29499dccd40"><td class="memTemplParams" colspan="2"><a id="a9d8d9fee3eef8c7f2b93f29499dccd40" name="a9d8d9fee3eef8c7f2b93f29499dccd40"></a>
+<tr class="memitem:a88ab3c883cabc0c3ecb48b1cff3349ba" id="r_a88ab3c883cabc0c3ecb48b1cff3349ba"><td class="memTemplParams" colspan="2"><a id="a88ab3c883cabc0c3ecb48b1cff3349ba" name="a88ab3c883cabc0c3ecb48b1cff3349ba"></a>
 template&lt;typename Scalar&gt; </td></tr>
-<tr class="memitem:a9d8d9fee3eef8c7f2b93f29499dccd40 template"><td class="memItemLeft" align="right" valign="top">Eigen::Matrix&lt; Scalar, 8, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>predictTagCornersT</b> (const Eigen::VectorX&lt; Scalar &gt; &amp;x, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, std::size_t idxLandmark) const</td></tr>
-<tr class="memdesc:a9d8d9fee3eef8c7f2b93f29499dccd40"><td class="mdescLeft">&#160;</td><td class="mdescRight">Templated version for autodiff. <br /></td></tr>
+<tr class="memitem:a88ab3c883cabc0c3ecb48b1cff3349ba template"><td class="memItemLeft" align="right" valign="top">Eigen::Matrix&lt; Scalar, 8, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>predictTagCornersT</b> (const Eigen::Matrix&lt; Scalar, Eigen::Dynamic, 1 &gt; &amp;x, const <a class="el" href="classSystemSLAM.html">SystemSLAM</a> &amp;system, std::size_t idxLandmark) const</td></tr>
+<tr class="memdesc:a88ab3c883cabc0c3ecb48b1cff3349ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Autodiff-friendly overload; Scalar ∈ {double, autodiff::dual}. <br /></td></tr>
 <tr class="inherit_header pro_methods_classMeasurement"><td colspan="2" onclick="javascript:dynsection.toggleInherit('pro_methods_classMeasurement')"><span class="dynarrow"><span class="arrowhead closed"></span></span>Protected Member Functions inherited from <a class="el" href="classMeasurement.html">Measurement</a></td></tr>
 <tr class="memitem:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement" id="r_a3e2ef4fbb8d8eeb71940f5ffd6848ea6"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMeasurement.html#a3e2ef4fbb8d8eeb71940f5ffd6848ea6">costJointDensity</a> (const Eigen::VectorXd &amp;x, const <a class="el" href="classSystemEstimator.html">SystemEstimator</a> &amp;system) const</td></tr>
 <tr class="memdesc:a3e2ef4fbb8d8eeb71940f5ffd6848ea6 inherit pro_methods_classMeasurement"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the cost of the joint density.  <br /></td></tr>
@@ -253,20 +245,7 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>time_</b></td></tr>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></tr>
 <tr class="memdesc:ac98f29e9b794a6294f6a1be787263e35 inherit pro_attribs_classEvent"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verbosity level. <br /></td></tr>
 </table>
-<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> class for ArUco tag SLAM with unique IDs (Scenario 1) </p>
-<p>Key features for Scenario 1:</p><ul>
-<li>ID-based data association (trivial since tags have unique IDs)</li>
-<li>4-corner measurement model per tag</li>
-<li>NO DELETION of landmarks (tags persist for loop closure)</li>
-<li>Visual distinction: blue=associated, red=unassociated</li>
-</ul>
-<p>IMPORTANT: Left pane ellipses show TAG CENTER (not corners!)</p><ul>
-<li>Base class predictFeature() reads only position part of pose landmark</li>
-<li>For pose landmarks: state = [rLNn(3), ThetaLn(3)]</li>
-<li>predictFeature() reads only first 3 elements → tag center position </li>
-</ul>
-</div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9664b84d0ecb7b8c8d956814ddcd6f49" name="a9664b84d0ecb7b8c8d956814ddcd6f49"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9664b84d0ecb7b8c8d956814ddcd6f49">&#9670;&#160;</a></span>MeasurementSLAMUniqueTagBundle()</h2>
 
@@ -298,9 +277,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">time</td><td><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> timestamp </td></tr>
-    <tr><td class="paramname">Y</td><td><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> matrix (2 × 4N) - all 4 corners of all detected tags </td></tr>
-    <tr><td class="paramname">camera</td><td><a class="el" href="structCamera.html">Camera</a> calibration </td></tr>
-    <tr><td class="paramname">ids</td><td>Tag IDs corresponding to measurements </td></tr>
+    <tr><td class="paramname">Y</td><td>Corner bundle, shape 2×(4N): columns [u1 v1 u2 v2 u3 v3 u4 v4]ᵀ per tag </td></tr>
+    <tr><td class="paramname">camera</td><td><a class="el" href="structCamera.html">Camera</a> model (intrinsics + distortion + body↔camera extrinsics) </td></tr>
+    <tr><td class="paramname">ids</td><td>Tag IDs (size N), used for trivial data association </td></tr>
   </table>
   </dd>
 </dl>
@@ -334,9 +313,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
   </tr>
 </table>
 </div><div class="memdoc">
-
-<p>ID-based data association. </p>
-<p>Matches detected tags with map landmarks using unique IDs. Conservative FOV checking to reject measurements near image borders. </p>
+<p>ID-based association + visibility tagging.</p><ul>
+<li>Association: tag ID → feature index (trivial, unique IDs).</li>
+<li>Visibility (|U| term in (7)): uses PRIOR MEAN state to decide if all 4 corners would fall strictly inside the image (conservative check). </li>
+</ul>
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a>.</p>
 
@@ -365,7 +345,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
 </table>
 </div><div class="memdoc">
 
-<p>Clone this measurement (must preserve derived type for <a class="el" href="structPlot.html">Plot</a>) </p>
+<p>Clone preserving dynamic type (required by plotting/estimation pipeline). </p>
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html">MeasurementPointBundle</a>.</p>
 
@@ -543,9 +523,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
   </tr>
 </table>
 </div><div class="memdoc">
-
-<p>Predict 4 corner pixel locations for a tag landmark. </p>
-<dl class="section return"><dt>Returns</dt><dd>8×1 vector [u1,v1, u2,v2, u3,v3, u4,v4]^T </dd></dl>
+<p>Predicts the 4 tag-corner pixel locations for landmark j: 1) Tag corners in tag frame from (9) with ℓ = TAG_SIZE. 2) World corners r^n_{jc} = R^n_L r^L_{jc} + r^n_L (from (8)). 3) <a class="el" href="structCamera.html">Camera</a> frame r^c_{jc} = R^c_n (r^n_{jc} − r^n_C). 4) Projection u = π(K,R,t,r^c_{jc}) via Camera::vectorToPixel. Returns h_j(x) = [u1,v1, u2,v2, u3,v3, u4,v4]^T. </p>
 
 </div>
 </div>
@@ -571,9 +549,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
   </tr>
 </table>
 </div><div class="memdoc">
-
-<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update WITHOUT deletion (Scenario 1) </p>
-<p>Performs Kalman update for associated landmarks. DOES NOT delete landmarks - tags persist for loop closure. </p>
+<p><a class="el" href="classMeasurement.html" title="Base class for measurement events in the system.">Measurement</a> update for Scenario 1. Applies the Kalman/optimizer update; no landmark deletion (loop-closure). </p>
 
 <p>Reimplemented from <a class="el" href="classMeasurementPointBundle.html#a4d7ec2ad6e6fe05ffffe8e537f551365">MeasurementPointBundle</a>.</p>
 
