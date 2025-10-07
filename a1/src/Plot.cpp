@@ -86,6 +86,7 @@
 #include "MeasurementSLAM.h"
 #include "MeasurementSLAMPointBundle.h"
 #include "MeasurementSLAMUniqueTagBundle.h"
+#include "MeasurementSLAMDuckBundle.h"
 #include "Plot.h"
 
 // Forward declarations
@@ -556,11 +557,11 @@ Plot::Plot(const Camera & camera)
 
     // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
     threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    threeDimRenderer->GetActiveCamera()->Elevation(0);
+    threeDimRenderer->GetActiveCamera()->Elevation(200);
     // rFNn
     threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
     // rCNn
-    double sc = 7; // Scale factor - increase to intially zoom out (was originally on 2)
+    double sc = 3.0; // Scale factor - increase to intially zoom out (was originally on 2)
     threeDimRenderer->GetActiveCamera()->SetPosition(0.15*sc, -0.15*sc, -0.65*sc);
     threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
 
@@ -639,10 +640,29 @@ void Plot::render()
         bool isDetected = false;
         bool hasTagId = false;
         
+        /* Scenario 1 (unique tags): use its helper + ID map */
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
             isDetected = tagMeas->isEffectivelyAssociated(i);
-            hasTagId = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
+            hasTagId   = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
+
+        /* Scenarios 2 & 3 (point bundles, including ducks): use SNN results directly */
+        } else if (const auto* duckMeas = dynamic_cast<const MeasurementSLAMDuckBundle*>(pMeasurement.get())) {
+            const auto& idxF = duckMeas->idxFeatures();
+            isDetected = (i < idxF.size()) && (idxF[i] >= 0);
+            hasTagId   = true; // just to reuse the same colour path as points
         }
+
+        // --- universal label: tag ID if available, else LM<i> ---
+        // optional - not required by assignment but useful for visually debugging
+        auto makeLandmarkLabel = [&](std::size_t idx)->std::string {
+            if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
+                const auto& ids = tagMeas->idByLandmark();
+                if (idx < ids.size() && ids[idx] >= 0) {
+                    return "ID " + std::to_string(ids[idx]);
+                }
+            }
+            return "LM " + std::to_string(idx);
+        };
 
         // Left-pane color
         double cr_left, cg_left, cb_left;
@@ -663,7 +683,7 @@ void Plot::render()
         }
 
         // Left pane: draw 3σ ellipse at tag center when center is in FOV
-        if (hasTagId && centerInFOV) {
+        if (hasTagId /* && centerInFOV */) {
             try {
                 // For pose landmarks, predictFeatureDensity() projects the landmark center to pixels using the (8)–(9) mapping inside the measurement.
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
@@ -676,9 +696,8 @@ void Plot::render()
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
 
-                        // Tag ID annotation near the center (BGR in OpenCV)
-                        auto* tagMeas = static_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get());
-                        std::string label = std::to_string(tagMeas->idByLandmark()[i]);
+                        // // Tag ID annotation near the center (BGR in OpenCV)
+                        std::string label = makeLandmarkLabel(i);
                         cv::putText(pSystem->view(), label,
                                     cv::Point(static_cast<int>(pixMean.x() + 10), 
                                               static_cast<int>(pixMean.y() - 10)),

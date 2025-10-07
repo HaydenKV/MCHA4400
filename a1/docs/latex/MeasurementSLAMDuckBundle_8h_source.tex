@@ -1,0 +1,97 @@
+\doxysection{Measurement\+SLAMDuck\+Bundle.\+h}
+\hypertarget{MeasurementSLAMDuckBundle_8h_source}{}\label{MeasurementSLAMDuckBundle_8h_source}\index{src/MeasurementSLAMDuckBundle.h@{src/MeasurementSLAMDuckBundle.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ MEASUREMENTSLAMDUCKBUNDLE\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ MEASUREMENTSLAMDUCKBUNDLE\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <Eigen/Core>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}MeasurementSLAM.h"{}}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}Camera.h"{}}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{GaussianInfo_8hpp}{GaussianInfo.hpp}}"{}}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ "{}SystemSLAM.h"{}}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{class\ }MeasurementSLAMDuckBundle\ :\ \textcolor{keyword}{public}\ MeasurementSLAM}
+\DoxyCodeLine{00012\ \{}
+\DoxyCodeLine{00013\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00014\ \ \ \ \ MeasurementSLAMDuckBundle(\textcolor{keywordtype}{double}\ time,}
+\DoxyCodeLine{00015\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yuv,}
+\DoxyCodeLine{00016\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorXd\&\ A,}
+\DoxyCodeLine{00017\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
+\DoxyCodeLine{00018\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_c\_px,}
+\DoxyCodeLine{00019\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_a\_px2,}
+\DoxyCodeLine{00020\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_radius\_m);}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \ \ \ \ MeasurementSLAM*\ clone()\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{comment}{//\ Base\ Measurement\ interface}}
+\DoxyCodeLine{00025\ \ \ \ \ Eigen::VectorXd\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a9fad8c4b2f134fc5037e529c6a45a5d7}{simulate}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{comment}{//\ Likelihoods\ over\ stacked\ [u\ v\ A\ ...]\ for\ associated\ pairs}}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a05d3d294b0c5b7f619a78e1d377847d5}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a05d3d294b0c5b7f619a78e1d377847d5}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a05d3d294b0c5b7f619a78e1d377847d5}{logLikelihood}}(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemEstimator}{SystemEstimator}}\&\ system,\ Eigen::VectorXd\&\ g,\ Eigen::MatrixXd\&\ H)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ Plot\ needs\ this\ to\ colour\ landmarks\ blue\ when\ matched\ this\ frame}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{bool}\ isEffectivelyAssociated(std::size\_t\ j)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ j\ <\ is\_effectively\_associated\_.size()\ \&\&\ is\_effectively\_associated\_[j];}
+\DoxyCodeLine{00035\ \ \ \ \ \}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{comment}{//\ Expose\ centroids\ for\ SNN\ association\ (shape\ 2×N)}}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Y()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ Yuv\_;\ \}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{comment}{//\ Association\ results\ (landmark\ index\ -\/>\ feature\ index\ or\ -\/1)}}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ idxFeatures()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ idxFeatures\_;\ \}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a64e065a44ab54c16b21b6d9a1a507b17}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{comment}{//\ Per-\/landmark\ predicted\ (u,v,A)}}
+\DoxyCodeLine{00047\ \ \ \ \ Eigen::Vector3d\ predictDuck(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ Eigen::MatrixXd\&\ J,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00050\ \ \ \ \ Eigen::Matrix<Scalar,3,1>\ predictDuckT(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,Eigen::Dynamic,1>\&\ x,}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{comment}{//\ Bundle\ prediction\ (3×\ per\ landmark):\ stacks\ [u\ v\ A]\ for\ all\ landmarks}}
+\DoxyCodeLine{00055\ \ \ \ \ Eigen::VectorXd\ predictDuckBundle(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,\ Eigen::MatrixXd\&\ J,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{comment}{//\ Densities\ required\ by\ base\ API\ (used\ by\ Plot\ for\ 2D\ ellipses)}}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{classGaussianInfo}{GaussianInfo<double>}}\ predictFeatureDensity(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{classGaussianInfo}{GaussianInfo<double>}}\ predictFeatureBundleDensity(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const\ override};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{comment}{//\ Association\ uses\ 2D\ (u,v)\ density;\ pass\ that\ to\ SNN}}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<int>\&\ associate(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,\ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Helpers\ (private)\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{comment}{//\ Full\ 3D\ [u,v,A]\ density\ (used\ by\ internal\ likelihood\ math\ /\ debugging).}}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{comment}{//\ Declaring\ this\ fixes\ the\ "{}does\ not\ match\ any\ declaration"{}\ error.}}
+\DoxyCodeLine{00069\ \ \ \ \ \mbox{\hyperlink{classGaussianInfo}{GaussianInfo<double>}}\ predictDuckBundleDensity(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//\ 2D\ (u,v)\ only\ density\ used\ for\ SNN\ association\ and\ Plot\ ellipses.}}
+\DoxyCodeLine{00073\ \ \ \ \ \mbox{\hyperlink{classGaussianInfo}{GaussianInfo<double>}}\ predictCentroidBundleDensity(\textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Measurement\ storage\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00077\ \ \ \ \ Eigen::Matrix<double,2,Eigen::Dynamic>\ Yuv\_;\ \ \textcolor{comment}{//\ centroids\ (2×N)\ for\ this\ frame}}
+\DoxyCodeLine{00078\ \ \ \ \ Eigen::VectorXd\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ A\_;\ \ \ \ \textcolor{comment}{//\ areas\ (N)}}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Noise/tuning\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_c\_;\ \ \ \ \ \textcolor{comment}{//\ pixel\ std\ for\ (u,v)}}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_a\_;\ \ \ \ \ \textcolor{comment}{//\ area\ std\ (pixels\string^2)}}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_r\_m\_;\ \ \ \ \textcolor{comment}{//\ physical\ duck\ radius\ [m]}}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{double}\ fx\_,\ fy\_;\ \ \ \ \ \textcolor{comment}{//\ cached\ intrinsics\ for\ area\ model}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Association\ state\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00087\ \ \ \ \ std::vector<int>\ \ idxFeatures\_;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ LM\ j\ -\/>\ feature\ index\ (-\/1\ if\ none)}}
+\DoxyCodeLine{00088\ \ \ \ \ std::vector<bool>\ is\_effectively\_associated\_;\ \ \ \textcolor{comment}{//\ for\ Plot\ colouring}}
+\DoxyCodeLine{00089\ \};}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ MEASUREMENTSLAMDUCKBUNDLE\_H}}
+
+\end{DoxyCode}

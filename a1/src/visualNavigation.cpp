@@ -13,9 +13,10 @@
 #include <ctime>
 #include <csignal>
 #include <atomic>
-#include <print>          // C++23 diagnostics: std::print / std::println
-#include <cstdlib>        // std::exit
-#include <numbers>        // std::numbers::pi (portable replacement for M_PI)
+#include <print>
+#include <cstdlib>
+#include <numbers> 
+#include <algorithm>
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -26,6 +27,8 @@
 #include "SystemSLAMPoseLandmarks.h"
 #include "MeasurementSLAMPointBundle.h"
 #include "MeasurementSLAMUniqueTagBundle.h"
+#include "MeasurementSLAMDuckBundle.h"
+#include "DuckDetectorONNX.h"
 #include "GaussianInfo.hpp"
 #include "imagefeatures.h"
 #include "rotation.hpp"
@@ -152,6 +155,7 @@ void runVisualNavigationFromVideo(
     }
 
     // ---------- Build system state ----------
+    std::unique_ptr<DuckDetectorONNX> duckDetector;
     std::unique_ptr<SystemSLAM> systemPtr;
     if (scenario == 1)
     {
@@ -162,8 +166,8 @@ void runVisualNavigationFromVideo(
         mu_body.segment<3>(9) << 0.0, 0.0, 0.0; // Θ^n_B
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12);
-        S_body.block<3,3>(0,0) *= 1e0;          // v uncertainty
-        S_body.block<3,3>(3,3) *= 5e-1;         // ω uncertainty
+        S_body.block<3,3>(0,0) *= 1.0;          // v uncertainty
+        S_body.block<3,3>(3,3) *= 0.5;         // ω uncertainty
         const double d2r = (1.0 * std::numbers::pi / 180.0);
         S_body.block<3,3>(6,6) *= 0.01;         // r uncertainty (≈1 cm)
         S_body.block<3,3>(9,9) *= (1 * d2r);    // Θ uncertainty (≈1°)
@@ -171,8 +175,26 @@ void runVisualNavigationFromVideo(
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPoseLandmarks>(SystemSLAMPoseLandmarks(p0));
     }
+    else if (scenario == 2) {
+        // ---- Point-landmark SLAM system (we won't update it yet) ----
+        Eigen::VectorXd mu_body(12);  mu_body.setZero();        // ν(6), r(3), Θ(3)
+        Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12);
+        S_body.block<3,3>(0,0) *= 0.5;          // v uncertainty
+        S_body.block<3,3>(6,6) *= 0.5;                         // position sqrt-cov
+        const double d2r = (1.0 * std::numbers::pi / 180.0);
+        S_body.block<3,3>(9,9) *= (5.0 * d2r);                    // orientation sqrt-cov
+        auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
+        systemPtr = std::make_unique<SystemSLAMPointLandmarks>(SystemSLAMPointLandmarks(p0));
+
+        // ---- ONNX Duck detector (same path as Lab 3) ----
+        const std::filesystem::path onnx_file = "../src/duck_with_postprocessing.onnx";
+        assert(std::filesystem::exists(onnx_file) && "[DuckDetector] ONNX model not found at ../src/duck_with_postprocessing.onnx");
+        duckDetector = std::make_unique<DuckDetectorONNX>(onnx_file.string());
+        assert(duckDetector && "[DuckDetector] construction failed");
+    }
     else
     {
+        assert("broken if you're here");
         // Placeholder for other scenarios (unchanged).
         Eigen::VectorXd mu(24);
         mu.setZero();
@@ -399,8 +421,68 @@ void runVisualNavigationFromVideo(
             // Visualization — left/right panes per assignment spec
             plot.setData(system, meas);
         }
+        else if (scenario == 2)
+        {
+            // 0) Sanity
+            auto* sysPts = dynamic_cast<SystemSLAMPointLandmarks*>(&system);
+            assert(sysPts && "Scenario 2 expects SystemSLAMPointLandmarks");
+            assert(duckDetector && "duckDetector must be initialised in scenario 2");
+
+            // 1) Run the detector and choose the frame to display on the left pane
+            cv::Mat annotated = duckDetector->detect(imgin);      // overlayed frame
+            system.view() = annotated.empty() ? imgin : annotated;
+
+            // Read detections
+            const auto& C = duckDetector->last_centroids();       // vector<cv::Point2f>
+            const auto& A = duckDetector->last_areas();           // vector<double>
+            assert(C.size() == A.size());
+            
+            // Useful debugging
+            std::cout << "Frame " << frameIdx << " | Detected " << C.size() << " ducks.\n";
+            for (std::size_t i = 0; i < C.size(); ++i) {
+                std::cout << "  Duck " << i << ": Centroid (" << C[i].x << ", " << C[i].y << "), Area " << A[i] << "\n";
+            }
+
+            // size_t N = number of detected ducks
+            const int N = static_cast<int>(C.size());
+
+            // 2) Build measurement (Y: 2×N centroids, Avec: N areas)
+            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, N);
+            std::vector<double> Avec(N);
+            for (int i = 0; i < N; ++i) {
+                Y(0,i) = static_cast<double>(C[i].x);
+                Y(1,i) = static_cast<double>(C[i].y);
+                Avec[i] = A[i];
+            }
+
+
+            // 3) Construct duck bundle and run the update (no landmark init yet)
+            //    Tunables: pixel std (u,v), area std, and physical duck radius
+            constexpr double SIGMA_C_PX  = 15.0;     // centroid pixel noise (std)
+            constexpr double SIGMA_A_PX2 = 300.0;   // area noise (std) in px^2
+            constexpr double DUCK_R_M    = 0.07;    // physical radius in meters
+
+            Eigen::Map<const Eigen::VectorXd> Avec_eig(Avec.data(), static_cast<Eigen::Index>(Avec.size()));
+
+            MeasurementSLAMDuckBundle meas(t, Y, Avec_eig, camera,
+                                        SIGMA_C_PX, SIGMA_A_PX2, DUCK_R_M);
+
+            sysPts->appendFromDuckDetections(
+                camera,
+                Y,
+                Eigen::Map<const Eigen::VectorXd>(Avec.data(), Avec.size()),
+                camera.cameraMatrix.at<double>(0,0),   // fx
+                camera.cameraMatrix.at<double>(1,1),   // fy
+                0.07,                                   // duck radius [m]
+                0.25);                                  // conservative σ_pos [m]
+
+            meas.process(system);  // propagate (4)–(5) + correct
+
+            plot.setData(system, meas);
+        }
         else
         {
+            assert("broken if you're here");
             // Other scenarios unchanged in this file
             system.view() = imgin;
             Eigen::Matrix<double,2,Eigen::Dynamic> Ynow(2,0);

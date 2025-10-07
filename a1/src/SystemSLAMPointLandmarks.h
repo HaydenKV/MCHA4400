@@ -24,6 +24,18 @@ public:
     SystemSLAM * clone() const override;
     virtual std::size_t numberLandmarks() const override;
     virtual std::size_t landmarkPositionIndex(std::size_t idxLandmark) const override;
+
+    // NEW: append a single 3-D point landmark (position only), returns its index
+    std::size_t appendLandmark(const Eigen::Vector3d& rLNn,
+                               const Eigen::Matrix3d& Spos);
+
+    // NEW: bulk append from Scenario 2 (ducks) detections
+    void appendFromDuckDetections(const Camera& camera,
+                                  const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
+                                  const Eigen::VectorXd& A,
+                                  double fx, double fy,
+                                  double duck_r_m,
+                                  double sigma_pos_m = 0.25);
 };
 
 #endif

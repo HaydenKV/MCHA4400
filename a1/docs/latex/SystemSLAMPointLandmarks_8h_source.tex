@@ -28,8 +28,20 @@
 \DoxyCodeLine{00024\ \ \ \ \ SystemSLAM\ *\ clone()\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00025\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ numberLandmarks()\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ landmarkPositionIndex(std::size\_t\ idxLandmark)\ \textcolor{keyword}{const\ override};}
-\DoxyCodeLine{00027\ \};}
-\DoxyCodeLine{00028\ }
-\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{//\ NEW:\ append\ a\ single\ 3-\/D\ point\ landmark\ (position\ only),\ returns\ its\ index}}
+\DoxyCodeLine{00029\ \ \ \ \ std::size\_t\ appendLandmark(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ rLNn,}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ Spos);}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ NEW:\ bulk\ append\ from\ Scenario\ 2\ (ducks)\ detections}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{void}\ appendFromDuckDetections(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yuv,}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorXd\&\ A,}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ fx,\ \textcolor{keywordtype}{double}\ fy,}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_r\_m,}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_pos\_m\ =\ 0.25);}
+\DoxyCodeLine{00039\ \};}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

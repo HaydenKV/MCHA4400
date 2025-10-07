@@ -6,5 +6,6 @@ var searchData=
   ['measurement_2eh_3',['Measurement.h',['../Measurement_8h.html',1,'']]],
   ['measurementpointbundle_4',['MeasurementPointBundle',['../classMeasurementPointBundle.html',1,'']]],
   ['measurementslam_5',['MeasurementSLAM',['../classMeasurementSLAM.html',1,'']]],
-  ['measurementslamuniquetagbundle_6',['MeasurementSLAMUniqueTagBundle',['../classMeasurementSLAMUniqueTagBundle.html',1,'MeasurementSLAMUniqueTagBundle'],['../classMeasurementSLAMUniqueTagBundle.html#a9664b84d0ecb7b8c8d956814ddcd6f49',1,'MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle()']]]
+  ['measurementslamduckbundle_6',['MeasurementSLAMDuckBundle',['../classMeasurementSLAMDuckBundle.html',1,'']]],
+  ['measurementslamuniquetagbundle_7',['MeasurementSLAMUniqueTagBundle',['../classMeasurementSLAMUniqueTagBundle.html',1,'MeasurementSLAMUniqueTagBundle'],['../classMeasurementSLAMUniqueTagBundle.html#a9664b84d0ecb7b8c8d956814ddcd6f49',1,'MeasurementSLAMUniqueTagBundle::MeasurementSLAMUniqueTagBundle()']]]
 ];

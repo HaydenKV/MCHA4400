@@ -18,12 +18,16 @@ var hierarchy =
       ] ],
       [ "GaussianBase< Scalar >", "classGaussianBase.html", null ]
     ] ],
+    [ "DuckDetectorBase", "classDuckDetectorBase.html", [
+      [ "DuckDetectorONNX", "classDuckDetectorONNX.html", null ]
+    ] ],
     [ "Event", "classEvent.html", [
       [ "Measurement", "classMeasurement.html", [
         [ "MeasurementSLAM", "classMeasurementSLAM.html", [
           [ "MeasurementPointBundle", "classMeasurementPointBundle.html", [
             [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ]
-          ] ]
+          ] ],
+          [ "MeasurementSLAMDuckBundle", "classMeasurementSLAMDuckBundle.html", null ]
         ] ]
       ] ]
     ] ],
