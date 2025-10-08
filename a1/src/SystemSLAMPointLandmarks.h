@@ -29,13 +29,14 @@ public:
     std::size_t appendLandmark(const Eigen::Vector3d& rLNn,
                                const Eigen::Matrix3d& Spos);
 
-    // NEW: bulk append from Scenario 2 (ducks) detections
-    void appendFromDuckDetections(const Camera& camera,
-                                  const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
-                                  const Eigen::VectorXd& A,
-                                  double fx, double fy,
-                                  double duck_r_m,
-                                  double sigma_pos_m = 0.25);
+    // Init new point landmarks from duck detections (centroids+areas).
+    // Assumes mask area model: A = (fx*fy*pi*r^2)/depth^2  => depth = sqrt(fx*fy*pi*r^2 / A)
+    std::size_t appendFromDuckDetections(const Camera& cam,
+                                         const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
+                                         const Eigen::VectorXd& A,
+                                         double fx, double fy,
+                                         double duck_r_m,
+                                         double pos_sigma_m);
 };
 
 #endif

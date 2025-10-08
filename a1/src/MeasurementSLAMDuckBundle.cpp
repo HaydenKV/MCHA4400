@@ -77,8 +77,12 @@ MeasurementSLAMDuckBundle::predictDuckT(const Eigen::Matrix<Scalar, Eigen::Dynam
     const Eigen::Matrix<Scalar,2,1> uv   = camera_.vectorToPixel(rLCc);
 
     // Inverse-square apparent area (distance in nav is fine since it's Euclidean)
-    const Scalar dist2 = (Tnc.translationVector - rLNn).squaredNorm();
-    const Scalar A     = Scalar(fx_*fy_) * Scalar(M_PI) * Scalar(duck_r_m_*duck_r_m_) / dist2;
+    // const Scalar dist2 = (Tnc.translationVector - rLNn).squaredNorm();
+    // const Scalar A     = Scalar(fx_*fy_) * Scalar(M_PI) * Scalar(duck_r_m_*duck_r_m_) / dist2;
+
+    const Scalar depth = rLCc.norm();
+    const Scalar depth2 = depth * depth;
+    const Scalar A = Scalar(fx_*fy_) * Scalar(M_PI) * Scalar(duck_r_m_*duck_r_m_) / depth2;
 
     Eigen::Matrix<Scalar,3,1> h;
     h << uv(0), uv(1), A;

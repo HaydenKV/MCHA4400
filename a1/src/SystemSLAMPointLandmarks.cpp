@@ -1,5 +1,9 @@
 #include <cmath>
+#include <numbers>
 #include <Eigen/Core>
+#include <opencv2/core.hpp>
+#include <opencv2/core/eigen.hpp>
+
 #include "GaussianInfo.hpp"
 #include "Pose.hpp"
 #include <cassert>
@@ -9,7 +13,6 @@
 SystemSLAMPointLandmarks::SystemSLAMPointLandmarks(const GaussianInfo<double> & density)
     : SystemSLAM(density)
 {
-
 }
 
 SystemSLAM * SystemSLAMPointLandmarks::clone() const
@@ -28,8 +31,7 @@ std::size_t SystemSLAMPointLandmarks::landmarkPositionIndex(std::size_t idxLandm
     return 12 + 3*idxLandmark;    
 }
 
-
-// ********** NEW: append one 3-D point landmark **********
+// ********** Append one 3-D point landmark **********
 std::size_t SystemSLAMPointLandmarks::appendLandmark(const Eigen::Vector3d& rLNn,
                                                      const Eigen::Matrix3d& Spos)
 {
@@ -42,44 +44,55 @@ std::size_t SystemSLAMPointLandmarks::appendLandmark(const Eigen::Vector3d& rLNn
     return numberLandmarks() - 1;
 }
 
-// (your existing function, unchanged except it now calls appendLandmark)
-void SystemSLAMPointLandmarks::appendFromDuckDetections(
-    const Camera& camera,
-    const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
-    const Eigen::VectorXd& A,
-    double fx, double fy,
-    double duck_r_m,
-    double sigma_pos_m)
+std::size_t SystemSLAMPointLandmarks::appendFromDuckDetections(const Camera& cam,
+                                                               const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
+                                                               const Eigen::VectorXd& A,
+                                                               double fx, double fy,
+                                                               double duck_r_m,
+                                                               double pos_sigma_m)
 {
-    assert(Yuv.cols() == A.size());
+    // Prior-mean camera pose (rCNn, Rnc) from the filter state
+    const Eigen::VectorXd xbar = density.mean();
+    Eigen::MatrixXd Jdummy;
+    const Eigen::Vector3d rCNn = SystemSLAM::cameraPosition(cam, xbar, Jdummy);
+    const Eigen::Matrix3d Rnc  = SystemSLAM::cameraOrientation(cam, xbar);
 
-    // Current mean pose
-    const Eigen::VectorXd xmean = density.mean();
-    const Eigen::Vector3d rCNn  = cameraPosition(camera, xmean);
-    const Eigen::Matrix3d Rnc   = cameraOrientation(camera, xmean);
-
-    const double cx = camera.cameraMatrix.at<double>(0,2);
-    const double cy = camera.cameraMatrix.at<double>(1,2);
+    std::size_t nAdded = 0;
 
     for (int i = 0; i < Yuv.cols(); ++i)
     {
-        const double Af = A(i);
-        if (Af <= 0.0) continue;
+        // 1) Read centroid + area, guard tiny/NaN areas
+        const double u = Yuv(0,i);
+        const double v = Yuv(1,i);
+        const double Ai = std::max(A(i), 1e-6);  // px^2 guard
 
-        // 1) Range from apparent area model (A ∝ 1/d^2)
-        const double d = std::sqrt((fx*fy) * M_PI * duck_r_m * duck_r_m / Af);
+        // 2) Depth from mask area model:
+        //    A ≈ (fx*fy*π r^2) / Z^2  →  Z = sqrt((fx*fy*π r^2)/A)
+        const double numer = fx * fy * std::numbers::pi * duck_r_m * duck_r_m;
+        const double depth = std::sqrt(numer / Ai);
+        if (!std::isfinite(depth) || depth <= 0.05) continue;
 
-        // 2) Ray in camera frame
-        const double u = Yuv(0,i), v = Yuv(1,i);
-        Eigen::Vector3d dir_c((u - cx)/fx, (v - cy)/fy, 1.0);
-        dir_c.normalize();
+        // 3) Unit camera ray u_PC^c from pixel (u,v) via Camera (OpenCV types)
+        //    pixelToVector returns a unit vector (z>0 if in front).
+        const cv::Vec3d uPCc_cv = cam.pixelToVector(cv::Vec2d(u, v));
+        if (!cam.isVectorWithinFOV(uPCc_cv)) continue;
 
-        // 3) Landmark in nav frame
-        const Eigen::Vector3d rLNn = rCNn + Rnc * (d * dir_c);
+        // 4) Scale ray to the inferred depth and convert to Eigen
+        Eigen::Vector3d rPCc;
+        cv::cv2eigen(uPCc_cv, rPCc);   // unit -> Eigen
+        rPCc *= depth;                  // place point in camera coordinates
 
-        // 4) Conservative 3×3 sqrt-covariance
-        Eigen::Matrix3d Spos = sigma_pos_m * Eigen::Matrix3d::Identity();
+        // 5) Camera -> world: r^n_{L/N} = R_nc * r^c_{P/C} + r^n_{C/N}
+        const Eigen::Vector3d rLNn = Rnc * rPCc + rCNn;
+
+        // 6) Seed sqrt-covariance (std devs on the diagonal; upper-triangular)
+        Eigen::Matrix3d Spos = Eigen::Matrix3d::Zero();
+        Spos(0,0) = pos_sigma_m;
+        Spos(1,1) = pos_sigma_m;
+        Spos(2,2) = pos_sigma_m;
 
         appendLandmark(rLNn, Spos);
+        ++nAdded;
     }
+    return nAdded;
 }

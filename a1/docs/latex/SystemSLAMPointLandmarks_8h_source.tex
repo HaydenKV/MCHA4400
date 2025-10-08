@@ -33,15 +33,16 @@
 \DoxyCodeLine{00029\ \ \ \ \ std::size\_t\ appendLandmark(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ rLNn,}
 \DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ Spos);}
 \DoxyCodeLine{00031\ }
-\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ NEW:\ bulk\ append\ from\ Scenario\ 2\ (ducks)\ detections}}
-\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{void}\ appendFromDuckDetections(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ camera,}
-\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yuv,}
-\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorXd\&\ A,}
-\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ fx,\ \textcolor{keywordtype}{double}\ fy,}
-\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_r\_m,}
-\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ sigma\_pos\_m\ =\ 0.25);}
-\DoxyCodeLine{00039\ \};}
-\DoxyCodeLine{00040\ }
-\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ Init\ new\ point\ landmarks\ from\ duck\ detections\ (centroids+areas).}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ Assumes\ mask\ area\ model:\ A\ =\ (fx*fy*pi*r\string^2)/depth\string^2\ \ =>\ depth\ =\ sqrt(fx*fy*pi*r\string^2\ /\ A)}}
+\DoxyCodeLine{00034\ \ \ \ \ std::size\_t\ appendFromDuckDetections(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ cam,}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yuv,}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorXd\&\ A,}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ fx,\ \textcolor{keywordtype}{double}\ fy,}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_r\_m,}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ pos\_sigma\_m);}
+\DoxyCodeLine{00040\ \};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

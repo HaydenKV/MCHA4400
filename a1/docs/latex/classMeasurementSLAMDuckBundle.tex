@@ -25,8 +25,14 @@ double \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a2b991ad75ec9c98a4cae979f
 \Hypertarget{classMeasurementSLAMDuckBundle_a9d738256b8b2e34f5c5c0684b088c353}\label{classMeasurementSLAMDuckBundle_a9d738256b8b2e34f5c5c0684b088c353} 
 bool {\bfseries is\+Effectively\+Associated} (std\+::size\+\_\+t j) const
 \item 
+\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a0cd072991014180daabc7ab34c77587b}{predict\+Feature\+Density}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const override
+\item 
+\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a46adfdcdfe40d8b4cc58c8687ede75d9}{predict\+Feature\+Bundle\+Density}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const override
+\item 
 \Hypertarget{classMeasurementSLAMDuckBundle_af088f65d19269b6f9e791eef484a2d1e}\label{classMeasurementSLAMDuckBundle_af088f65d19269b6f9e791eef484a2d1e} 
 const Eigen\+::\+Matrix$<$ double, 2, Eigen\+::\+Dynamic $>$ \& {\bfseries Y} () const
+\item 
+const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a9985318c8729a4bd0200b84b03c4323a}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
 \item 
 \Hypertarget{classMeasurementSLAMDuckBundle_a377730166f20f31ec1189ffa0f507f92}\label{classMeasurementSLAMDuckBundle_a377730166f20f31ec1189ffa0f507f92} 
 const std\+::vector$<$ int $>$ \& {\bfseries idx\+Features} () const
@@ -69,12 +75,6 @@ Eigen\+::\+Vector3d {\bfseries predict\+Duck} (const Eigen\+::\+Vector\+Xd \&x, 
 \item 
 \Hypertarget{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0}\label{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0} 
 Eigen\+::\+Vector\+Xd {\bfseries predict\+Duck\+Bundle} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const
-\item 
-\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a0cd072991014180daabc7ab34c77587b}{predict\+Feature\+Density}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const override
-\item 
-\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a46adfdcdfe40d8b4cc58c8687ede75d9}{predict\+Feature\+Bundle\+Density}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const override
-\item 
-const std\+::vector$<$ int $>$ \& \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a9985318c8729a4bd0200b84b03c4323a}{associate}} (const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) override
 \end{DoxyCompactItemize}
 \doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
@@ -132,7 +132,7 @@ int {\bfseries verbosity\+\_\+}
 \index{associate@{associate}!MeasurementSLAMDuckBundle@{MeasurementSLAMDuckBundle}}
 \doxysubsubsection{\texorpdfstring{associate()}{associate()}}
 {\footnotesize\ttfamily \label{classMeasurementSLAMDuckBundle_a9985318c8729a4bd0200b84b03c4323a} 
-const std\+::vector$<$ int $>$ \& Measurement\+SLAMDuck\+Bundle\+::associate (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+const std\+::vector$<$ int $>$ \& Measurement\+SLAMDuck\+Bundle\+::associate (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
 
 
@@ -230,7 +230,7 @@ Implements \mbox{\hyperlink{classMeasurement_a1dc788a547ed31405e10e895ccbbaf87}{
 \index{predictFeatureBundleDensity@{predictFeatureBundleDensity}!MeasurementSLAMDuckBundle@{MeasurementSLAMDuckBundle}}
 \doxysubsubsection{\texorpdfstring{predictFeatureBundleDensity()}{predictFeatureBundleDensity()}}
 {\footnotesize\ttfamily \label{classMeasurementSLAMDuckBundle_a46adfdcdfe40d8b4cc58c8687ede75d9} 
-\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ Measurement\+SLAMDuck\+Bundle\+::predict\+Feature\+Bundle\+Density (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ Measurement\+SLAMDuck\+Bundle\+::predict\+Feature\+Bundle\+Density (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{const std\+::vector$<$ std\+::size\+\_\+t $>$ \&}]{idx\+Landmarks}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
 
 
@@ -240,7 +240,7 @@ Implements \mbox{\hyperlink{classMeasurementSLAM}{Measurement\+SLAM}}.
 \index{predictFeatureDensity@{predictFeatureDensity}!MeasurementSLAMDuckBundle@{MeasurementSLAMDuckBundle}}
 \doxysubsubsection{\texorpdfstring{predictFeatureDensity()}{predictFeatureDensity()}}
 {\footnotesize\ttfamily \label{classMeasurementSLAMDuckBundle_a0cd072991014180daabc7ab34c77587b} 
-\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ Measurement\+SLAMDuck\+Bundle\+::predict\+Feature\+Density (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{std\+::size\+\_\+t}]{idx\+Landmark}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [protected]}, {\ttfamily [virtual]}}
+\mbox{\hyperlink{classGaussianInfo}{Gaussian\+Info}}$<$ double $>$ Measurement\+SLAMDuck\+Bundle\+::predict\+Feature\+Density (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&}]{system}{, }\item[{std\+::size\+\_\+t}]{idx\+Landmark}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
 
 

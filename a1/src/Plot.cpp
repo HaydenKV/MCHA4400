@@ -561,7 +561,7 @@ Plot::Plot(const Camera & camera)
     // rFNn
     threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
     // rCNn
-    double sc = 3.0; // Scale factor - increase to intially zoom out (was originally on 2)
+    double sc = 10.0; // Scale factor - increase to intially zoom out (was originally on 2)
     threeDimRenderer->GetActiveCamera()->SetPosition(0.15*sc, -0.15*sc, -0.65*sc);
     threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
 
@@ -683,7 +683,7 @@ void Plot::render()
         }
 
         // Left pane: draw 3σ ellipse at tag center when center is in FOV
-        if (hasTagId /* && centerInFOV */) {
+        if (hasTagId && centerInFOV) {
             try {
                 // For pose landmarks, predictFeatureDensity() projects the landmark center to pixels using the (8)–(9) mapping inside the measurement.
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);

@@ -34,8 +34,15 @@ public:
         return j < is_effectively_associated_.size() && is_effectively_associated_[j];
     }
 
+    // Densities required by base API (used by Plot for 2D ellipses)
+    GaussianInfo<double> predictFeatureDensity(const SystemSLAM& system, std::size_t idxLandmark) const override;
+    GaussianInfo<double> predictFeatureBundleDensity(const SystemSLAM& system, const std::vector<std::size_t>& idxLandmarks) const override;
+    
     // Expose centroids for SNN association (shape 2×N)
     const Eigen::Matrix<double,2,Eigen::Dynamic>& Y() const { return Yuv_; }
+
+    // Association uses 2D (u,v) density; pass that to SNN
+    const std::vector<int>& associate(const SystemSLAM& system, const std::vector<std::size_t>& idxLandmarks) override;
 
     // Association results (landmark index -> feature index or -1)
     const std::vector<int>& idxFeatures() const { return idxFeatures_; }
@@ -55,12 +62,8 @@ protected:
     Eigen::VectorXd predictDuckBundle(const Eigen::VectorXd& x, Eigen::MatrixXd& J, const SystemSLAM& system,
                                       const std::vector<std::size_t>& idxLandmarks) const;
 
-    // Densities required by base API (used by Plot for 2D ellipses)
-    GaussianInfo<double> predictFeatureDensity(const SystemSLAM& system, std::size_t idxLandmark) const override;
-    GaussianInfo<double> predictFeatureBundleDensity(const SystemSLAM& system, const std::vector<std::size_t>& idxLandmarks) const override;
-
-    // Association uses 2D (u,v) density; pass that to SNN
-    const std::vector<int>& associate(const SystemSLAM& system, const std::vector<std::size_t>& idxLandmarks) override;
+    
+    
 
 private:
     // ---- Helpers (private) ----

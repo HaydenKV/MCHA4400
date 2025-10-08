@@ -41,7 +41,7 @@ namespace {
     constexpr double REPROJ_ERR_THRESH_PX = 3.0;     // IPPE reprojection gate (pixels)
     
     // Typical PnP accuracy at 2–3 m: ≈5–10 cm position, ≈3–5° orientation.
-    constexpr double INIT_POS_SIGMA = 0.01;                             // [m]
+    constexpr double INIT_POS_SIGMA = 0.1;                             // [m]
     constexpr double INIT_ANG_SIGMA = (5.0 * std::numbers::pi / 180.0); // [rad]
     
     // Small jitter avoids perfect init → supports stable Hessian building.
@@ -162,14 +162,14 @@ void runVisualNavigationFromVideo(
         // Body-only prior (first 12 states): ν(6), r(3), Θ(3)
         Eigen::VectorXd mu_body(12);
         mu_body.setZero();
-        mu_body.segment<3>(6) << 0.0, 0.0, 0.0; // r^n_{B/N}
+        mu_body.segment<3>(6) << 0.0, 0.0, -1.6; // r^n_{B/N}
         mu_body.segment<3>(9) << 0.0, 0.0, 0.0; // Θ^n_B
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12);
         S_body.block<3,3>(0,0) *= 1.0;          // v uncertainty
         S_body.block<3,3>(3,3) *= 0.5;         // ω uncertainty
         const double d2r = (1.0 * std::numbers::pi / 180.0);
-        S_body.block<3,3>(6,6) *= 0.01;         // r uncertainty (≈1 cm)
+        S_body.block<3,3>(6,6) *= 0.5;         // r uncertainty (≈1 cm)
         S_body.block<3,3>(9,9) *= (1 * d2r);    // Θ uncertainty (≈1°)
 
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
@@ -437,49 +437,101 @@ void runVisualNavigationFromVideo(
             const auto& A = duckDetector->last_areas();           // vector<double>
             assert(C.size() == A.size());
             
+            // size_t N = number of detected ducks
+            const int N = static_cast<int>(C.size());
+
             // Useful debugging
-            std::cout << "Frame " << frameIdx << " | Detected " << C.size() << " ducks.\n";
+            std::cout << "Frame " << frameIdx << " | Detected " << N << " ducks.\n";
             for (std::size_t i = 0; i < C.size(); ++i) {
                 std::cout << "  Duck " << i << ": Centroid (" << C[i].x << ", " << C[i].y << "), Area " << A[i] << "\n";
             }
 
-            // size_t N = number of detected ducks
-            const int N = static_cast<int>(C.size());
-
             // 2) Build measurement (Y: 2×N centroids, Avec: N areas)
             Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, N);
-            std::vector<double> Avec(N);
+            Eigen::VectorXd Avec(N);
             for (int i = 0; i < N; ++i) {
                 Y(0,i) = static_cast<double>(C[i].x);
                 Y(1,i) = static_cast<double>(C[i].y);
-                Avec[i] = A[i];
+                Avec(i) = static_cast<double>(A[i]);
+            }
+            std::cout << "[S2] Built measurement: Y cols=" << Y.cols() << " | A size=" << Avec.size() << std::endl;
+
+            // 3) Tunables: pixel std (u,v), area std, and physical duck radius
+            constexpr double SIGMA_C_PX  = 15.0;     // centroid pixel noise (std)
+            constexpr double SIGMA_A_PX2 = 150.0;    // area noise (std) in px^2
+            constexpr double DUCK_R_M    = 0.07;     // physical radius in meters
+
+            MeasurementSLAMDuckBundle meas(t, Y, Avec, camera,
+                                        SIGMA_C_PX, SIGMA_A_PX2, DUCK_R_M);
+            std::cout << "[S2] DuckBundle constructed (sig_c=" << SIGMA_C_PX
+                    << ", sig_a=" << SIGMA_A_PX2 << ", r=" << DUCK_R_M << ")" << std::endl;
+
+            // 3) Associate on CURRENT map (centroid-only SNN)
+            std::vector<std::size_t> idxLandmarks(sysPts->numberLandmarks());
+            std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+
+            meas.associate(*sysPts, idxLandmarks);
+            const auto& idxFeats = meas.idxFeatures();
+            int nAssoc0 = 0;
+            for (int f : idxFeats) if (f >= 0) ++nAssoc0;
+            std::cout << "[S2] Assoc#1: visible=" << idxLandmarks.size()
+                    << " matched=" << nAssoc0
+                    << " idxFeats.size=" << idxFeats.size() << std::endl;
+
+            // 4) Initialise new landmarks from SURPLUS detections (unmatched features)
+            //    First frame: initialise all. Later: initialise only unmatched.
+            std::vector<int> surplusIdx;
+            if (frameIdx == 0) {
+                surplusIdx.resize(N);
+                std::iota(surplusIdx.begin(), surplusIdx.end(), 0);
+            } else {
+                std::vector<bool> featMatched(N, false);
+                for (int f : idxFeats) if (f >= 0 && f < N) featMatched[f] = true;
+                for (int i = 0; i < N; ++i) if (!featMatched[i]) surplusIdx.push_back(i);
+            }
+            std::cout << "[S2] Surplus detections to init: " << surplusIdx.size() << std::endl;
+
+            if (!surplusIdx.empty()) {
+                const int S = static_cast<int>(surplusIdx.size());
+                Eigen::Matrix<double,2,Eigen::Dynamic> Ysurp(2, S);
+                Eigen::VectorXd Asurp(S);
+                for (int k = 0; k < S; ++k) {
+                    const int i = surplusIdx[k];
+                    Ysurp.col(k) = Y.col(i);
+                    Asurp(k) = Avec(i);
+                }
+
+                std::size_t before = sysPts->numberLandmarks();
+                sysPts->appendFromDuckDetections(
+                    camera, Ysurp, Asurp,
+                    camera.cameraMatrix.at<double>(0,0), // fx
+                    camera.cameraMatrix.at<double>(1,1), // fy
+                    DUCK_R_M,
+                    /*pos_sigma_m*/ 0.30
+                );
+                std::size_t after = sysPts->numberLandmarks();
+                std::cout << "[S2] InitFromSurplus: added=" << (after - before)
+                        << " | MapLMs now=" << after << std::endl;
+
+                // Optional: re-associate now that the map grew
+                idxLandmarks.resize(sysPts->numberLandmarks());
+                std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+                meas.associate(*sysPts, idxLandmarks);
+                std::cout << "[S2] Assoc#2: visible=" << idxLandmarks.size()
+                        << " | idxFeats.size=" << meas.idxFeatures().size() << std::endl;
             }
 
-
-            // 3) Construct duck bundle and run the update (no landmark init yet)
-            //    Tunables: pixel std (u,v), area std, and physical duck radius
-            constexpr double SIGMA_C_PX  = 15.0;     // centroid pixel noise (std)
-            constexpr double SIGMA_A_PX2 = 300.0;   // area noise (std) in px^2
-            constexpr double DUCK_R_M    = 0.07;    // physical radius in meters
-
-            Eigen::Map<const Eigen::VectorXd> Avec_eig(Avec.data(), static_cast<Eigen::Index>(Avec.size()));
-
-            MeasurementSLAMDuckBundle meas(t, Y, Avec_eig, camera,
-                                        SIGMA_C_PX, SIGMA_A_PX2, DUCK_R_M);
-
-            sysPts->appendFromDuckDetections(
-                camera,
-                Y,
-                Eigen::Map<const Eigen::VectorXd>(Avec.data(), Avec.size()),
-                camera.cameraMatrix.at<double>(0,0),   // fx
-                camera.cameraMatrix.at<double>(1,1),   // fy
-                0.07,                                   // duck radius [m]
-                0.25);                                  // conservative σ_pos [m]
-
+            // 5) process measurement update
+            std::cout << "[S2] Calling meas.process..." << std::endl;
             meas.process(system);  // propagate (4)–(5) + correct
+            std::cout << "[S2] Done meas.process" << std::endl;
 
+            // 6) Visualization 
+            std::cout << "[S2] plot.setData..." << std::endl;
             plot.setData(system, meas);
+            std::cout << "[S2] plot.setData done" << std::endl;
         }
+
         else
         {
             assert("broken if you're here");
