@@ -389,6 +389,7 @@ void Camera::calibrate(ChessboardData & chessboardData)
     
     // distortion model selection
     flags = cv::CALIB_RATIONAL_MODEL | cv::CALIB_THIN_PRISM_MODEL | cv::CALIB_TILTED_MODEL;
+    // flags = cv::CALIB_RATIONAL_MODEL | cv::CALIB_THIN_PRISM_MODEL;
 
     // initialise outputs
     cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
