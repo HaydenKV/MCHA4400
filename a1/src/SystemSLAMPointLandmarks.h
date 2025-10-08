@@ -37,6 +37,12 @@ public:
                                          double fx, double fy,
                                          double duck_r_m,
                                          double pos_sigma_m);
+
+    void updateFailureCounter(std::size_t j, bool incrementIfFailed);
+    void cullFailed(int threshold = 5);
+
+private:
+    std::vector<int> failCount_;
 };
 
 #endif

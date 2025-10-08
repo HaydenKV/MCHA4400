@@ -6,6 +6,13 @@
 #include <opencv2/imgproc.hpp>
 #include "DuckDetectorBase.h"
 
+
+namespace {
+    constexpr int    A_MIN_PX2  = 100;   // reject tiny specks
+    constexpr int    A_MAX_PX2  = 10000;   // reject really big
+    constexpr double A_MAX_FRAC = 0.15;  // reject masks > 15% of the frame
+}
+
 DuckDetectorBase::~DuckDetectorBase() = default;
 
 void DuckDetectorBase::preprocess(const cv::Mat & img, std::vector<float> & input_tensor_values)
@@ -64,6 +71,18 @@ void DuckDetectorBase::postprocess(const std::vector<float> & class_scores_data,
             cv::Mat binary_mask;
             cv::threshold(resized_query_mask, binary_mask, 0.5, 1, cv::THRESH_BINARY);
             binary_mask.convertTo(binary_mask, CV_8U);
+
+            // ---- HARD AREA GATES (this is what stops "all-red" floods) ----
+            const int area_px2 = cv::countNonZero(binary_mask);
+            const double imgArea = static_cast<double>(imgout.cols) * imgout.rows;
+            if (area_px2 < A_MIN_PX2 || area_px2 > A_MAX_PX2) {
+                // too small or too large → skip this detection
+                continue;
+            }
+            if (area_px2 > A_MAX_FRAC * imgArea) {
+                // too large (screen flood), skip
+                continue;
+            }
 
             labelMask.setTo(label, binary_mask);
             validLabels.push_back(label);

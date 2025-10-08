@@ -152,10 +152,16 @@ $(function() {
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>                                         <span class="keywordtype">double</span> fx, <span class="keywordtype">double</span> fy,</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>                                         <span class="keywordtype">double</span> duck_r_m,</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>                                         <span class="keywordtype">double</span> pos_sigma_m);</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>};</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    <span class="keywordtype">void</span> updateFailureCounter(std::size_t j, <span class="keywordtype">bool</span> incrementIfFailed);</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    <span class="keywordtype">void</span> cullFailed(<span class="keywordtype">int</span> threshold = 5);</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="keyword">private</span>:</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    std::vector&lt;int&gt; failCount_;</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>};</div>
 </div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span> </div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aGaussianInfo_8hpp_html"><div class="ttname"><a href="GaussianInfo_8hpp.html">GaussianInfo.hpp</a></div><div class="ttdoc">Defines the GaussianInfo class for representing Gaussian distributions using square-root information ...</div></div>
 <div class="ttc" id="aclassGaussianInfo_html"><div class="ttname"><a href="classGaussianInfo.html">GaussianInfo</a></div><div class="ttdoc">Represents a Gaussian distribution using the information form.</div><div class="ttdef"><b>Definition</b> GaussianInfo.hpp:36</div></div>
 <div class="ttc" id="aclassSystemEstimator_html_a3459a820d965e53e8984ffdf800ef790"><div class="ttname"><a href="classSystemEstimator.html#a3459a820d965e53e8984ffdf800ef790">SystemEstimator::density</a></div><div class="ttdeci">GaussianInfo&lt; double &gt; density</div><div class="ttdoc">The current state density estimate.</div><div class="ttdef"><b>Definition</b> SystemEstimator.h:40</div></div>

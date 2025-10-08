@@ -343,10 +343,17 @@ void runVisualNavigationFromVideo(
             std::printf("\n--- [FRAME %d at t=%.3fs] ---\n", frameIdx, t);
 
             // 1) Run ONNX detector → overlay + (u,v,A) in pixels
-            cv::Mat viz = duckDetector->detect(imgin);      // overlay image
-            const auto& C   = duckDetector->last_centroids();  // vector<cv::Point2f>
-            const auto& Apx = duckDetector->last_areas();      // vector<double>
-            system.view() = viz;                                // left-pane shows detections
+            cv::Mat viz = duckDetector->detect(imgin);        // overlay image
+            const auto& C   = duckDetector->last_centroids(); // vector<cv::Point2f>
+            const auto& Apx = duckDetector->last_areas();     // vector<double>
+            system.view() = viz;                              // left-pane shows detections
+
+            // --- DEBUG: print landmark pixel areas for inspection ---
+            std::printf("\n[DEBUG] Landmark pixel area diagnostics:\n");
+            for (size_t j = 0; j < Apx.size(); ++j)
+            {
+                std::printf("   LM %zu -> detected area = %.1f px²\n", j, Apx[j]);
+            }
 
             // 2) Build Y (2×m) and A (m×1)
             Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, (int)C.size());
@@ -356,24 +363,24 @@ void runVisualNavigationFromVideo(
                 Avec(i) = std::max(1.0, Apx[i]); // avoid zero-area
             }
 
-            // 3) If we have neither landmarks nor detections, just plot the frame and move on
+            // If we have neither landmarks nor detections, just plot and continue
             if (sysPts->numberLandmarks() == 0 && Y.cols() == 0) {
                 MeasurementPointBundle measEmpty(t, Eigen::Matrix<double,2,Eigen::Dynamic>(2,0), camera);
                 plot.setData(system, measEmpty);
             } else {
 
-                // 4) Bootstrap landmarks from detections if map is empty
+                // 3) Bootstrap landmarks from detections if map is empty
                 if (sysPts->numberLandmarks() == 0 && Y.cols() > 0) {
                     const double fx = camera.cameraMatrix.at<double>(0,0);
                     const double fy = camera.cameraMatrix.at<double>(1,1);
-                    const double duck_r_m    = 0.054; // pick your best measured radius [m]
+                    const double duck_r_m    = 0.054; // measured radius [m]
                     const double pos_sigma_m = 0.25;  // loose init uncertainty
                     std::size_t nAdded = sysPts->appendFromDuckDetections(
                         camera, Y, Avec, fx, fy, duck_r_m, pos_sigma_m);
                     std::printf("   [init] appended %zu landmarks from detector\n", nAdded);
                 }
 
-                // 5) Choose candidate landmarks in FOV (reduces spurious matches)
+                // 4) Choose candidate landmarks in FOV (reduces spurious matches)
                 std::vector<std::size_t> idxLandmarks;
                 {
                     const Eigen::VectorXd xbar = system.density.mean();
@@ -389,24 +396,66 @@ void runVisualNavigationFromVideo(
                     }
                 }
 
-                // 6) Build the duck measurement (includes area term for the EKF update)
+                // 5) Build the duck measurement (includes area term for the EKF update)
                 MeasurementSLAMDuckBundle meas(
                     t, Y, Avec, camera,
                     /*duck_radius_m=*/0.054,
-                    /*sigma_px=*/1.5,
+                    /*sigma_px=*/5.0,
                     /*sigma_area=*/250.0
                 );
 
-                // 7) Associate once (2D SNN via base bundle) — don't run manual SNN as well
+                // 6) Associate once (2D SNN via base bundle)
                 meas.associate(system, idxLandmarks);
 
-                // 8) Perform measurement update (time-predict + non-linear update with [u,v,A])
+                // 6b) Update per-landmark failure counters (predicted-visible & unmatched)
+                {
+                    const Eigen::VectorXd xbar = system.density.mean();
+                    Pose<double> Tnb;
+                    Tnb.translationVector = xbar.segment<3>(6);
+                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
+
+                    const auto& assoc = meas.idxFeatures(); // -1 if unmatched
+
+                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
+                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                        const cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
+                        const bool predictedVisible = camera.isWorldWithinFOV(rPNn, Tnb);
+                        const bool matched = (j < assoc.size() && assoc[j] >= 0);
+                        sysPts->updateFailureCounter(j, predictedVisible && !matched);
+                        // // DEBUG:
+                        // if (predictedVisible && !matched)
+                        //     std::printf("   [cull] LM %zu fail++\n", j);
+                    }
+                }
+
+                // 6c) Delete landmarks with ≥10 consecutive predicted-visible misses
+                sysPts->cullFailed(5);
+
+                // Because culling can change landmark indices/counts, rebuild candidates and re-associate
+                {
+                    idxLandmarks.clear();
+                    const Eigen::VectorXd xbar = system.density.mean();
+                    Pose<double> Tnb;
+                    Tnb.translationVector = xbar.segment<3>(6);
+                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
+
+                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
+                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                        cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
+                        if (camera.isWorldWithinFOV(rPNn, Tnb))
+                            idxLandmarks.push_back(j);
+                    }
+                    meas.associate(system, idxLandmarks);
+                }
+
+                // 7) Perform measurement update (time-predict + non-linear update with [u,v,A])
                 meas.process(system);
 
-                // 9) Visualisation
+                // 8) Visualisation
                 plot.setData(system, meas);
             }
         }
+
         else
         {
             assert("broken if you're here");

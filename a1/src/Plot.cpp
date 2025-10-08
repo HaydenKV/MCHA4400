@@ -570,9 +570,9 @@ Plot::Plot(const Camera & camera)
     // rFNn
     threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
     // rCNn
-    double sc = 50.0; // 15
+    double sc = 30.0; // 15
     threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
-    threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
+    threeDimRenderer->GetActiveCamera()->SetViewUp(0,0,-1); // (0,0,-1)
 
 
 
