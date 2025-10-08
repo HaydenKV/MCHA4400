@@ -594,16 +594,15 @@ Equations referenced:
 */
 void Plot::render()
 {
-    double r, g, b;   
+    double r, g, b;
     hsv2rgb(330, 1., 1., r, g, b);
     qpCamera.update(pSystem->cameraPositionDensity(camera));
     qpCamera.getActor()->GetProperty()->SetOpacity(0.1);
     qpCamera.getActor()->GetProperty()->SetColor(r, g, b);
 
     Bounds globalBounds;
-    qpCamera.bounds.setExtremity(globalBounds); 
+    qpCamera.bounds.setExtremity(globalBounds);
 
-    // Grow/shrink landmark quadric plots to match number of landmarks
     while (qpLandmarks.size() < pSystem->numberLandmarks())
     {
         QuadricPlot qp;
@@ -615,102 +614,89 @@ void Plot::render()
     {
         threeDimRenderer->RemoveActor(qpLandmarks.back().getActor());
         qpLandmarks.pop_back();
-    }    
+    }
 
-    // Camera pose (means)
     const Eigen::Vector3d rCNn    = pSystem->cameraPositionDensity(camera).mean();
     const Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
     const Eigen::Matrix3d Rnc     = rpy2rot(Thetanc);
     const Eigen::Matrix3d Rcn     = Rnc.transpose();
 
-    // Visibility helper: test landmark center against FOV using current mean pose
     auto isLandmarkCenterVisible = [&](const Eigen::Vector3d& rLNn) -> bool {
-        const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn); // camera frame
+        const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn);
         return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()), CamDefaults::BorderMarginPx);
     };
 
-    // Landmark loop
+    printf("[Plot] Rendering %zu landmarks.\n", pSystem->numberLandmarks());
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
-        const Eigen::Vector3d rLNn = posDen.mean();  // center position
+        const Eigen::Vector3d rLNn = posDen.mean();
 
-        // Association and ID from measurement (Scenario 1)
         bool centerInFOV = isLandmarkCenterVisible(rLNn);
         bool isDetected = false;
-        bool hasTagId = false;
-        
-        /* Scenario 1 (unique tags): use its helper + ID map */
+        bool isIdentifiable = false; 
+
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
             isDetected = tagMeas->isEffectivelyAssociated(i);
-            hasTagId   = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
-
-        /* Scenarios 2 & 3 (point bundles, including ducks): use SNN results directly */
+            isIdentifiable = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
         } else if (const auto* duckMeas = dynamic_cast<const MeasurementSLAMDuckBundle*>(pMeasurement.get())) {
             const auto& idxF = duckMeas->idxFeatures();
-            isDetected = (i < idxF.size()) && (idxF[i] >= 0);
-            hasTagId   = true; // just to reuse the same colour path as points
-        }
-
-        // --- universal label: tag ID if available, else LM<i> ---
-        // optional - not required by assignment but useful for visually debugging
-        auto makeLandmarkLabel = [&](std::size_t idx)->std::string {
-            if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-                const auto& ids = tagMeas->idByLandmark();
-                if (idx < ids.size() && ids[idx] >= 0) {
-                    return "ID " + std::to_string(ids[idx]);
-                }
+            if (i < idxF.size()) {
+                isDetected = (idxF[i] >= 0);
             }
-            return "LM " + std::to_string(idx);
-        };
+            isIdentifiable = true;
+        }
+        
+        printf("[Plot] LM %zu: centerInFOV=%d, isDetected=%d, isIdentifiable=%d\n", i, centerInFOV, isDetected, isIdentifiable);
 
-        // Left-pane color
         double cr_left, cg_left, cb_left;
-        if (hasTagId && isDetected) {            // blue
+        if (isDetected) {
             cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;
-        } else {                                  // red
+        } else {
             cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
         }
 
-        // Right-pane color
         double cr_right, cg_right, cb_right;
-        if (centerInFOV && hasTagId && isDetected) {     // blue
+        if (centerInFOV && isDetected) {
             cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;
-        } else if (hasTagId && !centerInFOV) {           // yellow
+        } else if (!centerInFOV) {
             cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;
-        } else {                                          // red
+        } else {
             cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
         }
 
-        // Left pane: draw 3σ ellipse at tag center when center is in FOV
-        if (hasTagId && centerInFOV) {
+        if (isIdentifiable && centerInFOV) {
+            printf("[Plot]   -> LM %zu is visible. Attempting to draw 2D ellipse.\n", i);
             try {
-                // For pose landmarks, predictFeatureDensity() projects the landmark center to pixels using the (8)–(9) mapping inside the measurement.
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
                 Eigen::Vector2d pixMean = prQOi.mean();
+                
+                printf("[Plot]   -> LM %zu predicted at pixel (%.2f, %.2f). Covariance det: %.4f\n", i, pixMean.x(), pixMean.y(), prQOi.cov().determinant());
 
-                // Draw only when the mean is inside the image
-                if (camera.isPixelInside(Eigen::Vector2d(pixMean.x(), pixMean.y()))) {
+                if (camera.isPixelInside(pixMean)) {
                     Eigen::Matrix2d S = prQOi.sqrtCov();
                     if (S.allFinite()) {
+                        printf("[Plot]   -> SUCCESS: Drawing ellipse for LM %zu.\n", i);
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
 
-                        // // Tag ID annotation near the center (BGR in OpenCV)
-                        std::string label = makeLandmarkLabel(i);
+                        std::string label = "LM " + std::to_string(i);
                         cv::putText(pSystem->view(), label,
-                                    cv::Point(static_cast<int>(pixMean.x() + 10), 
-                                              static_cast<int>(pixMean.y() - 10)),
-                                    cv::FONT_HERSHEY_SIMPLEX, 0.4,
+                                    cv::Point(static_cast<int>(pixMean.x() + 15),
+                                              static_cast<int>(pixMean.y() - 15)),
+                                    cv::FONT_HERSHEY_SIMPLEX, 0.5,
                                     cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
+                    } else {
+                        printf("[Plot]   -> FAILED: Sqrt-covariance is not finite for LM %zu.\n", i);
                     }
+                } else {
+                    printf("[Plot]   -> FAILED: Predicted mean for LM %zu is outside image bounds.\n", i);
                 }
-            } catch (...) {
-                // Skip pathological projections.
+            } catch (const std::exception& e) {
+                printf("[Plot]   -> EXCEPTION for LM %zu: %s\n", i, e.what());
             }
         }
 
-        // Right pane: 3D 3σ ellipsoid from landmark position marginal
         QuadricPlot & qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
@@ -718,7 +704,6 @@ void Plot::render()
         qp.bounds.setExtremity(globalBounds);
     }
 
-    // Global elements (axes, basis, frustum, image)
     ap.update(globalBounds);
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);
