@@ -198,57 +198,53 @@ Eigen::Matrix<double,8,1> MeasurementSLAMUniqueTagBundle::predictTagCorners(
     return predictTagCornersT<double>(x, system, idxLandmark);
 }
 
-// Templated (double / autodiff::dual) version for use in autodiff Jacobians.
+// This templated function must be in the header file
 template<typename Scalar>
-Eigen::Matrix<Scalar,8,1> MeasurementSLAMUniqueTagBundle::predictTagCornersT(
-    const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x,
-    const SystemSLAM& system,
-    std::size_t idxLandmark) const
+Eigen::Matrix<Scalar,8,1>
+MeasurementSLAMUniqueTagBundle::predictTagCornersT(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x,
+                                                  const SystemSLAM& system,
+                                                  std::size_t idxLandmark) const
 {
-    // Landmark pose: [ r^n_{L/N} (3), Θ^n_L (3) ] (Eq. (6))
+    // --- 1. Get Landmark Pose from State ---
     const std::size_t idx = system.landmarkPositionIndex(idxLandmark);
     const Eigen::Matrix<Scalar,3,1> rLNn    = x.template segment<3>(idx);
     const Eigen::Matrix<Scalar,3,1> ThetaLn = x.template segment<3>(idx + 3);
-
-    // R^n_L from roll-pitch-yaw (consistent with assignment conventions)
     const Eigen::Matrix<Scalar,3,3> RnL = rpy2rot(ThetaLn);
 
-    // Body pose (B) from state; then compose with known body→camera (B→C)
+    // --- 2. Get TRUE Camera Pose from State (using Tbc) ---
+    // This is the same critical logic as in the initialization step.
     Pose<Scalar> Tnb;
-    Tnb.translationVector = SystemSLAM::cameraPosition(camera_, x);   // r^n_{B/N}
-    Tnb.rotationMatrix    = SystemSLAM::cameraOrientation(camera_, x);// R^n_B
-
-    // T^n_C = T^n_B ∘ T^B_C (Camera in world)
+    Tnb.translationVector = x.template segment<3>(6);
+    Tnb.rotationMatrix    = rpy2rot(x.template segment<3>(9));
     const Pose<Scalar> Tnc = camera_.bodyToCamera(Tnb);
 
-    // Camera frame transforms
-    const Eigen::Matrix<Scalar,3,3> Rcn = Tnc.rotationMatrix.transpose(); // R^c_n
-    const Eigen::Matrix<Scalar,3,1> rCNn = Tnc.translationVector;        // r^n_{C/N}
-
-    // Tag-frame corners r^L_{jc} (Eq. (9), ℓ = TAG_SIZE) in TL,TR,BR,BL order
+    // --- 3. Define Tag Corners in Tag Frame {j} ---
     const Scalar half = static_cast<Scalar>(TAG_SIZE / 2.0);
-    Eigen::Matrix<Scalar,3,4> cornersL;
-    cornersL.col(0) << -half,  half, Scalar(0);
-    cornersL.col(1) <<  half,  half, Scalar(0);
-    cornersL.col(2) <<  half, -half, Scalar(0);
-    cornersL.col(3) << -half, -half, Scalar(0);
+    Eigen::Matrix<Scalar,3,4> corners_in_tag_frame;
+    corners_in_tag_frame.col(0) << -half,  half, Scalar(0); // TL
+    corners_in_tag_frame.col(1) <<  half,  half, Scalar(0); // TR
+    corners_in_tag_frame.col(2) <<  half, -half, Scalar(0); // BR
+    corners_in_tag_frame.col(3) << -half, -half, Scalar(0); // BL
 
-    // Project to pixels
-    Eigen::Matrix<Scalar,8,1> h; // [u1,v1, u2,v2, u3,v3, u4,v4]^T
+    // --- 4. Transform Corners and Project to Pixels ---
+    Eigen::Matrix<Scalar,8,1> h; // Output vector [u1,v1, u2,v2, ...]
     for (int c = 0; c < 4; ++c)
     {
-        // World corner (8)
-        const Eigen::Matrix<Scalar,3,1> rJcNn = rLNn + RnL * cornersL.col(c);
-        // Camera frame
-        const Eigen::Matrix<Scalar,3,1> rJcCc = Rcn * (rJcNn - rCNn);
-        // Project using calibrated camera model
-        const Eigen::Matrix<Scalar,2,1> uv = camera_.vectorToPixel(rJcCc);
+        // a) Transform corner from tag frame {j} to world frame {n}
+        const Eigen::Matrix<Scalar,3,1> corner_in_world = rLNn + RnL * corners_in_tag_frame.col(c);
+        
+        // b) Transform corner from world frame {n} to camera frame {c}
+        const Eigen::Matrix<Scalar,3,1> corner_in_camera = Tnc.inverse() * corner_in_world;
+        
+        // c) Project from camera frame to pixel coordinates
+        const Eigen::Matrix<Scalar,2,1> uv = camera_.vectorToPixel(corner_in_camera);
 
         h(2*c)     = uv(0);
         h(2*c + 1) = uv(1);
     }
     return h;
 }
+
 
 /*
 Log-likelihood (scalar)

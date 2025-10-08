@@ -25,9 +25,9 @@ var hierarchy =
       [ "Measurement", "classMeasurement.html", [
         [ "MeasurementSLAM", "classMeasurementSLAM.html", [
           [ "MeasurementPointBundle", "classMeasurementPointBundle.html", [
+            [ "MeasurementSLAMDuckBundle", "classMeasurementSLAMDuckBundle.html", null ],
             [ "MeasurementSLAMUniqueTagBundle", "classMeasurementSLAMUniqueTagBundle.html", null ]
-          ] ],
-          [ "MeasurementSLAMDuckBundle", "classMeasurementSLAMDuckBundle.html", null ]
+          ] ]
         ] ]
       ] ]
     ] ],

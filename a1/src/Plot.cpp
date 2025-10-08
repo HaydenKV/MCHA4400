@@ -556,14 +556,26 @@ Plot::Plot(const Camera & camera)
     imageRenderer->AddActor2D(ip.getActor());
 
     // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
+    // threeDimRenderer->GetActiveCamera()->Azimuth(0);
+    // threeDimRenderer->GetActiveCamera()->Elevation(-200);
+    // // rFNn
+    // threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
+    // // rCNn
+    // double sc = 50.0; // 15
+    // threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
+    // threeDimRenderer->GetActiveCamera()->SetViewUp(0.0,0.0,-1.0); // (0,0,-1)
+
     threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    threeDimRenderer->GetActiveCamera()->Elevation(200);
+    threeDimRenderer->GetActiveCamera()->Elevation(-200);
     // rFNn
-    threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
+    threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
     // rCNn
-    double sc = 10.0; // Scale factor - increase to intially zoom out (was originally on 2)
-    threeDimRenderer->GetActiveCamera()->SetPosition(0.15*sc, -0.15*sc, -0.65*sc);
+    double sc = 50.0; // 15
+    threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
     threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
+
+
+
 
     vtkNew<vtkInteractorStyleTrackballCamera> interactorStyle;
     interactor->SetInteractorStyle(interactorStyle);
@@ -594,123 +606,130 @@ Equations referenced:
 */
 void Plot::render()
 {
+    // Camera frustum & color
     double r, g, b;
     hsv2rgb(330, 1., 1., r, g, b);
     qpCamera.update(pSystem->cameraPositionDensity(camera));
     qpCamera.getActor()->GetProperty()->SetOpacity(0.1);
     qpCamera.getActor()->GetProperty()->SetColor(r, g, b);
 
+    // Maintain landmark actor list size
     Bounds globalBounds;
     qpCamera.bounds.setExtremity(globalBounds);
-
-    while (qpLandmarks.size() < pSystem->numberLandmarks())
-    {
-        QuadricPlot qp;
-        qpLandmarks.push_back(qp);
+    while (qpLandmarks.size() < pSystem->numberLandmarks()) {
+        QuadricPlot qp; qpLandmarks.push_back(qp);
         threeDimRenderer->AddActor(qpLandmarks.back().getActor());
     }
-
-    while (qpLandmarks.size() > pSystem->numberLandmarks())
-    {
+    while (qpLandmarks.size() > pSystem->numberLandmarks()) {
         threeDimRenderer->RemoveActor(qpLandmarks.back().getActor());
         qpLandmarks.pop_back();
     }
 
+    // Camera pose (mean) and rotation
     const Eigen::Vector3d rCNn    = pSystem->cameraPositionDensity(camera).mean();
     const Eigen::Vector3d Thetanc = pSystem->cameraOrientationEulerDensity(camera).mean();
     const Eigen::Matrix3d Rnc     = rpy2rot(Thetanc);
     const Eigen::Matrix3d Rcn     = Rnc.transpose();
 
+    // Conservative FOV test using landmark center
     auto isLandmarkCenterVisible = [&](const Eigen::Vector3d& rLNn) -> bool {
         const Eigen::Vector3d rLCc = Rcn * (rLNn - rCNn);
-        return camera.isVectorWithinFOVConservative(cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()), CamDefaults::BorderMarginPx);
+        return camera.isVectorWithinFOVConservative(
+            cv::Vec3d(rLCc.x(), rLCc.y(), rLCc.z()),
+            CamDefaults::BorderMarginPx
+        );
     };
 
-    printf("[Plot] Rendering %zu landmarks.\n", pSystem->numberLandmarks());
+    // DEBUG: overall counts (uncomment to enable)
+    // std::printf("[Plot] render: nLM=%zu, img=%dx%d\n",
+    //             pSystem->numberLandmarks(), camera.imageSize.width, camera.imageSize.height);
+
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
         const Eigen::Vector3d rLNn = posDen.mean();
 
-        bool centerInFOV = isLandmarkCenterVisible(rLNn);
-        bool isDetected = false;
-        bool isIdentifiable = false; 
+        bool centerInFOV   = isLandmarkCenterVisible(rLNn);
+        bool isDetected    = false;
+        bool isIdentifiable = false; // draw 2D ellipse only if identifiable & visible
 
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
-            isDetected = tagMeas->isEffectivelyAssociated(i);
+            isDetected     = tagMeas->isEffectivelyAssociated(i);
             isIdentifiable = (i < tagMeas->idByLandmark().size()) && (tagMeas->idByLandmark()[i] >= 0);
         } else if (const auto* duckMeas = dynamic_cast<const MeasurementSLAMDuckBundle*>(pMeasurement.get())) {
             const auto& idxF = duckMeas->idxFeatures();
-            if (i < idxF.size()) {
-                isDetected = (idxF[i] >= 0);
-            }
-            isIdentifiable = true;
+            if (i < idxF.size()) isDetected = (idxF[i] >= 0);
+            isIdentifiable = true; // ducks are treated as identifiable points
         }
-        
-        printf("[Plot] LM %zu: centerInFOV=%d, isDetected=%d, isIdentifiable=%d\n", i, centerInFOV, isDetected, isIdentifiable);
 
+        // Colors: left=image (blue if detected, red otherwise)
         double cr_left, cg_left, cb_left;
-        if (isDetected) {
-            cr_left = 0.0; cg_left = 0.5; cb_left = 1.0;
-        } else {
-            cr_left = 1.0; cg_left = 0.25; cb_left = 0.25;
-        }
+        if (isDetected) { cr_left = 0.0; cg_left = 0.5; cb_left = 1.0; }
+        else            { cr_left = 1.0; cg_left = 0.25; cb_left = 0.25; }
 
+        // Colors: right=world (blue=visible&detected, red=visible only, yellow=not visible)
         double cr_right, cg_right, cb_right;
-        if (centerInFOV && isDetected) {
-            cr_right = 0.0; cg_right = 0.5; cb_right = 1.0;
-        } else if (!centerInFOV) {
-            cr_right = 1.0; cg_right = 1.0; cb_right = 0.0;
-        } else {
-            cr_right = 1.0; cg_right = 0.25; cb_right = 0.25;
-        }
+        if (centerInFOV && isDetected)      { cr_right = 0.0; cg_right = 0.5; cb_right = 1.0; }
+        else if (!centerInFOV)              { cr_right = 1.0; cg_right = 1.0; cb_right = 0.0; }
+        else                                { cr_right = 1.0; cg_right = 0.25; cb_right = 0.25; }
 
+        // DEBUG: per-LM status (uncomment to enable)
+        // std::printf("[Plot] LM%zu: FOV=%d det=%d ident=%d\n", i, (int)centerInFOV, (int)isDetected, (int)isIdentifiable);
+
+        // Draw 2D predicted ellipse in image if identifiable & visible
         if (isIdentifiable && centerInFOV) {
-            printf("[Plot]   -> LM %zu is visible. Attempting to draw 2D ellipse.\n", i);
             try {
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
-                Eigen::Vector2d pixMean = prQOi.mean();
-                
-                printf("[Plot]   -> LM %zu predicted at pixel (%.2f, %.2f). Covariance det: %.4f\n", i, pixMean.x(), pixMean.y(), prQOi.cov().determinant());
+                const Eigen::Vector2d pixMean = prQOi.mean();
+
+                // DEBUG: predicted pixel & covariance (uncomment to enable)
+                // std::printf("[Plot]   LM%zu pix=(%.1f,%.1f) detS=%.3e\n",
+                //             i, pixMean.x(), pixMean.y(), prQOi.cov().determinant());
 
                 if (camera.isPixelInside(pixMean)) {
-                    Eigen::Matrix2d S = prQOi.sqrtCov();
+                    const Eigen::Matrix2d S = prQOi.sqrtCov();
                     if (S.allFinite()) {
-                        printf("[Plot]   -> SUCCESS: Drawing ellipse for LM %zu.\n", i);
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
 
-                        std::string label = "LM " + std::to_string(i);
+                        // label near the predicted pixel
+                        const std::string label = "LM " + std::to_string(i);
                         cv::putText(pSystem->view(), label,
-                                    cv::Point(static_cast<int>(pixMean.x() + 15),
-                                              static_cast<int>(pixMean.y() - 15)),
-                                    cv::FONT_HERSHEY_SIMPLEX, 0.5,
-                                    cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
-                    } else {
-                        printf("[Plot]   -> FAILED: Sqrt-covariance is not finite for LM %zu.\n", i);
+                            cv::Point(static_cast<int>(pixMean.x() + 15),
+                                      static_cast<int>(pixMean.y() - 15)),
+                            cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                            cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                     }
-                } else {
-                    printf("[Plot]   -> FAILED: Predicted mean for LM %zu is outside image bounds.\n", i);
+                    // else DEBUG: mean outside image
+                    // else std::printf("[Plot]   LM%zu mean outside image\n", i);
                 }
-            } catch (const std::exception& e) {
-                printf("[Plot]   -> EXCEPTION for LM %zu: %s\n", i, e.what());
+                // else DEBUG: prediction failed gate
+                // else std::printf("[Plot]   LM%zu: predictFeatureDensity not drawable\n", i);
+            }
+            catch (const std::exception& e) {
+                // DEBUG: exception details
+                // std::printf("[Plot]   LM%zu exception: %s\n", i, e.what());
             }
         }
 
-        QuadricPlot & qp = qpLandmarks[i];
+        // Update 3D landmark ellipsoid (right pane)
+        QuadricPlot& qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
         qp.getActor()->GetProperty()->SetColor(cr_right, cg_right, cb_right);
         qp.bounds.setExtremity(globalBounds);
     }
 
+    // Update axes, frustum, and image panels
     ap.update(globalBounds);
     bp.update(rCNn, Thetanc);
     fp.update(rCNn, Thetanc);
     ip.update(pSystem->view());
 
+    // Render final composited frame
     renderWindow->Render();
 }
+
 
 void Plot::start() const
 {

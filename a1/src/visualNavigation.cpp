@@ -115,6 +115,20 @@ void runVisualNavigationFromVideo(
         fs["camera"] >> camera;
         fs.release();
     }
+
+    // I am not sure if we need this transformation
+    // R_bc = [c1_b, c2_b, c3_b] where c_i_b is the i-th camera axis expressed in the body frame.
+    // c1 (camera right) = b2 (body sway)   -> [0, 1, 0]
+    // c2 (camera down)  = b3 (body heave)  -> [0, 0, 1]
+    // c3 (camera fwd)   = b1 (body surge)  -> [1, 0, 0]
+
+    // Eigen::Matrix3d R_bc;
+    // R_bc << 0, 0, 1,
+    //         1, 0, 0,
+    //         0, 1, 0;
+    // camera.Tbc.rotationMatrix = R_bc;
+    // camera.Tbc.translationVector.setZero(); // Assume camera and body origins coincide
+
     camera.printCalibration();
     
     // ---------- Open video ----------
@@ -179,13 +193,13 @@ void runVisualNavigationFromVideo(
         // ---- Point-landmark SLAM system (we won't update it yet) ----
         Eigen::VectorXd mu_body(12);  mu_body.setZero();        // ν(6), r(3), Θ(3)
         mu_body.segment<3>(6) << 0.0, 0.0, -1.0; // r^n_{B/N}
-        mu_body.segment<3>(9) << 0.0, 0.0, 0.0; // Θ^n_B
+        mu_body.segment<3>(9) << -M_PI/2.0, -M_PI/2.0, 0.0; // Θ^n_B
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12);
         S_body.block<3,3>(0,0) *= 0.5;          // v uncertainty
         S_body.block<3,3>(6,6) *= 0.5;                         // position sqrt-cov
         const double d2r = (1.0 * std::numbers::pi / 180.0);
-        S_body.block<3,3>(9,9) *= (5.0 * d2r);                    // orientation sqrt-cov
+        S_body.block<3,3>(9,9) *= (20.0 * d2r);                    // orientation sqrt-cov
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPointLandmarks>(SystemSLAMPointLandmarks(p0));
 
@@ -250,275 +264,149 @@ void runVisualNavigationFromVideo(
 
         if (scenario == 1)
         {
-            // ----------------------------------------------------------------
-            // STEP 1: Detect ArUco tags + IPPE pose + reprojection gating.
-            // Measurement will later assemble Y = [u1..u4,v1..v4] per tag.
-            // ----------------------------------------------------------------
+            // --- 1. Detect ArUco Tags ---
             std::vector<cv::Vec3d> rvecs, tvecs;
-            std::vector<double> meanErrs;
             ArucoDetections dets = detectArUcoPOSE(
-                imgin,
-                cv::aruco::DICT_6X6_250,
-                /*doCornerRefine*/ true,
-                camera.cameraMatrix,
-                camera.distCoeffs,
-                TAG_SIZE_METERS,
-                &rvecs, &tvecs, &meanErrs,
-                REPROJ_ERR_THRESH_PX,
-                /*drawRejected*/ false
-            );
+                imgin, cv::aruco::DICT_6X6_250, true,
+                camera.cameraMatrix, camera.distCoeffs, TAG_SIZE_METERS,
+                &rvecs, &tvecs, nullptr, REPROJ_ERR_THRESH_PX, false);
 
             auto* sysPose = dynamic_cast<SystemSLAMPoseLandmarks*>(&system);
             assert(sysPose && "Scenario 1 expects SystemSLAMPoseLandmarks");
 
-            if (id_by_landmark.size() < system.numberLandmarks())
-                id_by_landmark.resize(system.numberLandmarks(), -1);
-
-            // Camera mean pose (used for world placement of new landmarks)
+            // --- 2. Get Current TRUE Camera Pose from SLAM State ---
+            // This is the CRITICAL step. We get the body pose T_nb from the state
+            // and correctly transform it to the camera pose T_nc using T_bc.
             const Eigen::VectorXd xmean = sysPose->density.mean();
-            const Eigen::Vector3d rCNn  = SystemSLAM::cameraPosition(camera, xmean);
-            const Eigen::Matrix3d Rnc   = SystemSLAM::cameraOrientation(camera, xmean);
+            Pose<double> Tnb;
+            Tnb.translationVector = xmean.segment<3>(6);
+            Tnb.rotationMatrix = rpy2rot(xmean.segment<3>(9));
+            const Pose<double> Tnc = camera.bodyToCamera(Tnb); // Tnc = Tnb * Tbc
 
-            // ----------------------------------------------------------------
-            // STEP 2: Initialize new landmarks (IDs unseen so far).
-            // Uses (8)–(9) to place corners via tag pose; stores landmark pose (6).
-            // ----------------------------------------------------------------
-            int nInitialized = 0;
+            // --- 3. Initialize New Landmarks ---
+            if (id_by_landmark.size() < system.numberLandmarks()) {
+                id_by_landmark.resize(system.numberLandmarks(), -1);
+            }
+
             for (std::size_t i = 0; i < dets.ids.size(); ++i)
             {
                 const int tagId = dets.ids[i];
+                if (id2lm.count(tagId)) continue; // Skip if already in map
 
-                // GATE 1: only new IDs
-                if (id2lm.find(tagId) != id2lm.end()) continue;
+                // Create the pose of the tag in the camera frame (T_cj)
+                Pose<double> Tcj(rodriguesToRot(rvecs[i]), Eigen::Vector3d(tvecs[i][0], tvecs[i][1], tvecs[i][2]));
 
-                // GATE 2: all 4 corners inside with a safety margin (robust association)
-                if (!camera.areCornersInside(dets.corners[i], CamDefaults::BorderMarginPx)) continue;
+                // Calculate the world pose of the tag: T_nj = T_nc * T_cj
+                Pose<double> Tnj = Tnc * Tcj;
+                const Eigen::Vector3d rnj = Tnj.translationVector;
+                const Eigen::Vector3d Thetanj = rot2rpy(Tnj.rotationMatrix);
 
-                // GATE 3: PnP in front of camera
-                if (tvecs[i][2] <= 1e-3) continue;
-
-                // IPPE pose (camera→tag) → world
-                const Eigen::Matrix3d Rcj = rodriguesToRot(rvecs[i]);
-                const Eigen::Vector3d rCjVec(tvecs[i][0], tvecs[i][1], tvecs[i][2]);
-                const Eigen::Matrix3d Rnj = Rnc * Rcj;
-                Eigen::Vector3d rnj = rCNn + Rnc * rCjVec;
-                const Eigen::Vector3d Thetanj = rot2rpy(Rnj);
-
-                // Small random jitter in position to avoid perfect init
-                std::srand(static_cast<unsigned>(std::time(nullptr)) + static_cast<unsigned>(i));
-                auto jitter = [](double off){ return off * (2.0 * (std::rand() / (double)RAND_MAX) - 1.0); };
-                rnj(0) += jitter(INIT_POS_OFFSET);
-                rnj(1) += jitter(INIT_POS_OFFSET);
-                rnj(2) += jitter(INIT_POS_OFFSET);
-
-                // Initial sqrt-covariance (diagonal) for pose landmark
-                Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Zero();
-                Sj(0,0) = INIT_POS_SIGMA;
-                Sj(1,1) = INIT_POS_SIGMA;
-                Sj(2,2) = INIT_POS_SIGMA;
-                Sj(3,3) = INIT_ANG_SIGMA;
-                Sj(4,4) = INIT_ANG_SIGMA;
-                Sj(5,5) = INIT_ANG_SIGMA;
-
+                // Standard initialization with uncertainty
+                Eigen::Matrix<double,6,6> Sj = Eigen::Matrix<double,6,6>::Identity();
+                Sj.diagonal() << INIT_POS_SIGMA, INIT_POS_SIGMA, INIT_POS_SIGMA, INIT_ANG_SIGMA, INIT_ANG_SIGMA, INIT_ANG_SIGMA;
+                
                 const std::size_t j = sysPose->appendLandmark(rnj, Thetanj, Sj);
 
                 if (j >= id_by_landmark.size()) id_by_landmark.resize(j+1, -1);
                 id_by_landmark[j] = tagId;
                 id2lm[tagId] = j;
-                
-                nInitialized++;
             }
 
-            // ----------------------------------------------------------------
-            // STEP 3: Build measurement matrix Y (2 × 4N) from detected corners.
-            // Likelihood uses per-corner Gaussian with missed-detection penalty (7).
-            // ----------------------------------------------------------------
+            // --- 4. Create Measurement and Process ---
             const std::size_t N = dets.ids.size();
             Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, 4*N);
             for (std::size_t i = 0; i < N; ++i) {
-                const auto& c = dets.corners[i];            // TL, TR, BR, BL
                 for (int k = 0; k < 4; ++k) {
-                    Y(0, 4*i + k) = c[k].x;
-                    Y(1, 4*i + k) = c[k].y;
+                    Y(0, 4*i + k) = dets.corners[i][k].x;
+                    Y(1, 4*i + k) = dets.corners[i][k].y;
                 }
             }
-            assert(Y.cols() == 4 * static_cast<int>(N) && "Y must pack 4 columns per tag");
-
-            // ----------------------------------------------------------------
-            // STEP 4: Time update + measurement update (EKF/InfoFilter policy).
-            // ----------------------------------------------------------------
             system.view() = dets.annotated.empty() ? imgin : dets.annotated;
 
             MeasurementSLAMUniqueTagBundle meas(t, Y, camera, dets.ids);
             meas.setIdByLandmark(id_by_landmark);
-            meas.process(system);                 // propagate (4)–(5) + correct (7)
-            id_by_landmark = meas.idByLandmark(); // persist any mapping updates
+            meas.process(system);
+            id_by_landmark = meas.idByLandmark();
 
-            // ----------------------------------------------------------------
-            // STEP 5: Diagnostics every 10 frames (counts, camera state, σ)
-            // ----------------------------------------------------------------
-            if (frameIdx % 10 == 0) {
-                std::cout << "\n╔════════════════════════════════════════════════════════════╗\n";
-                std::cout << "║ Frame " << std::setw(5) << frameIdx 
-                          << " | Time: " << std::fixed << std::setprecision(2) << t << "s"
-                          << std::string(30, ' ') << "║\n";
-                std::cout << "╠════════════════════════════════════════════════════════════╣\n";
-                
-                // Detection stats
-                std::cout << "║ DETECTIONS                                                 ║\n";
-                std::cout << "║   Total landmarks in map:   " << std::setw(4) << system.numberLandmarks() << "                                  ║\n";
-                std::cout << "║   Tags detected this frame: " << std::setw(4) << dets.ids.size()          << "                                  ║\n";
-                std::cout << "║   New landmarks initialized:" << std::setw(4) << nInitialized             << "                                  ║\n";
-                
-                // Association stats
-                int nAssoc = 0;
-                for (int idx : meas.idxFeatures()) if (idx >= 0) ++nAssoc;
-                std::cout << "║   Landmarks associated:     " << std::setw(4) << nAssoc                   << "                                  ║\n";
-                std::cout << "╠════════════════════════════════════════════════════════════╣\n";
-                
-                // Camera state
-                const Eigen::VectorXd x = system.density.mean();
-                const Eigen::Vector3d camPos   = SystemSLAM::cameraPosition(camera, x);
-                const Eigen::Vector3d camVel   = x.segment<3>(0);
-                const Eigen::Vector3d camOmega = x.segment<3>(3);
-                
-                std::cout << "║ CAMERA STATE                                               ║\n";
-                std::cout << "║   Position (m):    [" 
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(0) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(1) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camPos(2) << "]   ║\n";
-                std::cout << "║   Velocity (m/s):  [" 
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(0) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(1) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camVel(2) << "]   ║\n";
-                std::cout << "║   Ang vel (rad/s): [" 
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(0) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(1) << ", "
-                          << std::setw(7) << std::fixed << std::setprecision(3) << camOmega(2) << "]   ║\n";
-                
-                // Landmark σ (position marginals)
-                const std::size_t nShow = system.numberLandmarks();
-                if (nShow > 0) {
-                    std::cout << "╠════════════════════════════════════════════════════════════╣\n";
-                    std::cout << "║ LANDMARK UNCERTAINTIES (Show " << nShow << " landmarks)                  ║\n";
-                    for (std::size_t i = 0; i < nShow; ++i) {
-                        const auto posDen = system.landmarkPositionDensity(i);
-                        const Eigen::Vector3d pos_mean = posDen.mean();
-                        const double std_x = std::abs(posDen.marginal(Eigen::seqN(0,1)).sqrtCov()(0,0));
-                        const double std_y = std::abs(posDen.marginal(Eigen::seqN(1,1)).sqrtCov()(0,0));
-                        const double std_z = std::abs(posDen.marginal(Eigen::seqN(2,1)).sqrtCov()(0,0));
-                        
-                        std::cout << "║   LM[" << i << "] pos: ["
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(0) << ","
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(1) << ","
-                                  << std::setw(6) << std::fixed << std::setprecision(2) << pos_mean(2) << "]m  ";
-                        std::cout << "σ:["
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << std_x << ","
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << std_y << ","
-                                  << std::setw(5) << std::fixed << std::setprecision(3) << std_z << "]m ║\n";
-                    }
-                }
-                std::cout << "╚════════════════════════════════════════════════════════════╝\n";
-            }
-
-            // Visualization — left/right panes per assignment spec
+            // --- 5. Visualization ---
             plot.setData(system, meas);
         }
         else if (scenario == 2)
         {
+            // --- Scenario 2 (ducks): detector → 2D SNN assoc → [u,v,A] EKF update ---
+
             auto* sysPts = dynamic_cast<SystemSLAMPointLandmarks*>(&system);
             assert(sysPts && "Scenario 2 expects SystemSLAMPointLandmarks");
             assert(duckDetector && "duckDetector must be initialised in scenario 2");
 
-            // DEBUG: Print frame number
-            printf("\n--- [FRAME %d at t=%.3fs] ---\n", frameIdx, t);
+            // DEBUG
+            std::printf("\n--- [FRAME %d at t=%.3fs] ---\n", frameIdx, t);
 
-            // --- 1. Detect Ducks and Prepare Measurements ---
-            cv::Mat annotated = duckDetector->detect(imgin);
-            system.view() = annotated.empty() ? imgin : annotated;
+            // 1) Run ONNX detector → overlay + (u,v,A) in pixels
+            cv::Mat viz = duckDetector->detect(imgin);      // overlay image
+            const auto& C   = duckDetector->last_centroids();  // vector<cv::Point2f>
+            const auto& Apx = duckDetector->last_areas();      // vector<double>
+            system.view() = viz;                                // left-pane shows detections
 
-            const auto& centroids = duckDetector->last_centroids();
-            const auto& areas = duckDetector->last_areas();
-            assert(centroids.size() == areas.size());
-
-            const int n_detections = static_cast<int>(centroids.size());
-            Eigen::Matrix<double, 2, Eigen::Dynamic> Y(2, n_detections);
-            Eigen::VectorXd A(n_detections);
-            for (int i = 0; i < n_detections; ++i) {
-                Y(0, i) = static_cast<double>(centroids[i].x);
-                Y(1, i) = static_cast<double>(centroids[i].y);
-                A(i) = static_cast<double>(areas[i]);
+            // 2) Build Y (2×m) and A (m×1)
+            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, (int)C.size());
+            Eigen::VectorXd Avec((int)C.size());
+            for (int i = 0; i < (int)C.size(); ++i) {
+                Y(0,i) = C[i].x;  Y(1,i) = C[i].y;
+                Avec(i) = std::max(1.0, Apx[i]); // avoid zero-area
             }
 
-            // Create the measurement bundle for this frame
-            // (You will need to add your tuned noise values here)
-            MeasurementSLAMDuckBundle meas(t, Y, A, camera, 5.0, 50.0, 0.05);
+            // 3) If we have neither landmarks nor detections, just plot the frame and move on
+            if (sysPts->numberLandmarks() == 0 && Y.cols() == 0) {
+                MeasurementPointBundle measEmpty(t, Eigen::Matrix<double,2,Eigen::Dynamic>(2,0), camera);
+                plot.setData(system, measEmpty);
+            } else {
 
-            // --- 2. Time Update (Prediction Step) ---
-            // The meas.process(system) call handles this internally.
-
-            // --- 3. Data Association ---
-            std::vector<std::size_t> all_landmarks(sysPts->numberLandmarks());
-            std::iota(all_landmarks.begin(), all_landmarks.end(), 0);
-
-            if (!all_landmarks.empty() && n_detections > 0) {
-                meas.associate(*sysPts, all_landmarks);
-            }
-            const auto& associations = meas.idxFeatures();
-
-            // --- 4. Identify Surplus Features ---
-            std::vector<int> surplus_indices;
-            std::vector<bool> is_feature_matched(n_detections, false);
-            for (int feature_idx : associations) {
-                if (feature_idx >= 0) {
-                    is_feature_matched[feature_idx] = true;
+                // 4) Bootstrap landmarks from detections if map is empty
+                if (sysPts->numberLandmarks() == 0 && Y.cols() > 0) {
+                    const double fx = camera.cameraMatrix.at<double>(0,0);
+                    const double fy = camera.cameraMatrix.at<double>(1,1);
+                    const double duck_r_m    = 0.054; // pick your best measured radius [m]
+                    const double pos_sigma_m = 0.25;  // loose init uncertainty
+                    std::size_t nAdded = sysPts->appendFromDuckDetections(
+                        camera, Y, Avec, fx, fy, duck_r_m, pos_sigma_m);
+                    std::printf("   [init] appended %zu landmarks from detector\n", nAdded);
                 }
-            }
-            for (int i = 0; i < n_detections; ++i) {
-                if (!is_feature_matched[i]) {
-                    // Add a quality check: only consider surplus features that are not too close to the edge
-                    if (camera.isPixelInside(centroids[i], 50)) { // 50-pixel margin from the border
-                        surplus_indices.push_back(i);
+
+                // 5) Choose candidate landmarks in FOV (reduces spurious matches)
+                std::vector<std::size_t> idxLandmarks;
+                {
+                    const Eigen::VectorXd xbar = system.density.mean();
+                    Pose<double> Tnb;
+                    Tnb.translationVector = xbar.segment<3>(6);
+                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
+
+                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
+                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                        cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
+                        if (camera.isWorldWithinFOV(rPNn, Tnb))
+                            idxLandmarks.push_back(j);
                     }
                 }
-            }
 
-            // --- 5. Initialize New Landmarks from Surplus Features ---
-            const size_t N_max = 50; // Maximum number of landmarks allowed in the map
-            size_t landmarks_to_add = 0;
-            if (sysPts->numberLandmarks() < N_max) {
-                landmarks_to_add = std::min(surplus_indices.size(), N_max - sysPts->numberLandmarks());
-            }
-
-            if (landmarks_to_add > 0) {
-                // We are only adding a subset of surplus features, so we need to pack them
-                Eigen::Matrix<double, 2, Eigen::Dynamic> Y_surplus(2, landmarks_to_add);
-                Eigen::VectorXd A_surplus(landmarks_to_add);
-                for (size_t i = 0; i < landmarks_to_add; ++i) {
-                    int feature_idx = surplus_indices[i];
-                    Y_surplus.col(i) = Y.col(feature_idx);
-                    A_surplus(i) = A(feature_idx);
-                }
-
-                // This function appends the new landmarks directly to the system state
-                size_t num_added = sysPts->appendFromDuckDetections(
-                    camera, Y_surplus, A_surplus,
-                    camera.cameraMatrix.at<double>(0,0), // fx
-                    camera.cameraMatrix.at<double>(1,1), // fy
-                    0.07, // duck_r_m
-                    0.3   // pos_sigma_m (initial uncertainty)
+                // 6) Build the duck measurement (includes area term for the EKF update)
+                MeasurementSLAMDuckBundle meas(
+                    t, Y, Avec, camera,
+                    /*duck_radius_m=*/0.054,
+                    /*sigma_px=*/1.5,
+                    /*sigma_area=*/250.0
                 );
-                std::println("[Landmark Init] Added {} new landmarks from surplus detections.", num_added);
+
+                // 7) Associate once (2D SNN via base bundle) — don't run manual SNN as well
+                meas.associate(system, idxLandmarks);
+
+                // 8) Perform measurement update (time-predict + non-linear update with [u,v,A])
+                meas.process(system);
+
+                // 9) Visualisation
+                plot.setData(system, meas);
             }
-
-            // --- 6. Perform Measurement Update ---
-            meas.process(system);
-
-            // --- 7. Visualization ---
-            plot.setData(system, meas);
-
         }
-
         else
         {
             assert("broken if you're here");

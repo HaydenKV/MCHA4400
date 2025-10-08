@@ -1,318 +1,337 @@
 #include "MeasurementSLAMDuckBundle.h"
-#include <cassert>
-#include <numeric>
-#include <numbers>
-#include "SystemEstimator.h"
-#include "SystemBase.h"
-#include "Pose.hpp"
-#include "association_util.h"
 
-// Autodiff includes
+#include <numeric>
+#include <stdexcept>
 #include <autodiff/forward/dual.hpp>
 #include <autodiff/forward/dual/eigen.hpp>
 
+// ===== Thread-local selection cache (mirrors MeasurementSLAMPointBundle.cpp) =====
 namespace {
-    // Helper function to build the diagonal weighting matrix for the likelihood.
-    // Scoped to this file only to prevent redefinition errors.
-    static inline void buildInvWeights(std::size_t k, double sc, double sa, Eigen::VectorXd& w)
+    thread_local bool tl_assoc_ready_duck = false;
+    thread_local std::vector<std::size_t> tl_idxUseLandmarks_duck;
+    thread_local std::vector<int>         tl_idxUseFeatures_duck;
+
+    inline void ensureDuckAssociatedOnce(const SystemSLAM& sys,
+                                         const Eigen::Matrix<double,2,Eigen::Dynamic>& Y,
+                                         const std::vector<int>& idxFeatures)
     {
-        w.resize(3 * k);
-        const double inv_var_c = 1.0 / (sc * sc);
-        const double inv_var_a = 1.0 / (sa * sa);
-        for (std::size_t i = 0; i < k; ++i) {
-            const std::size_t r = 3 * i;
-            w(r+0) = inv_var_c;
-            w(r+1) = inv_var_c;
-            w(r+2) = inv_var_a;
+        if (tl_assoc_ready_duck) return;
+
+        tl_idxUseLandmarks_duck.clear();
+        tl_idxUseFeatures_duck.clear();
+        tl_idxUseLandmarks_duck.reserve(sys.numberLandmarks());
+        tl_idxUseFeatures_duck.reserve(sys.numberLandmarks());
+
+        const std::size_t nL = sys.numberLandmarks();
+        for (std::size_t j = 0; j < nL; ++j)
+        {
+            if (j < idxFeatures.size()) {
+                const int fi = idxFeatures[j];
+                if (fi >= 0 && fi < Y.cols()) {
+                    tl_idxUseLandmarks_duck.push_back(j);
+                    tl_idxUseFeatures_duck.push_back(fi);
+                }
+            }
         }
+        tl_assoc_ready_duck = true;
+    }
+
+    inline void clearDuckAssociationScratch()
+    {
+        tl_assoc_ready_duck = false;
+        tl_idxUseLandmarks_duck.clear();
+        tl_idxUseFeatures_duck.clear();
     }
 }
 
-// Constructor
+// ===== Construction =====
 MeasurementSLAMDuckBundle::MeasurementSLAMDuckBundle(double time,
                                                      const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
-                                                     const Eigen::VectorXd& A,
+                                                     const Eigen::VectorXd& Avec,
                                                      const Camera& camera,
-                                                     double sigma_c_px,
-                                                     double sigma_a_px2,
-                                                     double duck_radius_m)
-: MeasurementSLAM(time, camera)
-, Yuv_(Yuv)
-, A_(A)
-, sigma_c_(sigma_c_px)
-, sigma_a_(sigma_a_px2)
-, duck_r_m_(duck_radius_m)
-, fx_(camera.cameraMatrix.at<double>(0,0))
-, fy_(camera.cameraMatrix.at<double>(1,1))
+                                                     double duck_radius_m,
+                                                     double sigma_px,
+                                                     double sigma_area)
+: MeasurementPointBundle(time, Yuv, camera)
+, A_(Avec)
+, rDuck_(duck_radius_m)
+, sigmaA_(sigma_area)
 {
-    assert(Yuv_.cols() == A_.size() && "DuckBundle: Y(2xN) and A(N) must match");
-    assert(sigma_c_ > 0.0 && sigma_a_ > 0.0 && duck_r_m_ > 0.0);
-    // Use a full Newton method for accuracy, especially during initialization
-    updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
+    // Reuse base class sigma_ for pixel residuals
+    this->sigma_ = sigma_px;
+
+    // Use a robust trust-region method (same default you used in your edited PointBundle)
+    // this->updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
 MeasurementSLAM* MeasurementSLAMDuckBundle::clone() const
 {
-    auto* m = new MeasurementSLAMDuckBundle(time_, Yuv_, A_, camera_,
-                                            sigma_c_, sigma_a_, duck_r_m_);
-    m->idxFeatures_ = idxFeatures_;
-    m->is_effectively_associated_ = is_effectively_associated_;
-    return m;
+    return new MeasurementSLAMDuckBundle(*this);
 }
 
-// Predicts a single landmark and computes Jacobian via AUTODIFF
+// ===== Single landmark predict: [u, v, A]^T (templated) =====
+template <typename Scalar>
+Eigen::Matrix<Scalar,3,1>
+MeasurementSLAMDuckBundle::predictDuckFeature(const Eigen::Matrix<Scalar,-1,1>& x,
+                                              const SystemSLAM& system,
+                                              std::size_t idxLandmark) const
+{
+    // (1) Camera pose from state
+    Pose<Scalar> Tnc;
+    Tnc.translationVector = system.cameraPosition(camera_, x);
+    Tnc.rotationMatrix    = system.cameraOrientation(camera_, x);
+
+    // (2) Landmark world position from state
+    const std::size_t idx = system.landmarkPositionIndex(idxLandmark);
+    Eigen::Matrix<Scalar,3,1> rPNn = x.template segment<3>(idx);
+
+    // (3) Transform to camera coordinates: rPCc = Rcn * (rPNn - rCNn)
+    const Eigen::Matrix<Scalar,3,3> Rcn = Tnc.rotationMatrix.transpose();
+    const Eigen::Matrix<Scalar,3,1> rPCc = Rcn * (rPNn - Tnc.translationVector);
+
+    // (4) Project to pixels [u,v] using calibrated, distorted model
+    const Eigen::Matrix<Scalar,2,1> uv = camera_.vectorToPixel(rPCc);
+
+    // (5) Area model: A_hat = (fx * fy * pi * r^2) / Z^2
+    const Scalar fx = static_cast<Scalar>(camera_.cameraMatrix.at<double>(0,0));
+    const Scalar fy = static_cast<Scalar>(camera_.cameraMatrix.at<double>(1,1));
+    const Scalar Zc = rPCc(2);
+    const Scalar k  = fx * fy * static_cast<Scalar>(M_PI) * static_cast<Scalar>(rDuck_ * rDuck_);
+
+    Eigen::Matrix<Scalar,3,1> y;
+    y.template head<2>() = uv;
+    y(2) = k / (Zc * Zc);
+
+    return y;
+}
+
+// ===== Single landmark predict with Jacobian (autodiff) =====
 Eigen::Vector3d
-MeasurementSLAMDuckBundle::predictDuck(const Eigen::VectorXd& x,
-                                       Eigen::MatrixXd& J,
-                                       const SystemSLAM& system,
-                                       std::size_t idxLandmark) const
+MeasurementSLAMDuckBundle::predictDuckFeature(const Eigen::VectorXd& x,
+                                              Eigen::MatrixXd& J,
+                                              const SystemSLAM& system,
+                                              std::size_t idxLandmark) const
 {
     using autodiff::dual;
+    using autodiff::jacobian;
     using autodiff::wrt;
     using autodiff::at;
     using autodiff::val;
-    using autodiff::jacobian;
 
-    auto h_func = [&](const Eigen::VectorX<dual>& x_dual) -> Eigen::Vector3<dual> {
-        return predictDuckT<dual>(x_dual, system, idxLandmark);
+    Eigen::Matrix<dual,-1,1> xdual = x.cast<dual>();
+
+    auto h = [&](const Eigen::Matrix<dual,-1,1>& xad) -> Eigen::Matrix<dual,3,1>
+    {
+        return predictDuckFeature<dual>(xad, system, idxLandmark);
     };
 
-    Eigen::VectorX<dual> x_dual = x.cast<dual>();
-    Eigen::Vector3<dual> h_dual;
-    J = jacobian(h_func, wrt(x_dual), at(x_dual), h_dual);
+    Eigen::Matrix<dual,3,1> ydual;
+    J = jacobian(h, wrt(xdual), at(xdual), ydual);  // (3 x nx)
 
-    return h_dual.cast<double>();
+    Eigen::Vector3d y;
+    y << val(ydual(0)), val(ydual(1)), val(ydual(2));
+    return y;
 }
 
-// Stacks predictions for a bundle of landmarks
+// ===== Bundle prediction (templated) =====
+template <typename Scalar>
+Eigen::Matrix<Scalar,-1,1>
+MeasurementSLAMDuckBundle::predictDuckBundle(const Eigen::Matrix<Scalar,-1,1>& x,
+                                             const SystemSLAM& system,
+                                             const std::vector<std::size_t>& idxLandmarks) const
+{
+    const std::size_t nL = idxLandmarks.size();
+    Eigen::Matrix<Scalar,-1,1> h(3*nL);
+    for (std::size_t i = 0; i < nL; ++i)
+    {
+        auto yi = predictDuckFeature<Scalar>(x, system, idxLandmarks[i]);
+        h.template segment<3>(3*i) = yi;
+    }
+    return h;
+}
+
 Eigen::VectorXd
 MeasurementSLAMDuckBundle::predictDuckBundle(const Eigen::VectorXd& x,
                                              Eigen::MatrixXd& J,
                                              const SystemSLAM& system,
                                              const std::vector<std::size_t>& idxLandmarks) const
 {
+    using autodiff::dual;
+    using autodiff::jacobian;
+    using autodiff::wrt;
+    using autodiff::at;
+    using autodiff::val;
+
+    Eigen::Matrix<dual,-1,1> xdual = x.cast<dual>();
     const std::size_t nL = idxLandmarks.size();
-    const std::size_t nx = system.density.dim();
 
-    Eigen::VectorXd h(3 * nL);
-    J.resize(3 * nL, nx);
-
-    for (std::size_t i = 0; i < nL; ++i) {
-        Eigen::MatrixXd Ji;
-        Eigen::Vector3d hi = predictDuck(x, Ji, system, idxLandmarks[i]);
-        h.segment<3>(3 * i) = hi;
-        J.middleRows(3 * i, 3) = Ji;
-    }
-    return h;
-}
-
-// --- Density and Association Functions ---
-
-GaussianInfo<double> MeasurementSLAMDuckBundle::predictCentroidBundleDensity(
-    const SystemSLAM& system,
-    const std::vector<std::size_t>& idxLandmarks) const
-{
-    const std::size_t nx = system.density.dim();
-    const std::size_t L  = idxLandmarks.size();
-    const std::size_t ny = 2 * L;
-
-    const auto func = [&](const Eigen::VectorXd& xv, Eigen::MatrixXd& Ja)
+    auto h = [&](const Eigen::Matrix<dual,-1,1>& xad) -> Eigen::Matrix<dual,-1,1>
     {
-        const Eigen::VectorXd x = xv.head(nx);
-        const Eigen::VectorXd v = xv.tail(ny);
-        Eigen::VectorXd h2D(ny);
-        Eigen::MatrixXd J2D(ny, nx);
-
-        for (std::size_t i = 0; i < L; ++i) {
-            Eigen::MatrixXd Ji;
-            Eigen::Vector3d hi = predictDuck(x, Ji, system, idxLandmarks[i]);
-            h2D.segment<2>(2*i) = hi.head<2>();
-            J2D.block(2*i, 0, 2, nx) = Ji.topRows(2);
-        }
-        Ja.resize(ny, nx + ny);
-        Ja << J2D, Eigen::MatrixXd::Identity(ny, ny);
-        return h2D + v;
+        return predictDuckBundle<dual>(xad, system, idxLandmarks);
     };
 
-    Eigen::MatrixXd S_centroid_noise = Eigen::MatrixXd::Identity(ny, ny) * sigma_c_;
-    auto pv  = GaussianInfo<double>::fromSqrtMoment(S_centroid_noise);
-    auto pxv = system.density * pv;
-    return pxv.affineTransform(func);
+    Eigen::Matrix<dual,-1,1> ydual(3*nL);
+    J = jacobian(h, wrt(xdual), at(xdual), ydual);  // (3nL x nx)
+
+    Eigen::VectorXd y(3*nL);
+    for (std::size_t i = 0; i < 3*nL; ++i) y(i) = val(ydual(i));
+    return y;
 }
 
-GaussianInfo<double>
-MeasurementSLAMDuckBundle::predictFeatureDensity(const SystemSLAM& system, std::size_t idxLandmark) const
-{
-    return predictCentroidBundleDensity(system, {idxLandmark});
-}
-
-GaussianInfo<double>
-MeasurementSLAMDuckBundle::predictFeatureBundleDensity(const SystemSLAM& system, const std::vector<std::size_t>& idxLandmarks) const
-{
-    return predictCentroidBundleDensity(system, idxLandmarks);
-}
-
-const std::vector<int>& MeasurementSLAMDuckBundle::associate(
-    const SystemSLAM& system,
-    const std::vector<std::size_t>& idxLandmarks)
-{
-    const std::size_t nL = system.numberLandmarks();
-    is_effectively_associated_.assign(nL, false);
-    idxFeatures_.assign(nL, -1);
-
-    if (idxLandmarks.empty() || Y().cols() == 0) return idxFeatures_;
-
-    GaussianInfo<double> centroidBundleDensity = predictCentroidBundleDensity(system, idxLandmarks);
-    snn(system, centroidBundleDensity, idxLandmarks, Y(), camera_, idxFeatures_);
-
-    for (std::size_t j = 0; j < idxLandmarks.size(); ++j) {
-        // Here, j is an index into the idxLandmarks vector
-        // The value idxLandmarks[j] is the actual landmark index in the state vector
-        // The value idxFeatures_[j] is the feature index associated with landmark idxLandmarks[j]
-        if (idxFeatures_[j] >= 0) {
-             is_effectively_associated_[idxLandmarks[j]] = true;
-        }
-    }
-    return idxFeatures_;
-}
-
-void MeasurementSLAMDuckBundle::update(SystemBase& systemBase)
-{
-    SystemSLAM& sys = dynamic_cast<SystemSLAM&>(systemBase);
-    // Landmark initialization is now handled in visualNavigation.cpp
-    // This function will just perform the update on the existing map.
-    std::vector<std::size_t> all_landmarks(sys.numberLandmarks());
-    std::iota(all_landmarks.begin(), all_landmarks.end(), 0);
-    // Run data association
-    associate(sys, all_landmarks);
-    // Perform the measurement update using the base class method
-    Measurement::update(systemBase);
-}
-
-// --- Likelihood Functions (Corrected Implementation) ---
-
+// ===== Log-likelihood (value) =====
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
-                                         const SystemEstimator& system) const
+                                         const SystemEstimator& system_) const
 {
-    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
-    
-    std::vector<std::size_t> associated_landmarks;
-    std::vector<int> associated_features;
-    for (std::size_t j = 0; j < idxFeatures_.size(); ++j) {
-        if (idxFeatures_[j] >= 0) {
-            associated_landmarks.push_back(j);
-            associated_features.push_back(idxFeatures_[j]);
-        }
-    }
-    
-    const std::size_t k = associated_landmarks.size();
-    if (k == 0) return 0.0;
+    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system_);
 
-    Eigen::VectorXd y_stacked(3 * k);
+    // Build association selection once per evaluation chain
+    ensureDuckAssociatedOnce(sys, Y_, idxFeatures_);
+
+    if (tl_idxUseLandmarks_duck.empty()) {
+        clearDuckAssociationScratch();
+        return 0.0;
+    }
+
+    const std::size_t k = tl_idxUseLandmarks_duck.size();
+
+    // Assemble measurement vector y = [u v A u v A ...]^T
+    Eigen::VectorXd y(3*k);
     for (std::size_t i = 0; i < k; ++i) {
-        y_stacked.segment<2>(3*i) = Yuv_.col(associated_features[i]);
-        y_stacked(3*i + 2)        = A_(associated_features[i]);
+        const int fi = tl_idxUseFeatures_duck[i];
+        y.segment<2>(3*i)   = Y_.col(fi);
+        y(3*i + 2)          = A_(fi);
     }
 
-    Eigen::VectorXd h(3 * k);
-    for (size_t i = 0; i < k; ++i) {
-        h.segment<3>(3 * i) = predictDuckT<double>(x, sys, associated_landmarks[i]);
+    // Predict & residual
+    Eigen::MatrixXd Jdummy;
+    Eigen::VectorXd h = predictDuckBundle(x, Jdummy, sys, tl_idxUseLandmarks_duck);
+    const Eigen::VectorXd r = y - h;
+
+    // Diagonal inverse covariance: invR = diag(1/σ_px^2, 1/σ_px^2, 1/σ_A^2, ...)
+    const double invRuv = 1.0 / (sigma_ * sigma_);
+    const double invRA  = 1.0 / (sigmaA_ * sigmaA_);
+
+    double val = 0.0;
+    for (std::size_t i = 0; i < k; ++i) {
+        const double ru = r(3*i + 0);
+        const double rv = r(3*i + 1);
+        const double rA = r(3*i + 2);
+        val += -0.5 * (invRuv * (ru*ru + rv*rv) + invRA * (rA*rA));
     }
-    
-    Eigen::VectorXd weights;
-    buildInvWeights(k, sigma_c_, sigma_a_, weights);
-    const Eigen::VectorXd r = y_stacked - h;
-    
-    double ll = 0.0;
-    for (int i = 0; i < r.size(); ++i) {
-        ll += -0.5 * weights(i) * r(i) * r(i);
-    }
-    return ll;
+
+    clearDuckAssociationScratch();
+    return val;
 }
 
-
+// ===== Log-likelihood (value + gradient) =====
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
-                                         const SystemEstimator& system,
+                                         const SystemEstimator& system_,
                                          Eigen::VectorXd& g) const
 {
-    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
-    
-    std::vector<std::size_t> associated_landmarks;
-    std::vector<int> associated_features;
-    for (std::size_t j = 0; j < idxFeatures_.size(); ++j) {
-        if (idxFeatures_[j] >= 0) {
-            associated_landmarks.push_back(j);
-            associated_features.push_back(idxFeatures_[j]);
-        }
-    }
-    
-    const std::size_t k = associated_landmarks.size();
-    g.setZero(x.size());
-    
-    if (k > 0) {
-        Eigen::VectorXd y_stacked(3 * k);
-        for (std::size_t i = 0; i < k; ++i) {
-            y_stacked.segment<2>(3*i) = Yuv_.col(associated_features[i]);
-            y_stacked(3*i + 2)        = A_(associated_features[i]);
-        }
-        
-        Eigen::MatrixXd J;
-        Eigen::VectorXd h = predictDuckBundle(x, J, sys, associated_landmarks);
-        
-        Eigen::VectorXd weights;
-        buildInvWeights(k, sigma_c_, sigma_a_, weights);
-        const Eigen::VectorXd r = y_stacked - h;
+    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system_);
 
-        g.noalias() = J.transpose() * (weights.asDiagonal() * r);
+    ensureDuckAssociatedOnce(sys, Y_, idxFeatures_);
+
+    g.resize(x.size());
+    g.setZero();
+
+    if (!tl_idxUseLandmarks_duck.empty())
+    {
+        const std::size_t k = tl_idxUseLandmarks_duck.size();
+
+        Eigen::VectorXd y(3*k);
+        for (std::size_t i = 0; i < k; ++i) {
+            const int fi = tl_idxUseFeatures_duck[i];
+            y.segment<2>(3*i)   = Y_.col(fi);
+            y(3*i + 2)          = A_(fi);
+        }
+
+        Eigen::MatrixXd J;                  // (3k x nx)
+        Eigen::VectorXd h = predictDuckBundle(x, J, sys, tl_idxUseLandmarks_duck);
+        const Eigen::VectorXd r = y - h;
+
+        const double invRuv = 1.0 / (sigma_ * sigma_);
+        const double invRA  = 1.0 / (sigmaA_ * sigmaA_);
+
+        // g = J^T * W * r  (W is diagonal)
+        for (std::size_t i = 0; i < k; ++i) {
+            const double w0 = invRuv, w1 = invRuv, w2 = invRA;
+            g.noalias() += J.row(3*i + 0).transpose() * (w0 * r(3*i + 0));
+            g.noalias() += J.row(3*i + 1).transpose() * (w1 * r(3*i + 1));
+            g.noalias() += J.row(3*i + 2).transpose() * (w2 * r(3*i + 2));
+        }
     }
-    
-    return logLikelihood(x, system);
+
+    // Also return scalar value (reusing the selection and clearing it)
+    return logLikelihood(x, system_);
 }
 
+// ===== Log-likelihood (value + gradient + Hessian) =====
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
-                                         const SystemEstimator& system,
+                                         const SystemEstimator& system_,
                                          Eigen::VectorXd& g,
                                          Eigen::MatrixXd& H) const
 {
-    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system);
-    
-    std::vector<std::size_t> associated_landmarks;
-    std::vector<int> associated_features;
-    for (std::size_t j = 0; j < idxFeatures_.size(); ++j) {
-        if (idxFeatures_[j] >= 0) {
-            associated_landmarks.push_back(j);
-            associated_features.push_back(idxFeatures_[j]);
+    const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system_);
+
+    ensureDuckAssociatedOnce(sys, Y_, idxFeatures_);
+
+    g.resize(x.size()); g.setZero();
+    H.resize(x.size(), x.size()); H.setZero();
+
+    if (!tl_idxUseLandmarks_duck.empty())
+    {
+        const std::size_t k = tl_idxUseLandmarks_duck.size();
+
+        Eigen::VectorXd y(3*k);
+        for (std::size_t i = 0; i < k; ++i) {
+            const int fi = tl_idxUseFeatures_duck[i];
+            y.segment<2>(3*i)   = Y_.col(fi);
+            y(3*i + 2)          = A_(fi);
+        }
+
+        Eigen::MatrixXd J;                  // (3k x nx)
+        Eigen::VectorXd h = predictDuckBundle(x, J, sys, tl_idxUseLandmarks_duck);
+        const Eigen::VectorXd r = y - h;
+
+        const double invRuv = 1.0 / (sigma_ * sigma_);
+        const double invRA  = 1.0 / (sigmaA_ * sigmaA_);
+
+        // g = J^T * W * r,   H ≈ - J^T * W * J  (Gauss–Newton)
+        for (std::size_t i = 0; i < k; ++i) {
+            const double w0 = invRuv, w1 = invRuv, w2 = invRA;
+            const auto J0 = J.row(3*i + 0);
+            const auto J1 = J.row(3*i + 1);
+            const auto J2 = J.row(3*i + 2);
+
+            g.noalias() += J0.transpose() * (w0 * r(3*i + 0));
+            g.noalias() += J1.transpose() * (w1 * r(3*i + 1));
+            g.noalias() += J2.transpose() * (w2 * r(3*i + 2));
+
+            H.noalias() -= (w0 * (J0.transpose() * J0));
+            H.noalias() -= (w1 * (J1.transpose() * J1));
+            H.noalias() -= (w2 * (J2.transpose() * J2));
         }
     }
-    
-    const std::size_t k = associated_landmarks.size();
-    g.setZero(x.size());
-    H = Eigen::MatrixXd::Zero(x.size(), x.size());
 
-    if (k > 0) {
-        Eigen::MatrixXd J;
-        // This call computes the Jacobian J needed for g and H
-        predictDuckBundle(x, J, sys, associated_landmarks);
-        
-        Eigen::VectorXd weights;
-        buildInvWeights(k, sigma_c_, sigma_a_, weights);
-
-        // H_gn = -J^T * W * J (Gauss-Newton approximation of the Hessian)
-        H.noalias() = -J.transpose() * weights.asDiagonal() * J;
-    }
-    
-    // Now that H is computed, we can call the (x, g) overload which will correctly compute g
-    // and the final scalar log-likelihood. This preserves the tested pattern.
-    return logLikelihood(x, system, g);
+    // Return scalar value (gradient overload keeps selection cached)
+    return logLikelihood(x, system_, g);
 }
 
-// Explicitly instantiate the template function for the autodiff scalar type.
-// This is necessary because the definition is in the header.
-template Eigen::Vector3<autodiff::dual>
-MeasurementSLAMDuckBundle::predictDuckT<autodiff::dual>(const Eigen::VectorX<autodiff::dual>&,
-                                                        const SystemSLAM&,
-                                                        std::size_t) const;
+// ===== Update: perform association on 2D and then call base Measurement::update =====
+void
+MeasurementSLAMDuckBundle::update(SystemBase& system)
+{
+    SystemSLAM& sys = dynamic_cast<SystemSLAM&>(system);
 
+    // Use SNN association from the base class (2D only) so idxFeatures_ is filled
+    std::vector<std::size_t> idxLandmarks(sys.numberLandmarks());
+    std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+    associate(sys, idxLandmarks);
+
+    // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood
+    Measurement::update(system);
+}
