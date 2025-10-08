@@ -433,88 +433,90 @@ void runVisualNavigationFromVideo(
             // DEBUG: Print frame number
             printf("\n--- [FRAME %d at t=%.3fs] ---\n", frameIdx, t);
 
+            // --- 1. Detect Ducks and Prepare Measurements ---
             cv::Mat annotated = duckDetector->detect(imgin);
             system.view() = annotated.empty() ? imgin : annotated;
 
-            const auto& C = duckDetector->last_centroids();
-            const auto& A = duckDetector->last_areas();
-            assert(C.size() == A.size());
+            const auto& centroids = duckDetector->last_centroids();
+            const auto& areas = duckDetector->last_areas();
+            assert(centroids.size() == areas.size());
 
-            const int N = static_cast<int>(C.size());
-            printf("[Nav] DuckDetector found %d ducks.\n", N);
-
-
-            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, N);
-            Eigen::VectorXd Avec(N);
-            for (int i = 0; i < N; ++i) {
-                Y(0,i) = static_cast<double>(C[i].x);
-                Y(1,i) = static_cast<double>(C[i].y);
-                Avec(i) = static_cast<double>(A[i]);
+            const int n_detections = static_cast<int>(centroids.size());
+            Eigen::Matrix<double, 2, Eigen::Dynamic> Y(2, n_detections);
+            Eigen::VectorXd A(n_detections);
+            for (int i = 0; i < n_detections; ++i) {
+                Y(0, i) = static_cast<double>(centroids[i].x);
+                Y(1, i) = static_cast<double>(centroids[i].y);
+                A(i) = static_cast<double>(areas[i]);
             }
 
-            constexpr double SIGMA_C_PX  = 15.0;
-            constexpr double SIGMA_A_PX2 = 150.0;
-            constexpr double DUCK_R_M    = 0.07;
+            // Create the measurement bundle for this frame
+            // (You will need to add your tuned noise values here)
+            MeasurementSLAMDuckBundle meas(t, Y, A, camera, 5.0, 50.0, 0.05);
 
-            MeasurementSLAMDuckBundle meas(t, Y, Avec, camera, SIGMA_C_PX, SIGMA_A_PX2, DUCK_R_M);
+            // --- 2. Time Update (Prediction Step) ---
+            // The meas.process(system) call handles this internally.
 
-            if (frameIdx == 0) {
-                printf("[Nav] First frame, initializing all %d detections as landmarks.\n", N);
-                size_t added = sysPts->appendFromDuckDetections(
-                    camera, Y, Avec,
+            // --- 3. Data Association ---
+            std::vector<std::size_t> all_landmarks(sysPts->numberLandmarks());
+            std::iota(all_landmarks.begin(), all_landmarks.end(), 0);
+
+            if (!all_landmarks.empty() && n_detections > 0) {
+                meas.associate(*sysPts, all_landmarks);
+            }
+            const auto& associations = meas.idxFeatures();
+
+            // --- 4. Identify Surplus Features ---
+            std::vector<int> surplus_indices;
+            std::vector<bool> is_feature_matched(n_detections, false);
+            for (int feature_idx : associations) {
+                if (feature_idx >= 0) {
+                    is_feature_matched[feature_idx] = true;
+                }
+            }
+            for (int i = 0; i < n_detections; ++i) {
+                if (!is_feature_matched[i]) {
+                    // Add a quality check: only consider surplus features that are not too close to the edge
+                    if (camera.isPixelInside(centroids[i], 50)) { // 50-pixel margin from the border
+                        surplus_indices.push_back(i);
+                    }
+                }
+            }
+
+            // --- 5. Initialize New Landmarks from Surplus Features ---
+            const size_t N_max = 50; // Maximum number of landmarks allowed in the map
+            size_t landmarks_to_add = 0;
+            if (sysPts->numberLandmarks() < N_max) {
+                landmarks_to_add = std::min(surplus_indices.size(), N_max - sysPts->numberLandmarks());
+            }
+
+            if (landmarks_to_add > 0) {
+                // We are only adding a subset of surplus features, so we need to pack them
+                Eigen::Matrix<double, 2, Eigen::Dynamic> Y_surplus(2, landmarks_to_add);
+                Eigen::VectorXd A_surplus(landmarks_to_add);
+                for (size_t i = 0; i < landmarks_to_add; ++i) {
+                    int feature_idx = surplus_indices[i];
+                    Y_surplus.col(i) = Y.col(feature_idx);
+                    A_surplus(i) = A(feature_idx);
+                }
+
+                // This function appends the new landmarks directly to the system state
+                size_t num_added = sysPts->appendFromDuckDetections(
+                    camera, Y_surplus, A_surplus,
                     camera.cameraMatrix.at<double>(0,0), // fx
                     camera.cameraMatrix.at<double>(1,1), // fy
-                    DUCK_R_M,
-                    /*pos_sigma_m*/ 0.30 // Initial uncertainty
+                    0.07, // duck_r_m
+                    0.3   // pos_sigma_m (initial uncertainty)
                 );
-                printf("[Nav] Added %zu new landmarks. Total landmarks in map: %zu\n", added, sysPts->numberLandmarks());
-            } else {
-                std::vector<std::size_t> idxLandmarks(sysPts->numberLandmarks());
-                std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
-
-                if (!idxLandmarks.empty()) {
-                    meas.associate(*sysPts, idxLandmarks);
-                }
-                const auto& idxFeats = meas.idxFeatures();
-
-                std::vector<int> surplusIdx;
-                std::vector<bool> featMatched(N, false);
-                for (int f : idxFeats) {
-                    if (f >= 0) {
-                        featMatched[f] = true;
-                    }
-                }
-                for (int i = 0; i < N; ++i) {
-                    if (!featMatched[i]) {
-                        surplusIdx.push_back(i);
-                    }
-                }
-
-                printf("[Nav] Surplus detections to initialize: %zu\n", surplusIdx.size());
-                if (!surplusIdx.empty()) {
-                    const int S = static_cast<int>(surplusIdx.size());
-                    Eigen::Matrix<double,2,Eigen::Dynamic> Ysurp(2, S);
-                    Eigen::VectorXd Asurp(S);
-                    for (int k = 0; k < S; ++k) {
-                        const int i = surplusIdx[k];
-                        Ysurp.col(k) = Y.col(i);
-                        Asurp(k) = Avec(i);
-                    }
-                    size_t added = sysPts->appendFromDuckDetections(
-                        camera, Ysurp, Asurp,
-                        camera.cameraMatrix.at<double>(0,0), // fx
-                        camera.cameraMatrix.at<double>(1,1), // fy
-                        DUCK_R_M,
-                        0.30
-                    );
-                    printf("[Nav] Added %zu new landmarks from surplus. Total landmarks in map: %zu\n", added, sysPts->numberLandmarks());
-                }
+                std::println("[Landmark Init] Added {} new landmarks from surplus detections.", num_added);
             }
 
-            printf("[Nav] Calling meas.process()...\n");
+            // --- 6. Perform Measurement Update ---
             meas.process(system);
-            printf("[Nav] Calling plot.setData()...\n");
+
+            // --- 7. Visualization ---
             plot.setData(system, meas);
+
         }
 
         else
