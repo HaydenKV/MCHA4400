@@ -27,7 +27,7 @@
 // ============================================================================
 // Per-corner pixel noise for (u,v) in this measurement model (pixels).
 namespace {
-    constexpr double kSigmaPx = 2.0;  // lab/assignment default
+    constexpr double kSigmaPx = 8.0; 
 }
 
 // ============================================================================

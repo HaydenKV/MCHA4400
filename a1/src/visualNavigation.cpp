@@ -38,9 +38,9 @@ namespace {
 
     // ----- Scenario 1 (tags) -----
     constexpr float  TAG_SIZE_METERS        = 0.166f;                 // ArUco tag edge (166 mm)
-    constexpr double REPROJ_ERR_THRESH_PX   = 3.0;                    // IPPE reprojection gate (px)
-    constexpr double INIT_POS_SIGMA_TAG     = 0.1;                    // [m] 1σ for tag position init
-    constexpr double INIT_ANG_SIGMA_TAG     = (5.0 * std::numbers::pi / 180.0); // [rad]
+    constexpr double REPROJ_ERR_THRESH_PX   = 2.0;                    // IPPE reprojection gate (px)
+    constexpr double INIT_POS_SIGMA_TAG     = 0.5;                    // [m] 1σ for tag position init
+    constexpr double INIT_ANG_SIGMA_TAG     = (1.0 * std::numbers::pi / 180.0); // [rad]
     constexpr double INIT_POS_OFFSET        = 0.02;                   // [m] small jitter for stable Hessian
 
     // ----- Scenario 2 (ducks) -----
@@ -217,8 +217,8 @@ void runVisualNavigationFromVideo(
         S_body.block<3,3>(0,0) *= 1.0;           // v uncertainty
         S_body.block<3,3>(3,3) *= 0.5;           // ω uncertainty
         const double d2r = (1.0 * std::numbers::pi / 180.0);
-        S_body.block<3,3>(6,6) *= 0.5;           // r uncertainty (≈1 cm)
-        S_body.block<3,3>(9,9) *= (1 * d2r);     // Θ uncertainty (≈1°)
+        S_body.block<3,3>(6,6) *= 0.1;           // r uncertainty (≈1 cm)
+        S_body.block<3,3>(9,9) *= (2 * d2r);     // Θ uncertainty (≈1°)
 
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPoseLandmarks>(SystemSLAMPoseLandmarks(p0));

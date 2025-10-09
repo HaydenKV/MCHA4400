@@ -186,8 +186,8 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
     SQ.setZero();
 
     // Tunable spectral densities (These control how much the filter trusts the process model vs measurements)
-    const double qv = 0.2;   // translational velocity drive (m·s^{-3/2})
-    const double qw = 0.1;  // angular velocity drive (rad·s^{-3/2})
+    const double qv = 0.1;   // translational velocity drive (m·s^{-3/2})
+    const double qw = 0.05;  // angular velocity drive (rad·s^{-3/2})
     
     // Diagonal noise (independent noise on each velocity component)
     SQ(0,0) = qv;  // x-velocity noise
@@ -195,7 +195,7 @@ GaussianInfo<double> SystemSLAM::processNoiseDensity(double dt) const
     SQ(2,2) = qv;  // z-velocity noise
     SQ(3,3) = qw;  // roll rate noise
     SQ(4,4) = qw;  // pitch rate noise
-    SQ(5,5) = 2.0;  // yaw rate noise
+    SQ(5,5) = qw;  // yaw rate noise
 
     // Distribution of noise increment dw ~ N(0, Q*dt) for time increment dt
     return GaussianInfo<double>::fromSqrtMoment(SQ*std::sqrt(dt));
