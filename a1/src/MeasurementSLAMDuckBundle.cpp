@@ -178,6 +178,11 @@ MeasurementSLAMDuckBundle::predictDuckBundle(const Eigen::VectorXd& x,
     return y;
 }
 
+void MeasurementSLAMDuckBundle::setCandidateLandmarks(const std::vector<std::size_t>& idx)
+{
+    candidateLandmarks_ = idx;
+}
+
 // ===== Log-likelihood (value) =====
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
@@ -327,11 +332,22 @@ MeasurementSLAMDuckBundle::update(SystemBase& system)
 {
     SystemSLAM& sys = dynamic_cast<SystemSLAM&>(system);
 
-    // Use SNN association from the base class (2D only) so idxFeatures_ is filled
-    std::vector<std::size_t> idxLandmarks(sys.numberLandmarks());
-    std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
-    associate(sys, idxLandmarks);
+    // Use caller-provided candidate landmarks if any; otherwise use all.
+    std::vector<std::size_t> idxLandmarks;
+    if (!candidateLandmarks_.empty()) {
+        idxLandmarks = candidateLandmarks_;
+    } else {
+        idxLandmarks.resize(sys.numberLandmarks());
+        std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+    }
+
+    // Use SNN association from the base (2D) to fill idxFeatures_ (as in labs)
+    associate(sys, idxLandmarks);   // <-- calls your existing SNN/compatibility logic
 
     // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood
     Measurement::update(system);
+
+    // One-shot: clear candidates so next call defaults to "all" unless set again
+    candidateLandmarks_.clear();
 }
+

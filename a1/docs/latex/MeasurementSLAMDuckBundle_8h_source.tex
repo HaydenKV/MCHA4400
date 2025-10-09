@@ -44,37 +44,39 @@
 \DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::VectorXd\&\ g,}
 \DoxyCodeLine{00041\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixXd\&\ H)\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00042\ }
-\DoxyCodeLine{00043\ \textcolor{keyword}{protected}:}
-\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a64e065a44ab54c16b21b6d9a1a507b17}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
-\DoxyCodeLine{00045\ }
-\DoxyCodeLine{00046\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Single\ landmark\ prediction:\ [u,\ v,\ A]\string^T\ -\/-\/-\/-\/}}
-\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
-\DoxyCodeLine{00048\ \ \ \ \ Eigen::Matrix<Scalar,3,1>\ predictDuckFeature(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,-\/1,1>\&\ x,}
-\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00051\ }
-\DoxyCodeLine{00052\ \ \ \ \ Eigen::Vector3d\ predictDuckFeature(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,}
-\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixXd\&\ J,}
-\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00056\ }
-\DoxyCodeLine{00057\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Bundle\ prediction\ over\ a\ specific\ landmark\ index\ list\ (stacked\ [u\ v\ A\ ...])\ -\/-\/-\/-\/}}
-\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
-\DoxyCodeLine{00059\ \ \ \ \ Eigen::Matrix<Scalar,-\/1,1>\ predictDuckBundle(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,-\/1,1>\&\ x,}
-\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00062\ }
-\DoxyCodeLine{00063\ \ \ \ \ Eigen::VectorXd\ predictDuckBundle(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,}
-\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixXd\&\ J,}
-\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
-\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
-\DoxyCodeLine{00067\ }
-\DoxyCodeLine{00068\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00069\ \ \ \ \ Eigen::VectorXd\ A\_;\ \ \ \ \ \ \textcolor{comment}{//\ detected\ areas\ (length\ M;\ same\ column\ order\ as\ Y\_)}}
-\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keywordtype}{double}\ rDuck\_;\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ duck\ radius\ in\ meters\ (Lab\ 3\ prior)}}
-\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keywordtype}{double}\ sigmaA\_;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ std-\/dev\ of\ area\ measurement\ (pixels\string^2\ units)}}
-\DoxyCodeLine{00072\ \};}
-\DoxyCodeLine{00073\ }
-\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{void}\ setCandidateLandmarks(\textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idx);}
+\DoxyCodeLine{00044\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a64e065a44ab54c16b21b6d9a1a507b17}{update}}(\mbox{\hyperlink{classSystemBase}{SystemBase}}\&\ system)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Single\ landmark\ prediction:\ [u,\ v,\ A]\string^T\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00049\ \ \ \ \ Eigen::Matrix<Scalar,3,1>\ predictDuckFeature(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,-\/1,1>\&\ x,}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \ \ Eigen::Vector3d\ predictDuckFeature(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixXd\&\ J,}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ idxLandmark)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/\ Bundle\ prediction\ over\ a\ specific\ landmark\ index\ list\ (stacked\ [u\ v\ A\ ...])\ -\/-\/-\/-\/}}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00060\ \ \ \ \ Eigen::Matrix<Scalar,-\/1,1>\ predictDuckBundle(\textcolor{keyword}{const}\ Eigen::Matrix<Scalar,-\/1,1>\&\ x,}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \ \ \ \ Eigen::VectorXd\ predictDuckBundle(\textcolor{keyword}{const}\ Eigen::VectorXd\&\ x,}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Eigen::MatrixXd\&\ J,}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classSystemSLAM}{SystemSLAM}}\&\ system,}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::size\_t>\&\ idxLandmarks)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00070\ \ \ \ \ Eigen::VectorXd\ A\_;\ \ \ \ \ \ \textcolor{comment}{//\ detected\ areas\ (length\ M;\ same\ column\ order\ as\ Y\_)}}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keywordtype}{double}\ rDuck\_;\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ duck\ radius\ in\ meters\ (Lab\ 3\ prior)}}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{double}\ sigmaA\_;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ std-\/dev\ of\ area\ measurement\ (pixels\string^2\ units)}}
+\DoxyCodeLine{00073\ \ \ \ \ std::vector<std::size\_t>\ candidateLandmarks\_;}
+\DoxyCodeLine{00074\ \};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

@@ -39,7 +39,7 @@ public:
                                          double pos_sigma_m);
 
     void updateFailureCounter(std::size_t j, bool incrementIfFailed);
-    void cullFailed(int threshold = 5);
+    void cullFailed(int threshold = 50);
 
 private:
     std::vector<int> failCount_;

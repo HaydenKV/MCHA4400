@@ -40,6 +40,7 @@ public:
                          Eigen::VectorXd& g,
                          Eigen::MatrixXd& H) const override;
 
+    void setCandidateLandmarks(const std::vector<std::size_t>& idx);
 protected:
     void update(SystemBase& system) override;
 
@@ -69,6 +70,7 @@ private:
     Eigen::VectorXd A_;      // detected areas (length M; same column order as Y_)
     double rDuck_;           // duck radius in meters (Lab 3 prior)
     double sigmaA_;          // std-dev of area measurement (pixels^2 units)
+    std::vector<std::size_t> candidateLandmarks_;
 };
 
 #endif

@@ -17,6 +17,8 @@
 #include <cstdlib>
 #include <numbers> 
 #include <algorithm>
+#include <cmath>
+
 
 #include "BufferedVideo.h"
 #include "visualNavigation.h"
@@ -116,19 +118,6 @@ void runVisualNavigationFromVideo(
         fs.release();
     }
 
-    // I am not sure if we need this transformation
-    // R_bc = [c1_b, c2_b, c3_b] where c_i_b is the i-th camera axis expressed in the body frame.
-    // c1 (camera right) = b2 (body sway)   -> [0, 1, 0]
-    // c2 (camera down)  = b3 (body heave)  -> [0, 0, 1]
-    // c3 (camera fwd)   = b1 (body surge)  -> [1, 0, 0]
-
-    // Eigen::Matrix3d R_bc;
-    // R_bc << 0, 0, 1,
-    //         1, 0, 0,
-    //         0, 1, 0;
-    // camera.Tbc.rotationMatrix = R_bc;
-    // camera.Tbc.translationVector.setZero(); // Assume camera and body origins coincide
-
     camera.printCalibration();
     
     // ---------- Open video ----------
@@ -196,10 +185,10 @@ void runVisualNavigationFromVideo(
         mu_body.segment<3>(9) << -M_PI/2.0, -M_PI/2.0, 0.0; // Θ^n_B
 
         Eigen::MatrixXd S_body = Eigen::MatrixXd::Identity(12,12);
-        S_body.block<3,3>(0,0) *= 0.5;          // v uncertainty
-        S_body.block<3,3>(6,6) *= 0.5;                         // position sqrt-cov
+        S_body.block<3,3>(0,0) *= 0.3;          // v uncertainty
+        S_body.block<3,3>(6,6) *= 0.3;                         // position sqrt-cov
         const double d2r = (1.0 * std::numbers::pi / 180.0);
-        S_body.block<3,3>(9,9) *= (20.0 * d2r);                    // orientation sqrt-cov
+        S_body.block<3,3>(9,9) *= (10.0 * d2r);                    // orientation sqrt-cov
         auto p0 = GaussianInfo<double>::fromSqrtMoment(mu_body, S_body);
         systemPtr = std::make_unique<SystemSLAMPointLandmarks>(SystemSLAMPointLandmarks(p0));
 
@@ -238,6 +227,16 @@ void runVisualNavigationFromVideo(
     id_by_landmark.clear();
     id2lm.clear();
     
+    // Promotion buffer for Scenario 2: hold unmatched detections for a few frames
+    struct PendingDuck {
+        cv::Point2f uv;
+        double      area;
+        int         hits;       // how many times we re-detected it
+        int         lastSeen;   // frame index
+    };
+    std::vector<PendingDuck> pending;
+
+
     // ============================== MAIN LOOP ==============================
     int frameIdx = 0;
     while (true)
@@ -333,129 +332,194 @@ void runVisualNavigationFromVideo(
         }
         else if (scenario == 2)
         {
-            // --- Scenario 2 (ducks): detector → 2D SNN assoc → [u,v,A] EKF update ---
-
             auto* sysPts = dynamic_cast<SystemSLAMPointLandmarks*>(&system);
             assert(sysPts && "Scenario 2 expects SystemSLAMPointLandmarks");
             assert(duckDetector && "duckDetector must be initialised in scenario 2");
 
-            // DEBUG
-            std::printf("\n--- [FRAME %d at t=%.3fs] ---\n", frameIdx, t);
 
-            // 1) Run ONNX detector → overlay + (u,v,A) in pixels
-            cv::Mat viz = duckDetector->detect(imgin);        // overlay image
-            const auto& C   = duckDetector->last_centroids(); // vector<cv::Point2f>
-            const auto& Apx = duckDetector->last_areas();     // vector<double>
-            system.view() = viz;                              // left-pane shows detections
+            // --- Detect (keep your existing detector setup)
+            cv::Mat viz = duckDetector->detect(imgin);
+            system.view() = viz.empty() ? imgin : viz;
 
-            // --- DEBUG: print landmark pixel areas for inspection ---
-            std::printf("\n[DEBUG] Landmark pixel area diagnostics:\n");
-            for (size_t j = 0; j < Apx.size(); ++j)
+            // --- Pull detections
+            const auto& C_raw = duckDetector->last_centroids(); // vector<cv::Point2f>
+            const auto& A_raw = duckDetector->last_areas();     // vector<double>
+            const int rawN = (int)std::min(C_raw.size(), A_raw.size());
+
+            // --- Early out if nothing and map empty (keeps UI responsive)
+            if (rawN == 0 && sysPts->numberLandmarks() == 0) {
+                Eigen::Matrix<double,2,Eigen::Dynamic> Y0(2,0);
+                MeasurementPointBundle m0(t, Y0, camera);
+                plot.setData(system, m0);
+                continue;
+            }
+
+            // --- Intrinsics/constants (unchanged)
+            const double fx = camera.cameraMatrix.at<double>(0,0);
+            const double fy = camera.cameraMatrix.at<double>(1,1);
+            const double duck_r_m    = 0.054;
+            const double pos_sigma_m = 0.25;
+
+            // ===== 1) LIGHT HSV YELLOW GATE (tunable, cheap) =====
+            std::vector<cv::Point2f> C; C.reserve(rawN);
+            std::vector<double>      A; A.reserve(rawN);
+
+            auto circle_radius_from_area = [](double Ap)->float {
+                return std::sqrt(std::max(1.0, Ap) / CV_PI);
+            };
+
+            // HSV thresholds (good defaults; tweak per video)
+            const int H_MIN = 15, H_MAX = 35;   // yellow-ish
+            const int S_MIN = 60, V_MIN = 60;
+            const double MIN_YELLOW_RATIO = 0.04; // 4% pixels in circular ROI
+
+            cv::Mat hsv; cv::cvtColor(imgin, hsv, cv::COLOR_BGR2HSV);
+
+            for (int i=0; i<rawN; ++i) {
+                const cv::Point2f c = C_raw[i];
+                const double area   = std::max(1.0, A_raw[i]);
+                const float  r      = std::max<float>(6.f, circle_radius_from_area(area));
+
+                int x0 = (int)std::round(c.x - r), y0 = (int)std::round(c.y - r);
+                int w  = (int)std::round(2*r),     h  = (int)std::round(2*r);
+                if (w<=0 || h<=0) continue;
+                if (x0 < 0) { w += x0; x0 = 0; }
+                if (y0 < 0) { h += y0; y0 = 0; }
+                if (x0 >= hsv.cols || y0 >= hsv.rows) continue;
+                if (x0 + w > hsv.cols) w = hsv.cols - x0;
+                if (y0 + h > hsv.rows) h = hsv.rows - y0;
+                if (w<=0 || h<=0) continue;
+
+                cv::Rect R(x0,y0,w,h);
+                cv::Mat roi = hsv(R);
+
+                int hits=0, tot=0;
+                for (int yy=0; yy<roi.rows; ++yy) {
+                    const uchar* p = roi.ptr<uchar>(yy);
+                    for (int xx=0; xx<roi.cols; ++xx) {
+                        const int H = p[3*xx+0], S = p[3*xx+1], V = p[3*xx+2];
+                        const float dx = float(R.x+xx) - c.x, dy = float(R.y+yy) - c.y;
+                        if (dx*dx + dy*dy > r*r) continue; // circle mask
+                        if (S >= S_MIN && V >= V_MIN && H >= H_MIN && H <= H_MAX) ++hits;
+                        ++tot;
+                    }
+                }
+                const double ratio = (tot>0) ? double(hits)/double(tot) : 0.0;
+                if (ratio >= MIN_YELLOW_RATIO) { C.push_back(c); A.push_back(area); }
+            }
+
+            // ===== 2) SIMPLE DE-DUP (prevents double detections on one duck) =====
             {
-                std::printf("   LM %zu -> detected area = %.1f px²\n", j, Apx[j]);
-            }
+                const float PROX_SCALE = 0.6f;
+                auto circR = [](double Ap)->float { return std::sqrt(std::max(1.0, Ap) / CV_PI); };
 
-            // 2) Build Y (2×m) and A (m×1)
-            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, (int)C.size());
-            Eigen::VectorXd Avec((int)C.size());
-            for (int i = 0; i < (int)C.size(); ++i) {
-                Y(0,i) = C[i].x;  Y(1,i) = C[i].y;
-                Avec(i) = std::max(1.0, Apx[i]); // avoid zero-area
-            }
-
-            // If we have neither landmarks nor detections, just plot and continue
-            if (sysPts->numberLandmarks() == 0 && Y.cols() == 0) {
-                MeasurementPointBundle measEmpty(t, Eigen::Matrix<double,2,Eigen::Dynamic>(2,0), camera);
-                plot.setData(system, measEmpty);
-            } else {
-
-                // 3) Bootstrap landmarks from detections if map is empty
-                if (sysPts->numberLandmarks() == 0 && Y.cols() > 0) {
-                    const double fx = camera.cameraMatrix.at<double>(0,0);
-                    const double fy = camera.cameraMatrix.at<double>(1,1);
-                    const double duck_r_m    = 0.054; // measured radius [m]
-                    const double pos_sigma_m = 0.25;  // loose init uncertainty
-                    std::size_t nAdded = sysPts->appendFromDuckDetections(
-                        camera, Y, Avec, fx, fy, duck_r_m, pos_sigma_m);
-                    std::printf("   [init] appended %zu landmarks from detector\n", nAdded);
-                }
-
-                // 4) Choose candidate landmarks in FOV (reduces spurious matches)
-                std::vector<std::size_t> idxLandmarks;
-                {
-                    const Eigen::VectorXd xbar = system.density.mean();
-                    Pose<double> Tnb;
-                    Tnb.translationVector = xbar.segment<3>(6);
-                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
-
-                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
-                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
-                        cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
-                        if (camera.isWorldWithinFOV(rPNn, Tnb))
-                            idxLandmarks.push_back(j);
+                std::vector<char> removed(C.size(), 0);
+                for (size_t i=0; i<C.size(); ++i) if (!removed[i]) {
+                    const float ri = circR(A[i]);
+                    for (size_t j=i+1; j<C.size(); ++j) if (!removed[j]) {
+                        const float rj = circR(A[j]);
+                        const float rmin = std::max(4.f, std::min(ri, rj));
+                        const cv::Point2f d = C[i] - C[j];
+                        if (d.dot(d) <= (PROX_SCALE*PROX_SCALE*rmin*rmin)) {
+                            const size_t keep = (A[i] >= A[j]) ? i : j;
+                            const size_t drop = (keep==i) ? j : i;
+                            removed[drop] = 1;
+                        }
                     }
                 }
-
-                // 5) Build the duck measurement (includes area term for the EKF update)
-                MeasurementSLAMDuckBundle meas(
-                    t, Y, Avec, camera,
-                    /*duck_radius_m=*/0.054,
-                    /*sigma_px=*/5.0,
-                    /*sigma_area=*/250.0
-                );
-
-                // 6) Associate once (2D SNN via base bundle)
-                meas.associate(system, idxLandmarks);
-
-                // 6b) Update per-landmark failure counters (predicted-visible & unmatched)
-                {
-                    const Eigen::VectorXd xbar = system.density.mean();
-                    Pose<double> Tnb;
-                    Tnb.translationVector = xbar.segment<3>(6);
-                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
-
-                    const auto& assoc = meas.idxFeatures(); // -1 if unmatched
-
-                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
-                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
-                        const cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
-                        const bool predictedVisible = camera.isWorldWithinFOV(rPNn, Tnb);
-                        const bool matched = (j < assoc.size() && assoc[j] >= 0);
-                        sysPts->updateFailureCounter(j, predictedVisible && !matched);
-                        // // DEBUG:
-                        // if (predictedVisible && !matched)
-                        //     std::printf("   [cull] LM %zu fail++\n", j);
-                    }
-                }
-
-                // 6c) Delete landmarks with ≥10 consecutive predicted-visible misses
-                sysPts->cullFailed(5);
-
-                // Because culling can change landmark indices/counts, rebuild candidates and re-associate
-                {
-                    idxLandmarks.clear();
-                    const Eigen::VectorXd xbar = system.density.mean();
-                    Pose<double> Tnb;
-                    Tnb.translationVector = xbar.segment<3>(6);
-                    Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
-
-                    for (std::size_t j = 0; j < sysPts->numberLandmarks(); ++j) {
-                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
-                        cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
-                        if (camera.isWorldWithinFOV(rPNn, Tnb))
-                            idxLandmarks.push_back(j);
-                    }
-                    meas.associate(system, idxLandmarks);
-                }
-
-                // 7) Perform measurement update (time-predict + non-linear update with [u,v,A])
-                meas.process(system);
-
-                // 8) Visualisation
-                plot.setData(system, meas);
+                std::vector<cv::Point2f> C2; C2.reserve(C.size());
+                std::vector<double>      A2; A2.reserve(A.size());
+                for (size_t i=0;i<C.size();++i) if (!removed[i]) { C2.push_back(C[i]); A2.push_back(A[i]); }
+                C.swap(C2); A.swap(A2);
             }
+
+            // ===== 3) Build measurement arrays =====
+            const int mDet = (int)std::min(C.size(), A.size());
+            Eigen::Matrix<double,2,Eigen::Dynamic> Y(2, mDet);
+            Eigen::VectorXd Avec(mDet);
+            for (int i=0;i<mDet;++i) { Y(0,i) = C[i].x; Y(1,i) = C[i].y; Avec(i) = A[i]; }
+
+            // ===== 4) First-frame bootstrap (if map empty) =====
+            if (sysPts->numberLandmarks() == 0 && mDet > 0) {
+                (void)sysPts->appendFromDuckDetections(camera, Y, Avec, fx, fy, duck_r_m, pos_sigma_m);
+            }
+
+            // ===== 5) Build FOV subset of landmarks =====
+            std::vector<std::size_t> idxFOV;
+            {
+                const Eigen::VectorXd xbar = system.density.mean();
+                Pose<double> Tnb;
+                Tnb.translationVector = xbar.segment<3>(6);
+                Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
+                for (std::size_t j=0; j<sysPts->numberLandmarks(); ++j) {
+                    const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                    const cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
+                    if (camera.isWorldWithinFOV(rPNn, Tnb)) idxFOV.push_back(j);
+                }
+            }
+
+            // ===== 6) Make measurement and SNN-associate on FOV only =====
+            MeasurementSLAMDuckBundle meas(
+                t, Y, Avec, camera,
+                /*duck_radius_m=*/duck_r_m,
+                /*sigma_px=*/6.0,      // tune 6–9 if gates too tight/loose
+                /*sigma_area=*/800.0   // tune with your video if needed
+            );
+            meas.associate(system, idxFOV);   // uses your existing SNN under the hood
+
+            // ===== 7) Birth NEW landmarks from UNMATCHED detections (centroid → on-screen) =====
+            if (mDet > 0) {
+                std::vector<char> used(mDet, false);
+                const auto& assoc = meas.idxFeatures(); // global-sized; value is detection index or -1
+                for (std::size_t j=0; j<assoc.size(); ++j)
+                    if (assoc[j] >= 0 && assoc[j] < mDet) used[(size_t)assoc[j]] = true;
+
+                int mNew = 0; for (int i=0;i<mDet;++i) if (!used[i]) ++mNew;
+                if (mNew > 0) {
+                    Eigen::Matrix<double,2,Eigen::Dynamic> Ynew(2, mNew);
+                    Eigen::VectorXd Anew(mNew);
+                    for (int i=0,k=0; i<mDet; ++i) if (!used[i]) {
+                        Ynew(0,k) = Y(0,i); Ynew(1,k) = Y(1,i); Anew(k) = Avec(i); ++k;
+                    }
+                    (void)sysPts->appendFromDuckDetections(camera, Ynew, Anew, fx, fy, duck_r_m, pos_sigma_m);
+
+                    // Rebuild FOV after births and re-associate so new LMs update immediately
+                    idxFOV.clear();
+                    const Eigen::VectorXd xbar2 = system.density.mean();
+                    Pose<double> Tnb2;
+                    Tnb2.translationVector = xbar2.segment<3>(6);
+                    Tnb2.rotationMatrix    = rpy2rot(xbar2.segment<3>(9));
+                    for (std::size_t j=0; j<sysPts->numberLandmarks(); ++j) {
+                        const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                        const cv::Vec3d rPNn(xbar2(idx+0), xbar2(idx+1), xbar2(idx+2));
+                        if (camera.isWorldWithinFOV(rPNn, Tnb2)) idxFOV.push_back(j);
+                    }
+                    meas.associate(system, idxFOV);
+                }
+            }
+
+            // ===== 8) SRIF update + plot =====
+            meas.process(system);
+            plot.setData(system, meas);
+
+            // ===== 9) (Optional) Cull old landmarks via your existing counters =====
+            {
+                const Eigen::VectorXd xbar = system.density.mean();
+                Pose<double> Tnb;
+                Tnb.translationVector = xbar.segment<3>(6);
+                Tnb.rotationMatrix    = rpy2rot(xbar.segment<3>(9));
+                const auto& assoc = meas.idxFeatures();
+                for (std::size_t j=0; j<sysPts->numberLandmarks(); ++j) {
+                    const std::size_t idx = sysPts->landmarkPositionIndex(j);
+                    const cv::Vec3d rPNn(xbar(idx+0), xbar(idx+1), xbar(idx+2));
+                    const bool predictedVisible = camera.isWorldWithinFOV(rPNn, Tnb);
+                    const bool matched = (j < assoc.size() && assoc[j] >= 0);
+                    sysPts->updateFailureCounter(j, predictedVisible && !matched);
+                }
+            }
+            sysPts->cullFailed(10);
+
         }
-
         else
         {
             assert("broken if you're here");
