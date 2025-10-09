@@ -689,6 +689,17 @@ void Plot::render()
                 if (camera.isPixelInside(pixMean)) {
                     const Eigen::Matrix2d S = prQOi.sqrtCov();
                     if (S.allFinite()) {
+
+                        const double a = S.col(0).norm() * 3.0; // 3σ
+                        const double b = S.col(1).norm() * 3.0;
+                        const double IMG_DIAG = std::hypot(camera.imageSize.width, camera.imageSize.height);
+
+                        // skip drawing crazy ellipses
+                        if (!(std::isfinite(a) && std::isfinite(b)) || a > 0.5*IMG_DIAG || b > 0.5*IMG_DIAG) {
+                            // optional: print once every N frames if you want
+                            continue;
+                        }
+
                         Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
                         plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
 

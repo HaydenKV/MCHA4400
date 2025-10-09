@@ -327,6 +327,20 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
 }
 
 // ===== Update: perform association on 2D and then call base Measurement::update =====
+// void
+// MeasurementSLAMDuckBundle::update(SystemBase& system)
+// {
+//     SystemSLAM& sys = dynamic_cast<SystemSLAM&>(system);
+
+//     // Use SNN association from the base class (2D only) so idxFeatures_ is filled
+//     std::vector<std::size_t> idxLandmarks(sys.numberLandmarks());
+//     std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
+//     associate(sys, idxLandmarks);
+
+//     // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood
+//     Measurement::update(system);
+// }
+
 void
 MeasurementSLAMDuckBundle::update(SystemBase& system)
 {
@@ -350,4 +364,3 @@ MeasurementSLAMDuckBundle::update(SystemBase& system)
     // One-shot: clear candidates so next call defaults to "all" unless set again
     candidateLandmarks_.clear();
 }
-
