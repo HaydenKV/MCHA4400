@@ -8,19 +8,21 @@
 SystemSLAMPoseLandmarks::SystemSLAMPoseLandmarks(const GaussianInfo<double> & density)
     : SystemSLAM(density)
 {
-
 }
 
+// Creates an owned copy of this system instance.
 SystemSLAM * SystemSLAMPoseLandmarks::clone() const
 {
     return new SystemSLAMPoseLandmarks(*this);
 }
 
+// Returns the number of pose landmarks (6 states each after the first 12 body states).
 std::size_t SystemSLAMPoseLandmarks::numberLandmarks() const
 {
     return (density.dim() - 12)/6;
 }
 
+// Returns the state index of the x-component of pose-landmark j (layout: body(12) + 6*j).
 std::size_t SystemSLAMPoseLandmarks::landmarkPositionIndex(std::size_t idxLandmark) const
 {
     assert(idxLandmark < numberLandmarks());

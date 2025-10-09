@@ -635,7 +635,7 @@ bool Camera::areCornersInside(const Eigen::Matrix<double,8,1>& uv8, int margin) 
 
 /*
 isVectorWithinFOVConservative():
-Adds pixel-margin gating to isVectorWithinFOV() for robust visibility decisions.
+Adds more pixel-margin gating to isVectorWithinFOV().
 */
 bool Camera::isVectorWithinFOVConservative(const cv::Vec3d& rPCc, int margin) const {
     if (!isVectorWithinFOV(rPCc)) return false;

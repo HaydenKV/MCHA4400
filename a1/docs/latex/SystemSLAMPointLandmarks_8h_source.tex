@@ -15,7 +15,7 @@
 \DoxyCodeLine{00011\ \textcolor{comment}{\ *\ [\ vBNb\ \ \ \ \ ]\ \ Body\ translational\ velocity\ (body-\/fixed)}}
 \DoxyCodeLine{00012\ \textcolor{comment}{\ *\ [\ omegaBNb\ ]\ \ Body\ angular\ velocity\ (body-\/fixed)}}
 \DoxyCodeLine{00013\ \textcolor{comment}{\ *\ [\ rBNn\ \ \ \ \ ]\ \ Body\ position\ (world-\/fixed)}}
-\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ x\ =\ [\ Thetanb\ \ ]\ \ Body\ orientation\ (world-\/fixed)}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ x\ =\ [\ Thetanb\ \ ]\ \ Body\ orientation\ (world-\/fixed,\ Euler\ rpy)}}
 \DoxyCodeLine{00015\ \textcolor{comment}{\ *\ [\ rL1Nn\ \ \ \ ]\ \ Landmark\ 1\ position\ (world-\/fixed)}}
 \DoxyCodeLine{00016\ \textcolor{comment}{\ *\ [\ rL2Nn\ \ \ \ ]\ \ Landmark\ 2\ position\ (world-\/fixed)}}
 \DoxyCodeLine{00017\ \textcolor{comment}{\ *\ [\ ...\ \ \ \ \ \ ]\ \ ...}}
@@ -29,12 +29,12 @@
 \DoxyCodeLine{00025\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ numberLandmarks()\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{virtual}\ std::size\_t\ landmarkPositionIndex(std::size\_t\ idxLandmark)\ \textcolor{keyword}{const\ override};}
 \DoxyCodeLine{00027\ }
-\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{//\ NEW:\ append\ a\ single\ 3-\/D\ point\ landmark\ (position\ only),\ returns\ its\ index}}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{comment}{//\ Append\ a\ single\ 3-\/D\ point\ landmark\ (position\ only),\ returns\ its\ index.}}
 \DoxyCodeLine{00029\ \ \ \ \ std::size\_t\ appendLandmark(\textcolor{keyword}{const}\ Eigen::Vector3d\&\ rLNn,}
 \DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix3d\&\ Spos);}
 \DoxyCodeLine{00031\ }
 \DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ Init\ new\ point\ landmarks\ from\ duck\ detections\ (centroids+areas).}}
-\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ Assumes\ mask\ area\ model:\ A\ =\ (fx*fy*pi*r\string^2)/depth\string^2\ \ =>\ depth\ =\ sqrt(fx*fy*pi*r\string^2\ /\ A)}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ Area\ model:\ A\ =\ (fx*fy*pi*r\string^2)/depth\string^2\ \ =>\ depth\ =\ sqrt(fx*fy*pi*r\string^2\ /\ A)}}
 \DoxyCodeLine{00034\ \ \ \ \ std::size\_t\ appendFromDuckDetections(\textcolor{keyword}{const}\ \mbox{\hyperlink{structCamera}{Camera}}\&\ cam,}
 \DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::Matrix<double,2,Eigen::Dynamic>\&\ Yuv,}
 \DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Eigen::VectorXd\&\ A,}
@@ -42,13 +42,14 @@
 \DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ duck\_r\_m,}
 \DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ pos\_sigma\_m);}
 \DoxyCodeLine{00040\ }
-\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keywordtype}{void}\ updateFailureCounter(std::size\_t\ j,\ \textcolor{keywordtype}{bool}\ incrementIfFailed);}
-\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keywordtype}{void}\ cullFailed(\textcolor{keywordtype}{int}\ threshold\ =\ 50);}
-\DoxyCodeLine{00043\ }
-\DoxyCodeLine{00044\ \textcolor{keyword}{private}:}
-\DoxyCodeLine{00045\ \ \ \ \ std::vector<int>\ failCount\_;}
-\DoxyCodeLine{00046\ \};}
-\DoxyCodeLine{00047\ }
-\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{//\ Miss\ counter\ and\ culling\ utilities.}}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keywordtype}{void}\ updateFailureCounter(std::size\_t\ j,\ \textcolor{keywordtype}{bool}\ incrementIfFailed);}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{void}\ cullFailed(\textcolor{keywordtype}{int}\ threshold\ =\ 50);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00046\ \ \ \ \ std::vector<int>\ failCount\_;}
+\DoxyCodeLine{00047\ \};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#endif}}
 
 \end{DoxyCode}

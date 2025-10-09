@@ -19,12 +19,12 @@
 \DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<cv::Point2f>\&\ last\_centroids()\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ centroids\_;\ \}}
 \DoxyCodeLine{00016\ \ \ \ \ \textcolor{keyword}{const}\ std::vector<double>\&\ \ \ \ \ \ last\_areas()\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ areas\_;\ \}}
 \DoxyCodeLine{00017\ }
-\DoxyCodeLine{00018\ \textcolor{keyword}{protected}:}
-\DoxyCodeLine{00019\ \ \ \ \ \textcolor{keywordtype}{void}\ preprocess(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ std::vector<float>\ \&\ input\_tensor\_values);}
-\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{void}\ postprocess(\textcolor{keyword}{const}\ std::vector<float>\ \&\ class\_scores\_data,\ \textcolor{keyword}{const}\ std::vector<float>\ \&\ mask\_probs\_data,}
-\DoxyCodeLine{00021\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::int64\_t>\ \&\ class\_scores\_shape,\ \textcolor{keyword}{const}\ std::vector<std::int64\_t>\ \&\ mask\_probs\_shape,}
-\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cv::Mat\ \&\ imgout);}
-\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00018\ \ \ \ \ \textcolor{keywordtype}{void}\ preprocess(\textcolor{keyword}{const}\ cv::Mat\ \&\ img,\ std::vector<float>\ \&\ input\_tensor\_values);}
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{keywordtype}{void}\ postprocess(\textcolor{keyword}{const}\ std::vector<float>\ \&\ class\_scores\_data,\ \textcolor{keyword}{const}\ std::vector<float>\ \&\ mask\_probs\_data,}
+\DoxyCodeLine{00020\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<std::int64\_t>\ \&\ class\_scores\_shape,\ \textcolor{keyword}{const}\ std::vector<std::int64\_t>\ \&\ mask\_probs\_shape,}
+\DoxyCodeLine{00021\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cv::Mat\ \&\ imgout);}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{protected}:}
 \DoxyCodeLine{00024\ \ \ \ \ std::vector<cv::Point2f>\ centroids\_;}
 \DoxyCodeLine{00025\ \ \ \ \ std::vector<double>\ \ \ \ \ \ areas\_;}
 \DoxyCodeLine{00026\ \};}

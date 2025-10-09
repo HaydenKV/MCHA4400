@@ -1,16 +1,28 @@
-#pragma once
+#ifndef MEASUREMENTUNIQUETAGBUNDLE_H
+#define MEASUREMENTUNIQUETAGBUNDLE_H
 
 #include <vector>
 #include <Eigen/Core>
-#include "MeasurementSLAMPointBundle.h"
+#include "MeasurementSLAMPointBundle.h"  // Base measurement (2D features + association)
+#include "Camera.h"
+
+// ============================================================================
+// Tunables (header-level, shared across translation units)
+// ============================================================================
+// Square tag edge length ℓ (meters) used to generate object-space corners (Eq. (9)).
+namespace UniqueTagMeasCfg {
+    inline constexpr double kTagSizeMeters = 0.166; // assignment: 166 mm
+    inline constexpr int    kCornersPerTag = 4;     // each tag contributes 4 image corners
+}
 
 /*
 Scenario 1: Unique ArUco tags as pose landmarks.
 State per landmark j: m_j = [ r^n_{j/N} (3), Θ^n_j (3) ]^T   (assignment Eq. (6)).
 Each measurement aggregates the 4 image-plane corners of a detected tag
-y_i = [u1,v1, u2,v2, u3,v3, u4,v4]^T, with object-space corners from (8)-(9)
-using edge length ℓ = 0.166 m. Log-likelihood uses per-corner Gaussian terms
-and a missed-detection penalty −4|U| log|Y| (Eq. (7)).
+y_i = [u1,v1, u2,v2, u3,v3, u4,v4]^T, with object-space corners from (8)–(9)
+using edge length ℓ = kTagSizeMeters. The log-likelihood sums per-corner
+Gaussian residuals and includes a missed-detection penalty proportional to
+kCornersPerTag·|U|·log|Y| (Eq. (7)).
 */
 class MeasurementSLAMUniqueTagBundle : public MeasurementPointBundle
 {
@@ -52,7 +64,7 @@ public:
     void update(SystemBase& system) override;
 
     // Log-likelihood overloads:
-    //   scalar:      −½ σ⁻² ∑‖y−h(x)‖² − 4|U| log|Y|
+    //   scalar:      −½ σ⁻² ∑‖y−h(x)‖² − (kCornersPerTag·|U|) log|Y|
     //   + gradient:   ∑ σ⁻² Jᵀ r
     //   + Hessian:   −∑ σ⁻² Jᵀ J  (Gauss–Newton); |U| term has zero ∇, zero H.
     double logLikelihood(const Eigen::VectorXd& x, const SystemEstimator& system) const override;
@@ -64,10 +76,10 @@ public:
 protected:
     /**
      * Predicts the 4 tag-corner pixel locations for landmark j:
-     *   1) Tag corners in tag frame from (9) with ℓ = TAG_SIZE.
+     *   1) Tag corners in tag frame from (9) with ℓ = kTagSizeMeters.
      *   2) World corners r^n_{jc} = R^n_L r^L_{jc} + r^n_L  (from (8)).
      *   3) Camera frame r^c_{jc} = R^c_n (r^n_{jc} − r^n_C).
-     *   4) Projection u = π(K,R,t,r^c_{jc}) via Camera::vectorToPixel.
+     *   4) Projection u = π(K,dist, r^c_{jc}) via Camera::vectorToPixel.
      * Returns h_j(x) = [u1,v1, u2,v2, u3,v3, u4,v4]^T.
      */
     Eigen::Matrix<double,8,1> predictTagCorners(const Eigen::VectorXd& x,
@@ -77,14 +89,17 @@ protected:
     /// Autodiff-friendly overload; Scalar ∈ {double, autodiff::dual}.
     template<typename Scalar>
     Eigen::Matrix<Scalar,8,1> predictTagCornersT(const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x,
-                                                  const SystemSLAM& system,
-                                                  std::size_t idxLandmark) const;
+                                                 const SystemSLAM& system,
+                                                 std::size_t idxLandmark) const;
 
 private:
-    std::vector<int>  ids_;                     // Detected tag IDs (size N)
-    std::vector<int>  id_by_landmark_;          // Persistent mapping landmark→ID
-    std::vector<bool> is_visible_;              // Visibility at prior mean (|U| in (7))
-    std::vector<bool> is_effectively_associated_; // Associated this frame
+    std::vector<int>  ids_;                        // Detected tag IDs (size N)
+    std::vector<int>  id_by_landmark_;             // Persistent mapping landmark→ID
+    std::vector<bool> is_visible_;                 // Visibility at prior mean (|U| in (7))
+    std::vector<bool> is_effectively_associated_;  // Associated this frame
 
-    static constexpr double TAG_SIZE = 0.166;   // Tag edge length ℓ [m] (assignment)
+    // Back-compat in-class constant; forwards to header-level tunable.
+    static constexpr double TAG_SIZE = UniqueTagMeasCfg::kTagSizeMeters;
 };
+
+#endif // MEASUREMENTUNIQUETAGBUNDLE_H

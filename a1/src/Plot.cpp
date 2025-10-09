@@ -555,24 +555,34 @@ Plot::Plot(const Camera & camera)
     threeDimRenderer->AddActor(qpCamera.getActor());
     imageRenderer->AddActor2D(ip.getActor());
 
-    // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
+    // // ----------------------------------------------------------------- Alter camera view setting for VTK (x, y, z)
     // threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    // threeDimRenderer->GetActiveCamera()->Elevation(-200);
+    // threeDimRenderer->GetActiveCamera()->Elevation(-100);
     // // rFNn
-    // threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
+    // threeDimRenderer->GetActiveCamera()->SetFocalPoint(0,0,2);
     // // rCNn
-    // double sc = 50.0; // 15
-    // threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
-    // threeDimRenderer->GetActiveCamera()->SetViewUp(0.0,0.0,-1.0); // (0,0,-1)
+    // double sc = 15; // 15
+    // threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.5*sc, -0.5*sc);
+    // threeDimRenderer->GetActiveCamera()->SetViewUp(0,-1,0); // (0,0,-1)
 
-    threeDimRenderer->GetActiveCamera()->Azimuth(0);
-    threeDimRenderer->GetActiveCamera()->Elevation(-200);
-    // rFNn
-    threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
-    // rCNn
-    double sc = 30.0; // 15
-    threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
-    threeDimRenderer->GetActiveCamera()->SetViewUp(0,0,-1); // (0,0,-1)
+    // // threeDimRenderer->GetActiveCamera()->Azimuth(0);
+    // // threeDimRenderer->GetActiveCamera()->Elevation(-200);
+    // // // rFNn
+    // // threeDimRenderer->GetActiveCamera()->SetFocalPoint(1,0,0);
+    // // // rCNn
+    // // double sc = 30.0; // 15
+    // // threeDimRenderer->GetActiveCamera()->SetPosition(-0.4*sc, -0.6*sc, -0.5*sc);
+    // // threeDimRenderer->GetActiveCamera()->SetViewUp(0,0,-1); // (0,0,-1)
+// Default camera setup (will be overridden in render() once scenario is known)
+    {
+        auto* cam = threeDimRenderer->GetActiveCamera();
+        cam->Azimuth(0);
+        cam->Elevation(-100);
+        cam->SetFocalPoint(0,0,2);
+        double sc = 15.0;
+        cam->SetPosition(-0.4*sc, -0.5*sc, -0.5*sc);
+        cam->SetViewUp(0,-1,0);
+    }
 
 
 
@@ -598,15 +608,50 @@ Right pane (world):
   • Color mapping: blue = visible + associated; red = visible but unassociated;
     yellow = not visible.
   • Frustum and axes use the current camera mean pose.
-
-Equations referenced:
-  – Process/visibility prediction via camera and landmark means aligns with (4)–(5).
-  – Association status derives from the unique tag IDs in Scenario 1 and the |U|
-    term in (7).
 */
 void Plot::render()
 {
-    // Camera frustum & color
+    // --- Select and apply camera preset once per measurement type ---
+    auto applyPreset = [&](int preset){
+        auto* cam = threeDimRenderer->GetActiveCamera();
+        if (preset == 1) {
+            // Scenario 1 (tags)
+            cam->Azimuth(0);
+            cam->Elevation(-100);
+            cam->SetFocalPoint(0,0,2);
+            double sc = 15.0;
+            cam->SetPosition(0.4*sc, -0.5*sc, -0.5*sc);
+            cam->SetViewUp(0,-1,0);
+        } else {
+            // Scenario 2/3 (ducks/points)
+            cam->Azimuth(0);
+            cam->Elevation(-200);
+            cam->SetFocalPoint(0,0,2);
+            double sc = 15.0;
+            cam->SetPosition(-0.5*sc, -0.8*sc, -0.3*sc);
+            cam->SetViewUp(-1,0,0);
+        }
+    };
+
+    // Infer scenario from measurement type
+    int scenarioPreset = 3; // default to 2/3 view
+    if (dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
+        scenarioPreset = 1;
+    } else if (dynamic_cast<const MeasurementSLAMDuckBundle*>(pMeasurement.get())) {
+        scenarioPreset = 2; // use 2/3 view
+    } else {
+        // MeasurementSLAMPointBundle or others → use 2/3 view
+        scenarioPreset = 3;
+    }
+
+    // Apply only when preset changes (static across frames)
+    static int lastPresetApplied = 0;
+    if (lastPresetApplied != scenarioPreset) {
+        applyPreset(scenarioPreset);
+        lastPresetApplied = scenarioPreset;
+    }
+
+    // --- Camera frustum & color ---
     double r, g, b;
     hsv2rgb(330, 1., 1., r, g, b);
     qpCamera.update(pSystem->cameraPositionDensity(camera));
@@ -640,18 +685,14 @@ void Plot::render()
         );
     };
 
-    // DEBUG: overall counts (uncomment to enable)
-    // std::printf("[Plot] render: nLM=%zu, img=%dx%d\n",
-    //             pSystem->numberLandmarks(), camera.imageSize.width, camera.imageSize.height);
-
     for (std::size_t i = 0; i < pSystem->numberLandmarks(); ++i)
     {
         const GaussianInfo<double> posDen = pSystem->landmarkPositionDensity(i);
         const Eigen::Vector3d rLNn = posDen.mean();
 
-        bool centerInFOV   = isLandmarkCenterVisible(rLNn);
-        bool isDetected    = false;
-        bool isIdentifiable = false; // draw 2D ellipse only if identifiable & visible
+        bool centerInFOV    = isLandmarkCenterVisible(rLNn);
+        bool isDetected     = false;
+        bool isIdentifiable = false;
 
         if (const auto* tagMeas = dynamic_cast<const MeasurementSLAMUniqueTagBundle*>(pMeasurement.get())) {
             isDetected     = tagMeas->isEffectivelyAssociated(i);
@@ -659,71 +700,50 @@ void Plot::render()
         } else if (const auto* duckMeas = dynamic_cast<const MeasurementSLAMDuckBundle*>(pMeasurement.get())) {
             const auto& idxF = duckMeas->idxFeatures();
             if (i < idxF.size()) isDetected = (idxF[i] >= 0);
-            isIdentifiable = true; // ducks are treated as identifiable points
+            isIdentifiable = true; // points are identifiable for drawing
+        } else {
+            // Generic point bundle
+            isIdentifiable = true;
         }
 
-        // Colors: left=image (blue if detected, red otherwise)
+        // Colors
         double cr_left, cg_left, cb_left;
         if (isDetected) { cr_left = 0.0; cg_left = 0.5; cb_left = 1.0; }
         else            { cr_left = 1.0; cg_left = 0.25; cb_left = 0.25; }
 
-        // Colors: right=world (blue=visible&detected, red=visible only, yellow=not visible)
         double cr_right, cg_right, cb_right;
         if (centerInFOV && isDetected)      { cr_right = 0.0; cg_right = 0.5; cb_right = 1.0; }
         else if (!centerInFOV)              { cr_right = 1.0; cg_right = 1.0; cb_right = 0.0; }
         else                                { cr_right = 1.0; cg_right = 0.25; cb_right = 0.25; }
 
-        // DEBUG: per-LM status (uncomment to enable)
-        // std::printf("[Plot] LM%zu: FOV=%d det=%d ident=%d\n", i, (int)centerInFOV, (int)isDetected, (int)isIdentifiable);
-
-        // Draw 2D predicted ellipse in image if identifiable & visible
+        // Left pane ellipse if identifiable & visible
         if (isIdentifiable && centerInFOV) {
             try {
                 GaussianInfo<double> prQOi = pMeasurement->predictFeatureDensity(*pSystem, i);
                 const Eigen::Vector2d pixMean = prQOi.mean();
 
-                // DEBUG: predicted pixel & covariance (uncomment to enable)
-                // std::printf("[Plot]   LM%zu pix=(%.1f,%.1f) detS=%.3e\n",
-                //             i, pixMean.x(), pixMean.y(), prQOi.cov().determinant());
-
                 if (camera.isPixelInside(pixMean)) {
                     const Eigen::Matrix2d S = prQOi.sqrtCov();
                     if (S.allFinite()) {
-
-                        const double a = S.col(0).norm() * 3.0; // 3σ
+                        const double a = S.col(0).norm() * 3.0;
                         const double b = S.col(1).norm() * 3.0;
                         const double IMG_DIAG = std::hypot(camera.imageSize.width, camera.imageSize.height);
-
-                        // skip drawing crazy ellipses
-                        if (!(std::isfinite(a) && std::isfinite(b)) || a > 0.5*IMG_DIAG || b > 0.5*IMG_DIAG) {
-                            // optional: print once every N frames if you want
-                            continue;
+                        if (std::isfinite(a) && std::isfinite(b) && a <= 0.5*IMG_DIAG && b <= 0.5*IMG_DIAG) {
+                            Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
+                            plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
+                            const std::string label = "LM " + std::to_string(i);
+                            cv::putText(pSystem->view(), label,
+                                cv::Point(static_cast<int>(pixMean.x() + 15),
+                                          static_cast<int>(pixMean.y() - 15)),
+                                cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                                cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                         }
-
-                        Eigen::Vector3d rgb2d_left(cr_left*255.0, cg_left*255.0, cb_left*255.0);
-                        plotGaussianConfidenceEllipse(pSystem->view(), prQOi, rgb2d_left);
-
-                        // label near the predicted pixel
-                        const std::string label = "LM " + std::to_string(i);
-                        cv::putText(pSystem->view(), label,
-                            cv::Point(static_cast<int>(pixMean.x() + 15),
-                                      static_cast<int>(pixMean.y() - 15)),
-                            cv::FONT_HERSHEY_SIMPLEX, 0.5,
-                            cv::Scalar(cb_left*255.0, cg_left*255.0, cr_left*255.0), 1);
                     }
-                    // else DEBUG: mean outside image
-                    // else std::printf("[Plot]   LM%zu mean outside image\n", i);
                 }
-                // else DEBUG: prediction failed gate
-                // else std::printf("[Plot]   LM%zu: predictFeatureDensity not drawable\n", i);
-            }
-            catch (const std::exception& e) {
-                // DEBUG: exception details
-                // std::printf("[Plot]   LM%zu exception: %s\n", i, e.what());
-            }
+            } catch (...) { /* ignore drawing errors */ }
         }
 
-        // Update 3D landmark ellipsoid (right pane)
+        // Right pane: landmark ellipsoid
         QuadricPlot& qp = qpLandmarks[i];
         qp.update(posDen);
         qp.getActor()->GetProperty()->SetOpacity(0.5);
@@ -731,15 +751,18 @@ void Plot::render()
         qp.bounds.setExtremity(globalBounds);
     }
 
-    // Update axes, frustum, and image panels
+    // Update axes, frustum, image
     ap.update(globalBounds);
-    bp.update(rCNn, Thetanc);
-    fp.update(rCNn, Thetanc);
+    // Note: rCNn/Thetanc computed above
+    bp.update(pSystem->cameraPositionDensity(camera).mean(),
+              pSystem->cameraOrientationEulerDensity(camera).mean());
+    fp.update(pSystem->cameraPositionDensity(camera).mean(),
+              pSystem->cameraOrientationEulerDensity(camera).mean());
     ip.update(pSystem->view());
 
-    // Render final composited frame
     renderWindow->Render();
 }
+
 
 
 void Plot::start() const

@@ -1,3 +1,4 @@
+// MeasurementSLAMDuckBundle.cpp
 #include "MeasurementSLAMDuckBundle.h"
 
 #include <numeric>
@@ -5,12 +6,24 @@
 #include <autodiff/forward/dual.hpp>
 #include <autodiff/forward/dual/eigen.hpp>
 
+// ============================================================================
+// Tunables (centralised)
+// ============================================================================
+// Small positive lower-bound used when converting detection area → depth.
+// Prevents division-by-zero and suppresses extreme depths for tiny/degenerate areas.
+namespace {
+    constexpr double kAreaEps = 1e-6;
+}
+
 // ===== Thread-local selection cache (mirrors MeasurementSLAMPointBundle.cpp) =====
+// Caches the one-shot association selection within a single evaluation chain so that
+// repeated calls (value / grad / Hessian) reuse the same subset consistently.
 namespace {
     thread_local bool tl_assoc_ready_duck = false;
     thread_local std::vector<std::size_t> tl_idxUseLandmarks_duck;
     thread_local std::vector<int>         tl_idxUseFeatures_duck;
 
+    // Build association index lists once per evaluation chain.
     inline void ensureDuckAssociatedOnce(const SystemSLAM& sys,
                                          const Eigen::Matrix<double,2,Eigen::Dynamic>& Y,
                                          const std::vector<int>& idxFeatures)
@@ -36,6 +49,7 @@ namespace {
         tl_assoc_ready_duck = true;
     }
 
+    // Reset the thread-local cache after each likelihood evaluation sequence.
     inline void clearDuckAssociationScratch()
     {
         tl_assoc_ready_duck = false;
@@ -57,11 +71,11 @@ MeasurementSLAMDuckBundle::MeasurementSLAMDuckBundle(double time,
 , rDuck_(duck_radius_m)
 , sigmaA_(sigma_area)
 {
-    // Reuse base class sigma_ for pixel residuals
+    // Reuse base-class pixel noise for (u,v) residuals.
     this->sigma_ = sigma_px;
 
-    // Use a robust trust-region method (same default you used in your edited PointBundle)
-    // this->updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
+    // Optional: trust-region update method can be enabled if desired.
+    this->updateMethod_ = UpdateMethod::NEWTONTRUSTEIG;
 }
 
 MeasurementSLAM* MeasurementSLAMDuckBundle::clone() const
@@ -70,29 +84,31 @@ MeasurementSLAM* MeasurementSLAMDuckBundle::clone() const
 }
 
 // ===== Single landmark predict: [u, v, A]^T (templated) =====
+// Maps world landmark j through the current camera pose into pixel (u,v)
+// and predicts apparent area using A = (fx * fy * π * r^2) / Z^2.
 template <typename Scalar>
 Eigen::Matrix<Scalar,3,1>
 MeasurementSLAMDuckBundle::predictDuckFeature(const Eigen::Matrix<Scalar,-1,1>& x,
                                               const SystemSLAM& system,
                                               std::size_t idxLandmark) const
 {
-    // (1) Camera pose from state
+    // (1) Camera pose from state.
     Pose<Scalar> Tnc;
     Tnc.translationVector = system.cameraPosition(camera_, x);
     Tnc.rotationMatrix    = system.cameraOrientation(camera_, x);
 
-    // (2) Landmark world position from state
+    // (2) Landmark world position from state.
     const std::size_t idx = system.landmarkPositionIndex(idxLandmark);
     Eigen::Matrix<Scalar,3,1> rPNn = x.template segment<3>(idx);
 
-    // (3) Transform to camera coordinates: rPCc = Rcn * (rPNn - rCNn)
+    // (3) Transform to camera coordinates: rPCc = Rcn * (rPNn - rCNn).
     const Eigen::Matrix<Scalar,3,3> Rcn = Tnc.rotationMatrix.transpose();
     const Eigen::Matrix<Scalar,3,1> rPCc = Rcn * (rPNn - Tnc.translationVector);
 
-    // (4) Project to pixels [u,v] using calibrated, distorted model
+    // (4) Project to pixels [u,v] using calibrated, distorted model.
     const Eigen::Matrix<Scalar,2,1> uv = camera_.vectorToPixel(rPCc);
 
-    // (5) Area model: A_hat = (fx * fy * pi * r^2) / Z^2
+    // (5) Area model: A_hat = (fx * fy * π * r^2) / Z^2.
     const Scalar fx = static_cast<Scalar>(camera_.cameraMatrix.at<double>(0,0));
     const Scalar fy = static_cast<Scalar>(camera_.cameraMatrix.at<double>(1,1));
     const Scalar Zc = rPCc(2);
@@ -134,6 +150,7 @@ MeasurementSLAMDuckBundle::predictDuckFeature(const Eigen::VectorXd& x,
 }
 
 // ===== Bundle prediction (templated) =====
+// Stacks [u v A]^T for a subset of landmarks into a single vector.
 template <typename Scalar>
 Eigen::Matrix<Scalar,-1,1>
 MeasurementSLAMDuckBundle::predictDuckBundle(const Eigen::Matrix<Scalar,-1,1>& x,
@@ -178,19 +195,22 @@ MeasurementSLAMDuckBundle::predictDuckBundle(const Eigen::VectorXd& x,
     return y;
 }
 
+// Provide a specific subset of landmarks to consider during association/update.
 void MeasurementSLAMDuckBundle::setCandidateLandmarks(const std::vector<std::size_t>& idx)
 {
     candidateLandmarks_ = idx;
 }
 
 // ===== Log-likelihood (value) =====
+// Builds the selection once (thread-local), then evaluates the diagonal-weighted
+// Gaussian log-likelihood for stacked residuals (u, v, A) per associated LM.
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
                                          const SystemEstimator& system_) const
 {
     const SystemSLAM& sys = dynamic_cast<const SystemSLAM&>(system_);
 
-    // Build association selection once per evaluation chain
+    // Build association selection once per evaluation chain.
     ensureDuckAssociatedOnce(sys, Y_, idxFeatures_);
 
     if (tl_idxUseLandmarks_duck.empty()) {
@@ -230,6 +250,7 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
 }
 
 // ===== Log-likelihood (value + gradient) =====
+// Uses cached association; computes y, h(x), residuals, and accumulates J^T W r.
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
                                          const SystemEstimator& system_,
@@ -260,7 +281,7 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
         const double invRuv = 1.0 / (sigma_ * sigma_);
         const double invRA  = 1.0 / (sigmaA_ * sigmaA_);
 
-        // g = J^T * W * r  (W is diagonal)
+        // g = J^T * W * r  (W is diagonal).
         for (std::size_t i = 0; i < k; ++i) {
             const double w0 = invRuv, w1 = invRuv, w2 = invRA;
             g.noalias() += J.row(3*i + 0).transpose() * (w0 * r(3*i + 0));
@@ -269,11 +290,13 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
         }
     }
 
-    // Also return scalar value (reusing the selection and clearing it)
+    // Also return scalar value (reusing the selection and clearing it).
     return logLikelihood(x, system_);
 }
 
 // ===== Log-likelihood (value + gradient + Hessian) =====
+// Computes Gauss–Newton approximation: H ≈ -J^T W J (block-diagonal per [u v A]),
+// together with the gradient accumulation.
 double
 MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
                                          const SystemEstimator& system_,
@@ -305,7 +328,7 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
         const double invRuv = 1.0 / (sigma_ * sigma_);
         const double invRA  = 1.0 / (sigmaA_ * sigmaA_);
 
-        // g = J^T * W * r,   H ≈ - J^T * W * J  (Gauss–Newton)
+        // g = J^T * W * r,   H ≈ - J^T * W * J.
         for (std::size_t i = 0; i < k; ++i) {
             const double w0 = invRuv, w1 = invRuv, w2 = invRA;
             const auto J0 = J.row(3*i + 0);
@@ -322,25 +345,14 @@ MeasurementSLAMDuckBundle::logLikelihood(const Eigen::VectorXd& x,
         }
     }
 
-    // Return scalar value (gradient overload keeps selection cached)
+    // Return scalar value (gradient overload keeps selection cached).
     return logLikelihood(x, system_, g);
 }
 
 // ===== Update: perform association on 2D and then call base Measurement::update =====
-// void
-// MeasurementSLAMDuckBundle::update(SystemBase& system)
-// {
-//     SystemSLAM& sys = dynamic_cast<SystemSLAM&>(system);
-
-//     // Use SNN association from the base class (2D only) so idxFeatures_ is filled
-//     std::vector<std::size_t> idxLandmarks(sys.numberLandmarks());
-//     std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
-//     associate(sys, idxLandmarks);
-
-//     // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood
-//     Measurement::update(system);
-// }
-
+// Associates features to candidate landmarks using the base 2D SNN/compatibility
+// logic (fills idxFeatures_), then executes the standard nonlinear update that
+// uses the (u,v,A) likelihood defined above.
 void
 MeasurementSLAMDuckBundle::update(SystemBase& system)
 {
@@ -355,12 +367,12 @@ MeasurementSLAMDuckBundle::update(SystemBase& system)
         std::iota(idxLandmarks.begin(), idxLandmarks.end(), 0);
     }
 
-    // Use SNN association from the base (2D) to fill idxFeatures_ (as in labs)
-    associate(sys, idxLandmarks);   // <-- calls your existing SNN/compatibility logic
+    // Use SNN association from the base (2D) to fill idxFeatures_ (as in labs).
+    associate(sys, idxLandmarks);
 
-    // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood
+    // Proceed with the standard nonlinear update using our 3D (u,v,A) likelihood.
     Measurement::update(system);
 
-    // One-shot: clear candidates so next call defaults to "all" unless set again
+    // One-shot: clear candidates so next call defaults to "all" unless set again.
     candidateLandmarks_.clear();
 }

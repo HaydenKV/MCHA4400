@@ -163,21 +163,21 @@ endif()
 
 # -------------------------------------------------- comment out to disble tests vv--------------------------------------------------
 # Unit tests
-# add_executable(${TARGET_TEST} ${SRC_TEST})
-# if(SRC_LIB)
-#     target_link_libraries(${TARGET_TEST} ${TARGET_LIB})
-# endif()
-# target_link_libraries(${TARGET_TEST} ${LIBS})
-# target_link_libraries(${TARGET_TEST} doctest::doctest)
+add_executable(${TARGET_TEST} ${SRC_TEST})
+if(SRC_LIB)
+    target_link_libraries(${TARGET_TEST} ${TARGET_LIB})
+endif()
+target_link_libraries(${TARGET_TEST} ${LIBS})
+target_link_libraries(${TARGET_TEST} doctest::doctest)
 
-# # Run unit tests after building executables
-# add_custom_target(run_tests ALL
-#     COMMAND ${TARGET_TEST} --no-intro --force-colors=true
-#     DEPENDS ${TARGET_TEST}
-#     DEPENDS ${TARGET_BIN}
-#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#     COMMENT "Running tests"
-# )
+# Run unit tests after building executables
+add_custom_target(run_tests ALL
+    COMMAND ${TARGET_TEST} --no-intro --force-colors=true
+    DEPENDS ${TARGET_TEST}
+    DEPENDS ${TARGET_BIN}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running tests"
+)
 # -------------------------------------------------- comment out to disble tests ^^--------------------------------------------------
 
 set_property(GLOBAL PROPERTY TARGET_MESSAGES OFF)

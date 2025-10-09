@@ -22,6 +22,18 @@ double \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a2b991ad75ec9c98a4cae979f
 \begin{DoxyCompactList}\small\item\em Calculate the log-\/likelihood, its gradient, and Hessian. \end{DoxyCompactList}\item 
 \Hypertarget{classMeasurementSLAMDuckBundle_a79b9a0a8f1ff1e6accf7293e7c3e4170}\label{classMeasurementSLAMDuckBundle_a79b9a0a8f1ff1e6accf7293e7c3e4170} 
 void {\bfseries set\+Candidate\+Landmarks} (const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx)
+\item 
+\Hypertarget{classMeasurementSLAMDuckBundle_a37d5a556e823e0f9f782f7196a4217c2}\label{classMeasurementSLAMDuckBundle_a37d5a556e823e0f9f782f7196a4217c2} 
+{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 3, 1 $>$ {\bfseries predict\+Duck\+Feature} (const Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\item 
+\Hypertarget{classMeasurementSLAMDuckBundle_af5302c1bbb3b0afc3597fbeeed81b1c1}\label{classMeasurementSLAMDuckBundle_af5302c1bbb3b0afc3597fbeeed81b1c1} 
+Eigen\+::\+Vector3d {\bfseries predict\+Duck\+Feature} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
+\item 
+\Hypertarget{classMeasurementSLAMDuckBundle_aeb316d7d6a7babff570d1997391ea5cd}\label{classMeasurementSLAMDuckBundle_aeb316d7d6a7babff570d1997391ea5cd} 
+{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ {\bfseries predict\+Duck\+Bundle} (const Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const
+\item 
+\Hypertarget{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0}\label{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0} 
+Eigen\+::\+Vector\+Xd {\bfseries predict\+Duck\+Bundle} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions inherited from \mbox{\hyperlink{classMeasurementPointBundle}{Measurement\+Point\+Bundle}}}
 \begin{DoxyCompactItemize}
@@ -77,19 +89,7 @@ void \mbox{\hyperlink{classEvent_a0a4e814f472c519ace0a22f1a23acb0a}{process}} (\
 \begin{DoxyCompactItemize}
 \item 
 void \mbox{\hyperlink{classMeasurementSLAMDuckBundle_a64e065a44ab54c16b21b6d9a1a507b17}{update}} (\mbox{\hyperlink{classSystemBase}{System\+Base}} \&system) override
-\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\item 
-\Hypertarget{classMeasurementSLAMDuckBundle_a37d5a556e823e0f9f782f7196a4217c2}\label{classMeasurementSLAMDuckBundle_a37d5a556e823e0f9f782f7196a4217c2} 
-{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar, 3, 1 $>$ {\bfseries predict\+Duck\+Feature} (const Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\item 
-\Hypertarget{classMeasurementSLAMDuckBundle_af5302c1bbb3b0afc3597fbeeed81b1c1}\label{classMeasurementSLAMDuckBundle_af5302c1bbb3b0afc3597fbeeed81b1c1} 
-Eigen\+::\+Vector3d {\bfseries predict\+Duck\+Feature} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, std\+::size\+\_\+t idx\+Landmark) const
-\item 
-\Hypertarget{classMeasurementSLAMDuckBundle_aeb316d7d6a7babff570d1997391ea5cd}\label{classMeasurementSLAMDuckBundle_aeb316d7d6a7babff570d1997391ea5cd} 
-{\footnotesize template$<$typename Scalar$>$ }\\Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ {\bfseries predict\+Duck\+Bundle} (const Eigen\+::\+Matrix$<$ Scalar,-\/1, 1 $>$ \&x, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const
-\item 
-\Hypertarget{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0}\label{classMeasurementSLAMDuckBundle_a757296161fcf2a928d18feb5cbd6c0b0} 
-Eigen\+::\+Vector\+Xd {\bfseries predict\+Duck\+Bundle} (const Eigen\+::\+Vector\+Xd \&x, Eigen\+::\+Matrix\+Xd \&J, const \mbox{\hyperlink{classSystemSLAM}{System\+SLAM}} \&system, const std\+::vector$<$ std\+::size\+\_\+t $>$ \&idx\+Landmarks) const
-\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Update the system based on this measurement. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Protected Member Functions inherited from \mbox{\hyperlink{classMeasurement}{Measurement}}}
 \begin{DoxyCompactItemize}
 \item 

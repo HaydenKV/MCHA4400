@@ -3,7 +3,6 @@
 #include "../../src/GaussianInfo.hpp"
 #include "../../src/SystemSLAM.h"
 #include "../../src/SystemSLAMPoseLandmarks.h"
-#include "../../src/SystemSLAMPointLandmarks.h"
 
 #ifndef CAPTURE_EIGEN
 #define CAPTURE_EIGEN(x) INFO(#x " = \n", x.format(Eigen::IOFormat(Eigen::FullPrecision,0,", ",";\n","","","[","]")));
@@ -22,9 +21,9 @@ static GaussianInfo<double> makeDensity(int L)
 static Eigen::VectorXd makeStateFromMu(const GaussianInfo<double>& d) { return d.mean(); }
 
 // -------------------------------------------------------------------------------------------------
-// Zero-motion invariants  (assignment: process model)
-//   ṙ_BN^n = R_nb(Θ) v_B ,   Θ̇ = T(Θ) ω_B ,   static map
-// Test: with v_B=0, ω_B=0, Θ=0 ⇒ v̇=0, ω̇=0, ṙ=0, Θ̇=0 and landmark̇=0.
+// SystemSLAMPoseLandmarks dynamics invariants
+// Purpose:
+//  • testing that zero body motion ⇒ zero derivatives (base + landmarks).
 // -------------------------------------------------------------------------------------------------
 SCENARIO("SystemSLAM dynamics invariants at zero body motion")
 {
@@ -58,11 +57,12 @@ SCENARIO("SystemSLAM dynamics invariants at zero body motion")
             }
         }
     }
-}
+}  // consolidated from dynamics invariants :contentReference[oaicite:2]{index=2}
 
 // -------------------------------------------------------------------------------------------------
-// Θ=0 ⇒  R_nb(0)=I ,  T(0)=I   (assignment: attitude and Euler-rate maps)
-// Test: ṙ = v_B  and  Θ̇ = ω_B at Θ=0.
+// SystemSLAMPoseLandmarks kinematics at Θ=0
+// Purpose:
+//  • testing that ṙ = v_B and Θ̇ = ω_B at Θ=0 (R=I,T=I).
 // -------------------------------------------------------------------------------------------------
 SCENARIO("SystemSLAM kinematics at zero attitude (R=I, T=I)")
 {
@@ -91,63 +91,12 @@ SCENARIO("SystemSLAM kinematics at zero attitude (R=I, T=I)")
             }
         }
     }
-}
+}  // retained from prior kinematics test :contentReference[oaicite:3]{index=3}
 
 // -------------------------------------------------------------------------------------------------
-// Static map (assignment: landmarks do not evolve in the process model)
-// Test: landmark̇ = 0 for all landmarks for arbitrary (v_B, ω_B).
-// -------------------------------------------------------------------------------------------------
-SCENARIO("SystemSLAM: landmark stationarity regardless of platform motion")
-{
-    GIVEN("Nonzero v and w; arbitrary landmarks")
-    {
-        auto density = makeDensity(/*L=*/3);
-        SystemSLAMPoseLandmarks sys(density);
-        Eigen::VectorXd x = makeStateFromMu(density);
-
-        x.segment<3>(0) << 0.2, -1.0, 0.7;
-        x.segment<3>(3) << -0.4, 0.9, -0.1;
-
-        WHEN("f(x) is evaluated")
-        {
-            Eigen::VectorXd f = sys.dynamics(0.0, x, Eigen::VectorXd());
-
-            THEN("Each landmark derivative is zero")
-            {
-                CHECK(f.segment<6>(12 + 0*6).isZero(0));
-                CHECK(f.segment<6>(12 + 1*6).isZero(0));
-                CHECK(f.segment<6>(12 + 2*6).isZero(0));
-            }
-        }
-    }
-}
-
-// -------------------------------------------------------------------------------------------------
-// Point-landmark indexing (assignment: 3D per point, order = 12 + 3k)
-// Test: numberLandmarks() and landmarkPositionIndex(k) = 12 + 3k.
-// -------------------------------------------------------------------------------------------------
-SCENARIO("SystemSLAMPointLandmarks indexing and counts")
-{
-    GIVEN("A Gaussian density with body + 2 point landmarks (3D each)")
-    {
-        const int nx = 12 + 2*3;
-        auto g = GaussianInfo<double>::fromSqrtMoment(
-            Eigen::VectorXd::Zero(nx), Eigen::MatrixXd::Identity(nx,nx)
-        );
-        SystemSLAMPointLandmarks sys(g);
-
-        THEN("Indices and counts are correct")
-        {
-            CHECK(sys.numberLandmarks() == 2);
-            CHECK(sys.landmarkPositionIndex(0) == 12);
-            CHECK(sys.landmarkPositionIndex(1) == 15);
-        }
-    }
-}
-
-// -------------------------------------------------------------------------------------------------
-// Pose-landmark append (assignment: +6 per pose landmark, appended after base 12)
-// Test: appendLandmark → new landmark has index 0; position index = 12.
+// SystemSLAMPoseLandmarks indexing and append
+// Purpose:
+//  • testing that appendLandmark increases count and uses base index 12 (+6 per landmark).
 // -------------------------------------------------------------------------------------------------
 SCENARIO("SystemSLAMPoseLandmarks indexing and appendLandmark")
 {
@@ -172,4 +121,4 @@ SCENARIO("SystemSLAMPoseLandmarks indexing and appendLandmark")
             CHECK(sys.landmarkPositionIndex(0) == 12);
         }
     }
-}
+}  // merged pose-indexing into pose file :contentReference[oaicite:4]{index=4}

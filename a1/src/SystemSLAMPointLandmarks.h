@@ -11,7 +11,7 @@
  * [ vBNb     ]  Body translational velocity (body-fixed)
  * [ omegaBNb ]  Body angular velocity (body-fixed)
  * [ rBNn     ]  Body position (world-fixed)
- * x = [ Thetanb  ]  Body orientation (world-fixed)
+ * x = [ Thetanb  ]  Body orientation (world-fixed, Euler rpy)
  * [ rL1Nn    ]  Landmark 1 position (world-fixed)
  * [ rL2Nn    ]  Landmark 2 position (world-fixed)
  * [ ...      ]  ...
@@ -25,12 +25,12 @@ public:
     virtual std::size_t numberLandmarks() const override;
     virtual std::size_t landmarkPositionIndex(std::size_t idxLandmark) const override;
 
-    // NEW: append a single 3-D point landmark (position only), returns its index
+    // Append a single 3-D point landmark (position only), returns its index.
     std::size_t appendLandmark(const Eigen::Vector3d& rLNn,
                                const Eigen::Matrix3d& Spos);
 
     // Init new point landmarks from duck detections (centroids+areas).
-    // Assumes mask area model: A = (fx*fy*pi*r^2)/depth^2  => depth = sqrt(fx*fy*pi*r^2 / A)
+    // Area model: A = (fx*fy*pi*r^2)/depth^2  => depth = sqrt(fx*fy*pi*r^2 / A)
     std::size_t appendFromDuckDetections(const Camera& cam,
                                          const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
                                          const Eigen::VectorXd& A,
@@ -38,6 +38,7 @@ public:
                                          double duck_r_m,
                                          double pos_sigma_m);
 
+    // Miss counter and culling utilities.
     void updateFailureCounter(std::size_t j, bool incrementIfFailed);
     void cullFailed(int threshold = 50);
 

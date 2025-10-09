@@ -523,7 +523,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>verbosity_</b></td></t
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Predicts the 4 tag-corner pixel locations for landmark j: 1) Tag corners in tag frame from (9) with ℓ = TAG_SIZE. 2) World corners r^n_{jc} = R^n_L r^L_{jc} + r^n_L (from (8)). 3) <a class="el" href="structCamera.html">Camera</a> frame r^c_{jc} = R^c_n (r^n_{jc} − r^n_C). 4) Projection u = π(K,R,t,r^c_{jc}) via Camera::vectorToPixel. Returns h_j(x) = [u1,v1, u2,v2, u3,v3, u4,v4]^T. </p>
+<p>Predicts the 4 tag-corner pixel locations for landmark j: 1) Tag corners in tag frame from (9) with ℓ = kTagSizeMeters. 2) World corners r^n_{jc} = R^n_L r^L_{jc} + r^n_L (from (8)). 3) <a class="el" href="structCamera.html">Camera</a> frame r^c_{jc} = R^c_n (r^n_{jc} − r^n_C). 4) Projection u = π(K,dist, r^c_{jc}) via Camera::vectorToPixel. Returns h_j(x) = [u1,v1, u2,v2, u3,v3, u4,v4]^T. </p>
 
 </div>
 </div>

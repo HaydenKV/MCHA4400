@@ -9,22 +9,27 @@ SystemSLAMPointLandmarks::SystemSLAMPointLandmarks(const GaussianInfo<double> & 
     : SystemSLAM(density)
 {}
 
+// Creates an owned copy of this system instance.
 SystemSLAM * SystemSLAMPointLandmarks::clone() const
 {
     return new SystemSLAMPointLandmarks(*this);
 }
 
+// Returns the number of point landmarks (3 states each after the first 12 body states).
 std::size_t SystemSLAMPointLandmarks::numberLandmarks() const
 {
     return (density.dim() - 12) / 3;
 }
 
+// Returns the state index of the x-component of landmark j (layout: body(12) + 3*j).
 std::size_t SystemSLAMPointLandmarks::landmarkPositionIndex(std::size_t idxLandmark) const
 {
     assert(idxLandmark < numberLandmarks());
     return 12 + 3*idxLandmark;
 }
 
+// Appends a single 3-D point landmark with position rLNn and sqrt-covariance Spos.
+// The new independent prior is multiplied into the joint density.
 std::size_t SystemSLAMPointLandmarks::appendLandmark(const Eigen::Vector3d& rLNn,
                                                      const Eigen::Matrix3d& Spos)
 {
@@ -34,6 +39,10 @@ std::size_t SystemSLAMPointLandmarks::appendLandmark(const Eigen::Vector3d& rLNn
     return numberLandmarks() - 1;
 }
 
+// Appends landmarks from centroid+area detections (Scenario 2, Eq. (11)):
+//   depth^2 = (fx*fy*pi*duck_r_m^2) / A
+// Uses pixel ray → camera frame → world (via T_nc) to initialise positions.
+// Only detections with valid FOV and positive finite depth are appended.
 std::size_t SystemSLAMPointLandmarks::appendFromDuckDetections(const Camera& cam,
                                                                const Eigen::Matrix<double,2,Eigen::Dynamic>& Yuv,
                                                                const Eigen::VectorXd& A,
@@ -74,6 +83,7 @@ std::size_t SystemSLAMPointLandmarks::appendFromDuckDetections(const Camera& cam
     return nAdded;
 }
 
+// Updates the per-landmark consecutive miss counter (for culling policy).
 void SystemSLAMPointLandmarks::updateFailureCounter(std::size_t j, bool incrementIfFailed)
 {
     if (j >= failCount_.size()) failCount_.resize(numberLandmarks(), 0);
@@ -81,6 +91,7 @@ void SystemSLAMPointLandmarks::updateFailureCounter(std::size_t j, bool incremen
     else                   failCount_[j] = 0;
 }
 
+// Removes landmarks whose miss counter ≥ threshold by marginalising their states.
 void SystemSLAMPointLandmarks::cullFailed(int threshold)
 {
     if (failCount_.empty()) return;

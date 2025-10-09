@@ -125,7 +125,7 @@ $(function() {
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="comment"> *     [ vBNb     ]  Body translational velocity (body-fixed)</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="comment"> *     [ omegaBNb ]  Body angular velocity (body-fixed)</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="comment"> *     [ rBNn     ]  Body position (world-fixed)</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment"> *     [ Thetanb  ]  Body orientation (world-fixed)</span></div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment"> *     [ Thetanb  ]  Body orientation (world-fixed, Euler rpy)</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment"> * x = [ rL1Nn     ]  Landmark 1 position (world-fixed)</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment"> *     [ omegaL1Nc ]  Landmark 1 orientation (world-fixed)</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment"> *     [ rL2Nn     ]  Landmark 2 position (world-fixed)</span></div>
@@ -142,29 +142,14 @@ $(function() {
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">virtual</span> std::size_t numberLandmarks() <span class="keyword">const override</span>;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">virtual</span> std::size_t landmarkPositionIndex(std::size_t idxLandmark) <span class="keyword">const override</span>;</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="comment">// ===============================</span></div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="comment">// SystemSLAMPoseLandmarks::appendLandmark</span></div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    <span class="comment">// ===============================</span></div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    <span class="comment">// Appends a 6-DOF pose landmark to the SLAM state: [r_nj; Theta_nj] (position in world, Euler angles).</span></div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    <span class="comment">// Inputs:</span></div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="comment">//   rnj      : Eigen::Vector3d  (world position of tag/landmark)</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="comment">//   Thetanj  : Eigen::Vector3d  (landmark world orientation as Euler rpy [rad])</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    <span class="comment">//   Sj       : 6x6 upper-triangular sqrt-covariance for the landmark block</span></div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>    <span class="comment">// Returns:</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    <span class="comment">//   size_t index of the newly appended landmark (0-based among the pose landmarks).</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    <span class="comment">//</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    <span class="comment">// Notes:</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    <span class="comment">// - We expand the state&#39;s mean and sqrt-covariance by 6.</span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    <span class="comment">// - Cross-covariance between existing states and the new landmark is initialized to zero</span></div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    <span class="comment">//   (you can later add a data-driven cross term if you propagate uncertainties here).</span></div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    <span class="comment">// - Sj should be reasonably conservative; SLAM updates will tighten it.</span></div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    std::size_t appendLandmark(<span class="keyword">const</span> Eigen::Vector3d&amp; rnj,</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>                               <span class="keyword">const</span> Eigen::Vector3d&amp; Thetanj,</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>                               <span class="keyword">const</span> Eigen::Matrix&lt;double,6,6&gt;&amp; Sj);</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>};</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="comment">// Appends a 6-DOF pose landmark to the SLAM state: [r_nj; Theta_nj] (position in world, Euler angles).</span></div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    std::size_t appendLandmark(<span class="keyword">const</span> Eigen::Vector3d&amp; rnj,</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>                               <span class="keyword">const</span> Eigen::Vector3d&amp; Thetanj,</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>                               <span class="keyword">const</span> Eigen::Matrix&lt;double,6,6&gt;&amp; Sj);</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>};</div>
 </div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aGaussianInfo_8hpp_html"><div class="ttname"><a href="GaussianInfo_8hpp.html">GaussianInfo.hpp</a></div><div class="ttdoc">Defines the GaussianInfo class for representing Gaussian distributions using square-root information ...</div></div>
 <div class="ttc" id="aclassGaussianInfo_html"><div class="ttname"><a href="classGaussianInfo.html">GaussianInfo</a></div><div class="ttdoc">Represents a Gaussian distribution using the information form.</div><div class="ttdef"><b>Definition</b> GaussianInfo.hpp:36</div></div>
 <div class="ttc" id="aclassSystemEstimator_html_a3459a820d965e53e8984ffdf800ef790"><div class="ttname"><a href="classSystemEstimator.html#a3459a820d965e53e8984ffdf800ef790">SystemEstimator::density</a></div><div class="ttdeci">GaussianInfo&lt; double &gt; density</div><div class="ttdoc">The current state density estimate.</div><div class="ttdef"><b>Definition</b> SystemEstimator.h:40</div></div>

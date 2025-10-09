@@ -72,7 +72,7 @@ void DuckDetectorBase::postprocess(const std::vector<float> & class_scores_data,
             cv::threshold(resized_query_mask, binary_mask, 0.5, 1, cv::THRESH_BINARY);
             binary_mask.convertTo(binary_mask, CV_8U);
 
-            // ---- HARD AREA GATES (this is what stops "all-red" floods) ----
+            // ---- HARD AREA GATES ----
             const int area_px2 = cv::countNonZero(binary_mask);
             const double imgArea = static_cast<double>(imgout.cols) * imgout.rows;
             if (area_px2 < A_MIN_PX2 || area_px2 > A_MAX_PX2) {

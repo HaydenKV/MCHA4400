@@ -12,7 +12,10 @@
  *  - Extends the measurement vector with an area term per feature: [u, v, A]^T.
  *  - Likelihood uses diagonal noise (σ_px for u,v and σ_A for area).
  *
- * Usage: construct with (time, Yuv (2 x M), Avec (M), camera, duck_radius_m, sigma_px, sigma_area)
+ * Usage:
+ *   MeasurementSLAMDuckBundle(
+ *       time, Yuv (2xM), Avec (M), camera,
+ *       duck_radius_m, sigma_px, sigma_area )
  */
 class MeasurementSLAMDuckBundle : public MeasurementPointBundle
 {
@@ -27,7 +30,7 @@ public:
 
     MeasurementSLAM* clone() const override;
 
-    // Value / gradient / Hessian of log-likelihood with (u,v,A) per associated landmark
+    // Value / gradient / Hessian of log-likelihood with (u,v,A) per associated landmark.
     double logLikelihood(const Eigen::VectorXd& x,
                          const SystemEstimator& system) const override;
 
@@ -40,9 +43,8 @@ public:
                          Eigen::VectorXd& g,
                          Eigen::MatrixXd& H) const override;
 
+    // Optional: restrict association/update to a subset of landmark indices.
     void setCandidateLandmarks(const std::vector<std::size_t>& idx);
-protected:
-    void update(SystemBase& system) override;
 
     // ---- Single landmark prediction: [u, v, A]^T ----
     template <typename Scalar>
@@ -66,11 +68,16 @@ protected:
                                       const SystemSLAM& system,
                                       const std::vector<std::size_t>& idxLandmarks) const;
 
+protected:
+    // Performs 2D association via the base class, then runs the nonlinear update
+    // using the (u,v,A) likelihood.
+    void update(SystemBase& system) override;
+
 private:
-    Eigen::VectorXd A_;      // detected areas (length M; same column order as Y_)
-    double rDuck_;           // duck radius in meters (Lab 3 prior)
-    double sigmaA_;          // std-dev of area measurement (pixels^2 units)
-    std::vector<std::size_t> candidateLandmarks_;
+    Eigen::VectorXd A_;      // Detected areas (length M; same column order as Y_).
+    double rDuck_;           // Duck radius in meters (used in area model).
+    double sigmaA_;          // Std-dev of area measurement (pixels^2 units).
+    std::vector<std::size_t> candidateLandmarks_; // Optional subset for association.
 };
 
-#endif
+#endif // MEASUREMENTSLAMDUCKBUNDLE_H
